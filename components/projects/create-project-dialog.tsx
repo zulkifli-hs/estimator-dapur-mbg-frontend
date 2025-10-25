@@ -223,7 +223,7 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess }: CreatePro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] max-w-[1600px] max-h-[92vh] overflow-y-auto">
+      <DialogContent className="w-[90vw] max-w-5xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl">Create New Project</DialogTitle>
           <DialogDescription>Add a new interior design project with complete details</DialogDescription>
@@ -239,7 +239,7 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess }: CreatePro
           {/* Project Basic Info */}
           <div className="space-y-4">
             <h3 className="font-semibold text-lg border-b pb-2">Project Information</h3>
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="name">Project Name *</Label>
                 <Input
@@ -311,7 +311,7 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess }: CreatePro
           {/* Client Company Info */}
           <div className="space-y-4">
             <h3 className="font-semibold text-lg border-b pb-2">Client Company</h3>
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="companyClient.name">Company Name *</Label>
                 <Input
@@ -407,7 +407,7 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess }: CreatePro
           {/* Client Contact Person */}
           <div className="space-y-4">
             <h3 className="font-semibold text-lg border-b pb-2">Client Contact Person</h3>
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="client.name">Name *</Label>
                 <Input
@@ -452,7 +452,7 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess }: CreatePro
             <p className="text-sm text-muted-foreground">
               Add team member emails one by one. Each email will be validated.
             </p>
-            <div className="grid gap-6 md:grid-cols-3">
+            <div className="grid gap-6 md:grid-cols-2">
               <TeamMemberInput
                 label="Estimators"
                 emails={formData.estimators}
@@ -485,15 +485,13 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess }: CreatePro
                 disabled={loading}
               />
 
-              <div className="md:col-span-2">
-                <TeamMemberInput
-                  label="Admins (All Roles)"
-                  emails={formData.admins}
-                  onAdd={(email) => handleAddEmail("admins", email)}
-                  onRemove={(email) => handleRemoveEmail("admins", email)}
-                  disabled={loading}
-                />
-              </div>
+              <TeamMemberInput
+                label="Admins (All Roles)"
+                emails={formData.admins}
+                onAdd={(email) => handleAddEmail("admins", email)}
+                onRemove={(email) => handleRemoveEmail("admins", email)}
+                disabled={loading}
+              />
             </div>
           </div>
 

@@ -223,7 +223,7 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess }: CreatePro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[90vw] max-w-5xl max-h-[92vh] overflow-y-auto">
+      <DialogContent className="w-[90vw] max-w-4xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl">Create New Project</DialogTitle>
           <DialogDescription>Add a new interior design project with complete details</DialogDescription>

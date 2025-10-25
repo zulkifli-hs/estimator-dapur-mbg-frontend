@@ -23,11 +23,19 @@ export function ProjectInvoice({ projectId }: ProjectInvoiceProps) {
   const loadTermins = async () => {
     try {
       const response = await terminApi.getByProject(projectId)
+      console.log("[v0] Termin response:", response)
+
       if (response.success && response.data) {
-        setTermins(response.data)
+        if (Array.isArray(response.data)) {
+          setTermins(response.data)
+        } else {
+          console.error("[v0] Termin data is not an array:", response.data)
+          setTermins([])
+        }
       }
     } catch (error) {
       console.error("Failed to load termins:", error)
+      setTermins([])
     } finally {
       setLoading(false)
     }

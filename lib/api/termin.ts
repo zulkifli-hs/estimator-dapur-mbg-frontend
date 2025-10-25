@@ -38,9 +38,27 @@ export const updateTerminFormat = async (
 
 // Get all termins for a project
 export const getTerminList = async (projectId: string): Promise<Termin[]> => {
-  return apiRequest<Termin[]>(`/projects/${projectId}/termin`, {
+  const response = await apiRequest<any>(`/projects/${projectId}/termin`, {
     method: "GET",
   })
+
+  // Handle paginated response structure
+  if (response.data && Array.isArray(response.data.list)) {
+    return response.data.list
+  }
+
+  // Handle direct array response
+  if (response.data && Array.isArray(response.data.termins)) {
+    return response.data.termins
+  }
+
+  // Handle direct array in data
+  if (Array.isArray(response.data)) {
+    return response.data
+  }
+
+  console.error("[v0] Unexpected termin response structure:", response)
+  return []
 }
 
 // Get specific termin

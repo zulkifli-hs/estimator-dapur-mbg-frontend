@@ -4,13 +4,26 @@ import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Edit, Trash2 } from "lucide-react"
+import {
+  ArrowLeft,
+  Edit,
+  Trash2,
+  LayoutDashboard,
+  Layout,
+  Calculator,
+  TrendingUp,
+  FileText,
+  FolderOpen,
+  Users,
+} from "lucide-react"
 import { projectsApi } from "@/lib/api/projects"
 import { ProjectOverview } from "@/components/projects/project-overview"
-import { ProjectDocuments } from "@/components/projects/project-documents"
-import { ProjectAlbums } from "@/components/projects/project-albums"
+import { ProjectLayout } from "@/components/projects/project-layout"
 import { ProjectBOQ } from "@/components/projects/project-boq"
-import { ProjectTermin } from "@/components/projects/project-termin"
+import { ProjectProgress } from "@/components/projects/project-progress"
+import { ProjectInvoice } from "@/components/projects/project-invoice"
+import { ProjectDocuments } from "@/components/projects/project-documents"
+import { ProjectMembers } from "@/components/projects/project-members"
 import Link from "next/link"
 
 export default function ProjectDetailPage() {
@@ -80,32 +93,63 @@ export default function ProjectDetailPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="documents">Documents</TabsTrigger>
-          <TabsTrigger value="albums">Albums</TabsTrigger>
-          <TabsTrigger value="boq">BOQ</TabsTrigger>
-          <TabsTrigger value="termin">Termin</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-7">
+          <TabsTrigger value="overview" className="flex items-center gap-2">
+            <LayoutDashboard className="h-4 w-4" />
+            <span>Overview</span>
+          </TabsTrigger>
+          <TabsTrigger value="layout" className="flex items-center gap-2">
+            <Layout className="h-4 w-4" />
+            <span>Layout</span>
+          </TabsTrigger>
+          <TabsTrigger value="boq" className="flex items-center gap-2">
+            <Calculator className="h-4 w-4" />
+            <span>BOQ</span>
+          </TabsTrigger>
+          <TabsTrigger value="project" className="flex items-center gap-2">
+            <TrendingUp className="h-4 w-4" />
+            <span>Project</span>
+          </TabsTrigger>
+          <TabsTrigger value="invoice" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            <span>Invoice</span>
+          </TabsTrigger>
+          <TabsTrigger value="documents" className="flex items-center gap-2">
+            <FolderOpen className="h-4 w-4" />
+            <span>Documents</span>
+          </TabsTrigger>
+          <TabsTrigger value="members" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            <span>Members</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
           <ProjectOverview project={project} onUpdate={loadProject} />
         </TabsContent>
 
-        <TabsContent value="documents">
-          <ProjectDocuments projectId={project._id} />
-        </TabsContent>
-
-        <TabsContent value="albums">
-          <ProjectAlbums projectId={project._id} />
+        <TabsContent value="layout">
+          <ProjectLayout projectId={project._id} />
         </TabsContent>
 
         <TabsContent value="boq">
           <ProjectBOQ projectId={project._id} />
         </TabsContent>
 
-        <TabsContent value="termin">
-          <ProjectTermin projectId={project._id} />
+        <TabsContent value="project">
+          <ProjectProgress projectId={project._id} />
+        </TabsContent>
+
+        <TabsContent value="invoice">
+          <ProjectInvoice projectId={project._id} />
+        </TabsContent>
+
+        <TabsContent value="documents">
+          <ProjectDocuments projectId={project._id} />
+        </TabsContent>
+
+        <TabsContent value="members">
+          <ProjectMembers project={project} onUpdate={loadProject} />
         </TabsContent>
       </Tabs>
     </div>

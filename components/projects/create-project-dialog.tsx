@@ -10,11 +10,103 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { projectsApi } from "@/lib/api/projects"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { X, Plus } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 
 interface CreateProjectDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess: () => void
+}
+
+const isValidEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return emailRegex.test(email)
+}
+
+interface TeamMemberInputProps {
+  label: string
+  emails: string[]
+  onAdd: (email: string) => void
+  onRemove: (email: string) => void
+  disabled?: boolean
+}
+
+function TeamMemberInput({ label, emails, onAdd, onRemove, disabled }: TeamMemberInputProps) {
+  const [inputValue, setInputValue] = useState("")
+  const [error, setError] = useState("")
+
+  const handleAdd = () => {
+    const trimmedEmail = inputValue.trim()
+
+    if (!trimmedEmail) {
+      setError("Email cannot be empty")
+      return
+    }
+
+    if (!isValidEmail(trimmedEmail)) {
+      setError("Please enter a valid email address")
+      return
+    }
+
+    if (emails.includes(trimmedEmail)) {
+      setError("This email has already been added")
+      return
+    }
+
+    onAdd(trimmedEmail)
+    setInputValue("")
+    setError("")
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault()
+      handleAdd()
+    }
+  }
+
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <div className="flex gap-2">
+        <Input
+          value={inputValue}
+          onChange={(e) => {
+            setInputValue(e.target.value)
+            setError("")
+          }}
+          onKeyPress={handleKeyPress}
+          placeholder="email@company.com"
+          disabled={disabled}
+          className={error ? "border-destructive" : ""}
+        />
+        <Button type="button" onClick={handleAdd} disabled={disabled} size="icon" variant="outline">
+          <Plus className="h-4 w-4" />
+        </Button>
+      </div>
+      {error && <p className="text-sm text-destructive">{error}</p>}
+      {emails.length > 0 && (
+        <div className="flex flex-wrap gap-2 mt-2">
+          {emails.map((email) => (
+            <Badge key={email} variant="secondary" className="pl-3 pr-1 py-1">
+              {email}
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-4 w-4 ml-1 hover:bg-transparent"
+                onClick={() => onRemove(email)}
+                disabled={disabled}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </Badge>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export function CreateProjectDialog({ open, onOpenChange, onSuccess }: CreateProjectDialogProps) {
@@ -69,12 +161,18 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess }: CreatePro
     }
   }
 
-  const handleArrayChange = (field: string, value: string) => {
-    const emails = value
-      .split(",")
-      .map((email) => email.trim())
-      .filter(Boolean)
-    setFormData((prev) => ({ ...prev, [field]: emails }))
+  const handleAddEmail = (field: string, email: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: [...(prev[field as keyof typeof prev] as string[]), email],
+    }))
+  }
+
+  const handleRemoveEmail = (field: string, email: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: (prev[field as keyof typeof prev] as string[]).filter((e) => e !== email),
+    }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -125,13 +223,13 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess }: CreatePro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[95vw] max-w-[1600px] max-h-[92vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create New Project</DialogTitle>
+          <DialogTitle className="text-2xl">Create New Project</DialogTitle>
           <DialogDescription>Add a new interior design project with complete details</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-8">
           {error && (
             <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>
@@ -140,8 +238,8 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess }: CreatePro
 
           {/* Project Basic Info */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-lg">Project Information</h3>
-            <div className="grid gap-4 md:grid-cols-2">
+            <h3 className="font-semibold text-lg border-b pb-2">Project Information</h3>
+            <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-2">
                 <Label htmlFor="name">Project Name *</Label>
                 <Input
@@ -212,8 +310,8 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess }: CreatePro
 
           {/* Client Company Info */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-lg">Client Company</h3>
-            <div className="grid gap-4 md:grid-cols-2">
+            <h3 className="font-semibold text-lg border-b pb-2">Client Company</h3>
+            <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-2">
                 <Label htmlFor="companyClient.name">Company Name *</Label>
                 <Input
@@ -278,7 +376,7 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess }: CreatePro
 
           {/* Owner Company Info */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-lg">Owner Company</h3>
+            <h3 className="font-semibold text-lg border-b pb-2">Owner Company</h3>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="companyOwner.name">Owner Company Name *</Label>
@@ -308,7 +406,7 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess }: CreatePro
 
           {/* Client Contact Person */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-lg">Client Contact Person</h3>
+            <h3 className="font-semibold text-lg border-b pb-2">Client Contact Person</h3>
             <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-2">
                 <Label htmlFor="client.name">Name *</Label>
@@ -349,69 +447,57 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess }: CreatePro
             </div>
           </div>
 
-          {/* Team Members */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-lg">Team Members</h3>
-            <p className="text-sm text-muted-foreground">Enter email addresses separated by commas</p>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="estimators">Estimators</Label>
-                <Input
-                  id="estimators"
-                  value={formData.estimators.join(", ")}
-                  onChange={(e) => handleArrayChange("estimators", e.target.value)}
-                  placeholder="estimator@company.com"
-                  disabled={loading}
-                />
-              </div>
+            <h3 className="font-semibold text-lg border-b pb-2">Team Members</h3>
+            <p className="text-sm text-muted-foreground">
+              Add team member emails one by one. Each email will be validated.
+            </p>
+            <div className="grid gap-6 md:grid-cols-3">
+              <TeamMemberInput
+                label="Estimators"
+                emails={formData.estimators}
+                onAdd={(email) => handleAddEmail("estimators", email)}
+                onRemove={(email) => handleRemoveEmail("estimators", email)}
+                disabled={loading}
+              />
 
-              <div className="space-y-2">
-                <Label htmlFor="projectManagers">Project Managers</Label>
-                <Input
-                  id="projectManagers"
-                  value={formData.projectManagers.join(", ")}
-                  onChange={(e) => handleArrayChange("projectManagers", e.target.value)}
-                  placeholder="pm@company.com"
-                  disabled={loading}
-                />
-              </div>
+              <TeamMemberInput
+                label="Project Managers"
+                emails={formData.projectManagers}
+                onAdd={(email) => handleAddEmail("projectManagers", email)}
+                onRemove={(email) => handleRemoveEmail("projectManagers", email)}
+                disabled={loading}
+              />
 
-              <div className="space-y-2">
-                <Label htmlFor="finances">Finance Team</Label>
-                <Input
-                  id="finances"
-                  value={formData.finances.join(", ")}
-                  onChange={(e) => handleArrayChange("finances", e.target.value)}
-                  placeholder="finance@company.com"
-                  disabled={loading}
-                />
-              </div>
+              <TeamMemberInput
+                label="Finance Team"
+                emails={formData.finances}
+                onAdd={(email) => handleAddEmail("finances", email)}
+                onRemove={(email) => handleRemoveEmail("finances", email)}
+                disabled={loading}
+              />
 
-              <div className="space-y-2">
-                <Label htmlFor="designers">Designers</Label>
-                <Input
-                  id="designers"
-                  value={formData.designers.join(", ")}
-                  onChange={(e) => handleArrayChange("designers", e.target.value)}
-                  placeholder="designer@company.com"
-                  disabled={loading}
-                />
-              </div>
+              <TeamMemberInput
+                label="Designers"
+                emails={formData.designers}
+                onAdd={(email) => handleAddEmail("designers", email)}
+                onRemove={(email) => handleRemoveEmail("designers", email)}
+                disabled={loading}
+              />
 
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="admins">Admins (All Roles)</Label>
-                <Input
-                  id="admins"
-                  value={formData.admins.join(", ")}
-                  onChange={(e) => handleArrayChange("admins", e.target.value)}
-                  placeholder="admin@company.com"
+              <div className="md:col-span-2">
+                <TeamMemberInput
+                  label="Admins (All Roles)"
+                  emails={formData.admins}
+                  onAdd={(email) => handleAddEmail("admins", email)}
+                  onRemove={(email) => handleRemoveEmail("admins", email)}
                   disabled={loading}
                 />
               </div>
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4">
+          <div className="flex justify-end gap-3 pt-6 border-t">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
               Cancel
             </Button>

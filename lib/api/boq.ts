@@ -32,6 +32,13 @@ export interface GanttChartData {
   }>
 }
 
+export interface BOQListResponse {
+  page: number
+  totalData: number
+  totalPage: number
+  list: BOQ[]
+}
+
 // Create BOQ from AI
 export const createBOQFromAI = async (projectId: string, prompt: string): Promise<BOQ> => {
   return apiRequest<BOQ>(`/projects/${projectId}/boq/ai-based`, {
@@ -82,9 +89,14 @@ export const createAdditionalBOQ = async (
 
 // Get all BOQs for a project
 export const getBOQList = async (projectId: string): Promise<BOQ[]> => {
-  return apiRequest<BOQ[]>(`/projects/${projectId}/boq`, {
-    method: "GET",
-  })
+  const response = await apiRequest<{ code: number; message: any; data: BOQListResponse }>(
+    `/projects/${projectId}/boq`,
+    {
+      method: "GET",
+    },
+  )
+  // Return the list array from the paginated data
+  return response.data?.list || []
 }
 
 // Get specific BOQ
@@ -147,8 +159,13 @@ export const rejectBOQ = async (projectId: string, boqId: string, token: string,
 
 export const boqApi = {
   getByProject: async (projectId: string) => {
-    const data = await getBOQList(projectId)
-    return { success: true, data }
+    try {
+      const data = await getBOQList(projectId)
+      return { success: true, data }
+    } catch (error) {
+      console.error("[v0] BOQ API error:", error)
+      return { success: false, data: [] }
+    }
   },
   getById: async (projectId: string, boqId: string) => {
     const data = await getBOQ(projectId, boqId)

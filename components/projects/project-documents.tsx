@@ -17,6 +17,7 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
   const [documents, setDocuments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     loadDocuments()
@@ -24,12 +25,20 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
 
   const loadDocuments = async () => {
     try {
+      setError(null)
       const response = await filesApi.getByProject(projectId)
+      console.log("[v0] Documents response:", response)
+
       if (response.success && response.data) {
-        setDocuments(response.data.filter((f: any) => f.type === "document"))
+        const docs = Array.isArray(response.data) ? response.data.filter((f: any) => f.type === "document") : []
+        setDocuments(docs)
+      } else {
+        setDocuments([])
       }
     } catch (error) {
-      console.error("Failed to load documents:", error)
+      console.error("[v0] Failed to load documents:", error)
+      setError("Failed to load documents. Please try again later.")
+      setDocuments([])
     } finally {
       setLoading(false)
     }
@@ -100,6 +109,10 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
         <CardContent>
           {loading ? (
             <p className="text-center text-muted-foreground py-8">Loading documents...</p>
+          ) : error ? (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           ) : documents.length === 0 ? (
             <Alert>
               <AlertDescription className="text-center">

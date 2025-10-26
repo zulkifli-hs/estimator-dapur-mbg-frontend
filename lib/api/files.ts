@@ -11,9 +11,29 @@ export interface ProjectFile {
 }
 
 export const getProjectFiles = async (projectId: string): Promise<ProjectFile[]> => {
-  return apiRequest<ProjectFile[]>(`/projects/${projectId}/files`, {
-    method: "GET",
-  })
+  try {
+    const response = await apiRequest<any>(`/projects/${projectId}/files`, {
+      method: "GET",
+    })
+
+    // Handle different possible response structures
+    if (response.data) {
+      // If response has a list property (paginated)
+      if (response.data.list && Array.isArray(response.data.list)) {
+        return response.data.list
+      }
+      // If response.data is directly an array
+      if (Array.isArray(response.data)) {
+        return response.data
+      }
+    }
+
+    // Return empty array if no valid data
+    return []
+  } catch (error) {
+    console.error("[v0] Error fetching project files:", error)
+    return []
+  }
 }
 
 export const uploadFile = async (projectId: string, file: File, type: string): Promise<ProjectFile> => {
@@ -64,8 +84,13 @@ export const getFileUrl = (provider: string, url: string): string => {
 
 export const filesApi = {
   getByProject: async (projectId: string) => {
-    const data = await getProjectFiles(projectId)
-    return { success: true, data }
+    try {
+      const data = await getProjectFiles(projectId)
+      return { success: true, data: Array.isArray(data) ? data : [] }
+    } catch (error) {
+      console.error("[v0] Error in filesApi.getByProject:", error)
+      return { success: false, data: [] }
+    }
   },
   upload: async (projectId: string, file: File, type: string) => {
     const data = await uploadFile(projectId, file, type)

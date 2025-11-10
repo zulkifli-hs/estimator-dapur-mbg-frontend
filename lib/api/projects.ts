@@ -324,7 +324,6 @@ export const projectsApi = {
   },
   create: async (projectData: CreateProjectData) => {
     const response = await createProject(projectData)
-    console.log("[v0] Create project response:", response)
     return {
       success: response.code === 200 || response.code === 201,
       data: response.data,

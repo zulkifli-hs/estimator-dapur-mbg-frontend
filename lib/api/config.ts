@@ -62,7 +62,8 @@ export async function apiRequest<T>(endpoint: string, options: RequestInit = {})
     data: null,
   }))
 
-  if (!response.ok || jsonResponse.code !== 200) {
+  // Accept both 200 (OK) and 201 (Created) as successful responses
+  if (!response.ok || (jsonResponse.code !== 200 && jsonResponse.code !== 201)) {
     throw new Error(jsonResponse.message?.user || `HTTP ${response.status}`)
   }
 

@@ -4,63 +4,51 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Upload, FileText, Download, Eye } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { format } from "date-fns"
 
 interface ProjectLayoutProps {
   projectId: string
+  project?: any
 }
 
-export function ProjectLayout({ projectId }: ProjectLayoutProps) {
-  // Dummy data for layout revisions
-  const layoutRevisions = [
-    {
-      id: 1,
-      version: "v3.0",
-      date: "2025-01-15",
-      uploadedBy: "John Doe",
-      status: "Current",
-      file: "main-layout-v3.pdf",
-    },
-    {
-      id: 2,
-      version: "v2.1",
-      date: "2025-01-10",
-      uploadedBy: "Jane Smith",
-      status: "Revised",
-      file: "main-layout-v2.1.pdf",
-    },
-    {
-      id: 3,
-      version: "v2.0",
-      date: "2025-01-05",
-      uploadedBy: "John Doe",
-      status: "Revised",
-      file: "main-layout-v2.pdf",
-    },
-    {
-      id: 4,
-      version: "v1.0",
-      date: "2024-12-20",
-      uploadedBy: "Jane Smith",
-      status: "Initial",
-      file: "main-layout-v1.pdf",
-    },
-  ]
+export function ProjectLayout({ projectId, project }: ProjectLayoutProps) {
+  const projectDetail = project?.detail || {}
+  const mainLayout = projectDetail.layout
+  const shopDrawingFitout = projectDetail.shopDrawingFitout || []
+  const shopDrawingFurniture = projectDetail.shopDrawingFurniture || []
+  const approvedMaterial = projectDetail.approvedMaterial || []
+  const approvedFurniture = projectDetail.approvedFurniture || []
+
+  // Dummy data for layout revisions (fallback if no real data)
+  const layoutRevisions = mainLayout
+    ? [
+        {
+          id: mainLayout._id,
+          version: `v${mainLayout.version || 1}.0`,
+          date: mainLayout.createdAt ? format(new Date(mainLayout.createdAt), "yyyy-MM-dd") : "N/A",
+          uploadedBy: mainLayout.createdBy || "Unknown",
+          status: "Current",
+          file: mainLayout.name,
+          url: mainLayout.url,
+        },
+      ]
+    : []
 
   const cadFiles = [
     { id: 1, name: "Building-Floor-1.dwg", uploadedBy: "John Doe", date: "2025-01-10", size: "2.4 MB" },
     { id: 2, name: "Building-Floor-2.dwg", uploadedBy: "Jane Smith", date: "2025-01-10", size: "2.1 MB" },
   ]
 
-  const shopDrawingFitout = [
-    { id: 1, name: "Partition-Layout.pdf", version: "v2.0", date: "2025-01-12", status: "Approved" },
-    { id: 2, name: "Ceiling-Plan.pdf", version: "v1.5", date: "2025-01-11", status: "Under Review" },
-    { id: 3, name: "Electrical-Layout.pdf", version: "v1.0", date: "2025-01-10", status: "Approved" },
-  ]
+  const handleDownload = (url: string, filename: string) => {
+    // Assuming the URL needs to be prefixed with API base URL
+    const fileUrl = url.startsWith("http") ? url : `${process.env.NEXT_PUBLIC_API_BASE_URL}/${url}`
+    window.open(fileUrl, "_blank")
+  }
 
-  const shopDrawingFurniture = [
-    { id: 1, name: "Workstation-Layout.pdf", version: "v2.0", date: "2025-01-14", status: "Approved" },
-    { id: 2, name: "Meeting-Room-Furniture.pdf", version: "v1.0", date: "2025-01-13", status: "Approved" },
-  ]
+  const handleView = (url: string) => {
+    const fileUrl = url.startsWith("http") ? url : `${process.env.NEXT_PUBLIC_API_BASE_URL}/${url}`
+    window.open(fileUrl, "_blank")
+  }
 
   return (
     <div className="space-y-6">
@@ -87,37 +75,49 @@ export function ProjectLayout({ projectId }: ProjectLayoutProps) {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {layoutRevisions.map((revision) => (
-                  <div
-                    key={revision.id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-4">
-                      <FileText className="h-8 w-8 text-primary" />
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium">{revision.file}</p>
-                          <Badge variant={revision.status === "Current" ? "default" : "secondary"}>
-                            {revision.status}
-                          </Badge>
+              {layoutRevisions.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No layout files uploaded yet</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {layoutRevisions.map((revision) => (
+                    <div
+                      key={revision.id}
+                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-4">
+                        <FileText className="h-8 w-8 text-primary" />
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{revision.file}</p>
+                            <Badge variant={revision.status === "Current" ? "default" : "secondary"}>
+                              {revision.status}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            {revision.version} • Uploaded by {revision.uploadedBy} on {revision.date}
+                          </p>
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          {revision.version} • Uploaded by {revision.uploadedBy} on {revision.date}
-                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="icon" onClick={() => handleView(revision.url)} title="View file">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDownload(revision.url, revision.file)}
+                          title="Download file"
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="icon">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon">
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -179,37 +179,45 @@ export function ProjectLayout({ projectId }: ProjectLayoutProps) {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {shopDrawingFitout.map((drawing) => (
-                  <div
-                    key={drawing.id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-4">
-                      <FileText className="h-8 w-8 text-primary" />
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium">{drawing.name}</p>
-                          <Badge variant={drawing.status === "Approved" ? "default" : "secondary"}>
-                            {drawing.status}
-                          </Badge>
+              {shopDrawingFitout.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No fitout shop drawings uploaded yet</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {shopDrawingFitout.map((drawing: any) => (
+                    <div
+                      key={drawing._id}
+                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-4">
+                        <FileText className="h-8 w-8 text-primary" />
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{drawing.name}</p>
+                            <Badge variant={drawing.status === "Approved" ? "default" : "secondary"}>
+                              {drawing.status || "Pending"}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            v{drawing.version || 1}.0 •{" "}
+                            {drawing.createdAt ? format(new Date(drawing.createdAt), "yyyy-MM-dd") : "N/A"}
+                          </p>
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          {drawing.version} • {drawing.date}
-                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="icon" onClick={() => handleView(drawing.url)}>
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDownload(drawing.url, drawing.name)}>
+                          <Download className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="icon">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon">
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -229,37 +237,45 @@ export function ProjectLayout({ projectId }: ProjectLayoutProps) {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {shopDrawingFurniture.map((drawing) => (
-                  <div
-                    key={drawing.id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-4">
-                      <FileText className="h-8 w-8 text-primary" />
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium">{drawing.name}</p>
-                          <Badge variant={drawing.status === "Approved" ? "default" : "secondary"}>
-                            {drawing.status}
-                          </Badge>
+              {shopDrawingFurniture.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No furniture shop drawings uploaded yet</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {shopDrawingFurniture.map((drawing: any) => (
+                    <div
+                      key={drawing._id}
+                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-4">
+                        <FileText className="h-8 w-8 text-primary" />
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{drawing.name}</p>
+                            <Badge variant={drawing.status === "Approved" ? "default" : "secondary"}>
+                              {drawing.status || "Pending"}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            v{drawing.version || 1}.0 •{" "}
+                            {drawing.createdAt ? format(new Date(drawing.createdAt), "yyyy-MM-dd") : "N/A"}
+                          </p>
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          {drawing.version} • {drawing.date}
-                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="icon" onClick={() => handleView(drawing.url)}>
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDownload(drawing.url, drawing.name)}>
+                          <Download className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="icon">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon">
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

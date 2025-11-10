@@ -5,6 +5,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Upload, FileText, Download, Eye } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
+import { useState } from "react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 interface ProjectLayoutProps {
   projectId: string
@@ -16,8 +18,14 @@ export function ProjectLayout({ projectId, project }: ProjectLayoutProps) {
   const mainLayout = projectDetail.layout
   const shopDrawingFitout = projectDetail.shopDrawingFitout || []
   const shopDrawingFurniture = projectDetail.shopDrawingFurniture || []
-  const approvedMaterial = projectDetail.approvedMaterial || []
-  const approvedFurniture = projectDetail.approvedFurniture || []
+
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [previewOpen, setPreviewOpen] = useState(false)
+
+  const getFileUrl = (provider: string, url: string) => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.gema-interior.com"
+    return `${baseUrl}/public/${provider}/${url}`
+  }
 
   // Dummy data for layout revisions (fallback if no real data)
   const layoutRevisions = mainLayout
@@ -30,6 +38,7 @@ export function ProjectLayout({ projectId, project }: ProjectLayoutProps) {
           status: "Current",
           file: mainLayout.name,
           url: mainLayout.url,
+          provider: mainLayout.provider,
         },
       ]
     : []
@@ -39,15 +48,15 @@ export function ProjectLayout({ projectId, project }: ProjectLayoutProps) {
     { id: 2, name: "Building-Floor-2.dwg", uploadedBy: "Jane Smith", date: "2025-01-10", size: "2.1 MB" },
   ]
 
-  const handleDownload = (url: string, filename: string) => {
-    // Assuming the URL needs to be prefixed with API base URL
-    const fileUrl = url.startsWith("http") ? url : `${process.env.NEXT_PUBLIC_API_BASE_URL}/${url}`
+  const handleDownload = (provider: string, url: string, filename: string) => {
+    const fileUrl = getFileUrl(provider, url)
     window.open(fileUrl, "_blank")
   }
 
-  const handleView = (url: string) => {
-    const fileUrl = url.startsWith("http") ? url : `${process.env.NEXT_PUBLIC_API_BASE_URL}/${url}`
-    window.open(fileUrl, "_blank")
+  const handleView = (provider: string, url: string) => {
+    const fileUrl = getFileUrl(provider, url)
+    setPreviewUrl(fileUrl)
+    setPreviewOpen(true)
   }
 
   return (
@@ -102,13 +111,18 @@ export function ProjectLayout({ projectId, project }: ProjectLayoutProps) {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => handleView(revision.url)} title="View file">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleView(revision.provider, revision.url)}
+                          title="View file"
+                        >
                           <Eye className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleDownload(revision.url, revision.file)}
+                          onClick={() => handleDownload(revision.provider, revision.url, revision.file)}
                           title="Download file"
                         >
                           <Download className="h-4 w-4" />
@@ -207,10 +221,14 @@ export function ProjectLayout({ projectId, project }: ProjectLayoutProps) {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => handleView(drawing.url)}>
+                        <Button variant="ghost" size="icon" onClick={() => handleView(drawing.provider, drawing.url)}>
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDownload(drawing.url, drawing.name)}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDownload(drawing.provider, drawing.url, drawing.name)}
+                        >
                           <Download className="h-4 w-4" />
                         </Button>
                       </div>
@@ -265,10 +283,14 @@ export function ProjectLayout({ projectId, project }: ProjectLayoutProps) {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => handleView(drawing.url)}>
+                        <Button variant="ghost" size="icon" onClick={() => handleView(drawing.provider, drawing.url)}>
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDownload(drawing.url, drawing.name)}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDownload(drawing.provider, drawing.url, drawing.name)}
+                        >
                           <Download className="h-4 w-4" />
                         </Button>
                       </div>
@@ -280,6 +302,29 @@ export function ProjectLayout({ projectId, project }: ProjectLayoutProps) {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>File Preview</DialogTitle>
+          </DialogHeader>
+          <div className="overflow-auto max-h-[calc(90vh-100px)]">
+            {previewUrl && (
+              <img
+                src={previewUrl || "/placeholder.svg"}
+                alt="Preview"
+                className="w-full h-auto"
+                onError={(e) => {
+                  // If image fails to load, show message
+                  e.currentTarget.style.display = "none"
+                  e.currentTarget.parentElement!.innerHTML =
+                    '<p class="text-center text-muted-foreground py-8">Preview not available. Please download the file to view.</p>'
+                }}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

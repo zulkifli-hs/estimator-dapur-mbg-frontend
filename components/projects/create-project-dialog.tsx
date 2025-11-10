@@ -181,7 +181,10 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess }: CreatePro
     setLoading(true)
 
     try {
+      console.log("[v0] Submitting project data:", formData)
       const response = await projectsApi.create(formData)
+      console.log("[v0] Create project result:", response)
+
       if (response.success) {
         // Reset form
         setFormData({
@@ -211,11 +214,13 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess }: CreatePro
           admins: [],
         })
         onSuccess()
+        onOpenChange(false)
       } else {
         setError(response.message || "Failed to create project")
       }
-    } catch (err) {
-      setError("An error occurred. Please try again.")
+    } catch (err: any) {
+      console.error("[v0] Create project error:", err)
+      setError(err?.message || "An error occurred. Please try again.")
     } finally {
       setLoading(false)
     }

@@ -324,7 +324,12 @@ export const projectsApi = {
   },
   create: async (projectData: CreateProjectData) => {
     const response = await createProject(projectData)
-    return { success: response.code === 200, data: response.data }
+    console.log("[v0] Create project response:", response)
+    return {
+      success: response.code === 200 || response.code === 201,
+      data: response.data,
+      message: response.message,
+    }
   },
   update: async (id: string, projectData: Partial<CreateProjectData>) => {
     const response = await updateProject(id, projectData)

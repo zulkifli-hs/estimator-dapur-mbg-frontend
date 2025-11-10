@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -112,6 +112,7 @@ function TeamMemberInput({ label, emails, onAdd, onRemove, disabled }: TeamMembe
 export function CreateProjectDialog({ open, onOpenChange, onSuccess }: CreateProjectDialogProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const errorRef = useRef<HTMLDivElement>(null)
   const [formData, setFormData] = useState({
     name: "",
     type: "Renovasi",
@@ -138,6 +139,12 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess }: CreatePro
     },
     admins: [] as string[],
   })
+
+  useEffect(() => {
+    if (error && errorRef.current) {
+      errorRef.current.scrollIntoView({ behavior: "smooth", block: "center" })
+    }
+  }, [error])
 
   const handleChange = (field: string, value: any) => {
     if (field.includes(".")) {
@@ -233,9 +240,11 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess }: CreatePro
 
         <form onSubmit={handleSubmit} className="space-y-8">
           {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
+            <div ref={errorRef} className="sticky top-0 z-10 animate-in slide-in-from-top-2">
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            </div>
           )}
 
           {/* Project Basic Info */}

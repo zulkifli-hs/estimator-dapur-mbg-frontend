@@ -24,6 +24,8 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
   const mainLayout = projectDetail.layout
   const shopDrawingFitout = projectDetail.shopDrawingFitout || []
   const shopDrawingFurniture = projectDetail.shopDrawingFurniture || []
+  const approvedMaterial = projectDetail.approvedMaterial || []
+  const approvedFurniture = projectDetail.approvedFurniture || []
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
@@ -101,11 +103,13 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
   return (
     <div className="space-y-6">
       <Tabs defaultValue="main-layout" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-6">
           <TabsTrigger value="main-layout">Main Layout</TabsTrigger>
           <TabsTrigger value="cad">CAD Files</TabsTrigger>
-          <TabsTrigger value="fitout">Shop Drawing Fitout</TabsTrigger>
-          <TabsTrigger value="furniture">Shop Drawing Furniture</TabsTrigger>
+          <TabsTrigger value="fitout">Fitout Drawing</TabsTrigger>
+          <TabsTrigger value="furniture">Furniture Drawing</TabsTrigger>
+          <TabsTrigger value="material">Approved Material</TabsTrigger>
+          <TabsTrigger value="approved-furniture">Approved Furniture</TabsTrigger>
         </TabsList>
 
         <TabsContent value="main-layout" className="space-y-4">
@@ -385,6 +389,156 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
                           variant="ghost"
                           size="icon"
                           onClick={() => handleDownload(drawing.provider, drawing.url, drawing.name)}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="material" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Approved Material</CardTitle>
+                  <CardDescription>Upload and manage approved material documents</CardDescription>
+                </div>
+                <div>
+                  <Input
+                    id="material-upload"
+                    type="file"
+                    accept=".pdf"
+                    className="hidden"
+                    onChange={(e) => onFileChange(e, "approved-material")}
+                    disabled={uploading}
+                  />
+                  <Button asChild disabled={uploading}>
+                    <label htmlFor="material-upload" className="cursor-pointer">
+                      <Upload className="h-4 w-4 mr-2" />
+                      {uploading ? "Uploading..." : "Upload Material"}
+                    </label>
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {approvedMaterial.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No approved material documents uploaded yet</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {approvedMaterial.map((material: any) => (
+                    <div
+                      key={material._id}
+                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-4">
+                        <FileText className="h-8 w-8 text-primary" />
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{material.name}</p>
+                            <Badge variant="default">Approved</Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            {material.createdAt ? format(new Date(material.createdAt), "yyyy-MM-dd") : "N/A"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleView(material.provider, material.url, material.name)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDownload(material.provider, material.url, material.name)}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="approved-furniture" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Approved Furniture</CardTitle>
+                  <CardDescription>Upload and manage approved furniture documents</CardDescription>
+                </div>
+                <div>
+                  <Input
+                    id="approved-furniture-upload"
+                    type="file"
+                    accept=".pdf"
+                    className="hidden"
+                    onChange={(e) => onFileChange(e, "approved-furniture")}
+                    disabled={uploading}
+                  />
+                  <Button asChild disabled={uploading}>
+                    <label htmlFor="approved-furniture-upload" className="cursor-pointer">
+                      <Upload className="h-4 w-4 mr-2" />
+                      {uploading ? "Uploading..." : "Upload Furniture"}
+                    </label>
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {approvedFurniture.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No approved furniture documents uploaded yet</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {approvedFurniture.map((furniture: any) => (
+                    <div
+                      key={furniture._id}
+                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-4">
+                        <FileText className="h-8 w-8 text-primary" />
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{furniture.name}</p>
+                            <Badge variant="default">Approved</Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            {furniture.createdAt ? format(new Date(furniture.createdAt), "yyyy-MM-dd") : "N/A"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleView(furniture.provider, furniture.url, furniture.name)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDownload(furniture.provider, furniture.url, furniture.name)}
                         >
                           <Download className="h-4 w-4" />
                         </Button>

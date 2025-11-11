@@ -364,11 +364,25 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
               <CardDescription>Project progress vs planned progress</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-center h-[400px] border-2 border-dashed rounded-lg">
-                <div className="text-center space-y-2">
-                  <TrendingUp className="h-12 w-12 mx-auto text-muted-foreground" />
-                  <p className="text-muted-foreground">S Curve chart will be displayed here</p>
-                  <p className="text-sm text-muted-foreground">Showing planned vs actual progress over time</p>
+              <div className="flex items-center justify-center h-[400px] bg-gradient-to-br from-muted/30 to-muted/10 rounded-lg">
+                <div className="text-center space-y-4 max-w-md px-6">
+                  <div className="relative">
+                    <TrendingUp className="h-20 w-20 mx-auto text-primary/30" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="h-16 w-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-2xl font-bold text-foreground">Coming Soon</h3>
+                    <Badge variant="secondary" className="text-sm">
+                      Under Construction
+                    </Badge>
+                  </div>
+                  <p className="text-muted-foreground">
+                    S Curve feature is currently under development. This will show planned vs actual progress over time
+                    to help track project performance.
+                  </p>
+                  <p className="text-sm text-muted-foreground italic">Stay tuned for updates!</p>
                 </div>
               </div>
             </CardContent>

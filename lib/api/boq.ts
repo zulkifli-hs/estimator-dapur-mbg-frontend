@@ -171,6 +171,28 @@ export const generateGanttChart = async (projectId: string, boqId: string): Prom
   })
 }
 
+// Update Gantt chart dates
+export const updateGanttChart = async (
+  projectId: string,
+  boqId: string,
+  data: {
+    preliminary: Array<{ startDate: string; endDate: string }>
+    fittingOut: Array<{
+      name: string
+      products: Array<{ startDate: string; endDate: string }>
+    }>
+    furnitureWork: Array<{
+      name: string
+      products: Array<{ startDate: string; endDate: string }>
+    }>
+  },
+): Promise<any> => {
+  return apiRequest<any>(`/projects/${projectId}/boq/${boqId}/gantt-chart`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  })
+}
+
 // Request BOQ approval
 export const requestBOQApproval = async (projectId: string, boqId: string): Promise<void> => {
   return apiRequest<void>(`/projects/${projectId}/boq/${boqId}/request`, {
@@ -280,5 +302,23 @@ export const boqApi = {
   reject: async (projectId: string, boqId: string, token: string, reason: string) => {
     await rejectBOQ(projectId, boqId, token, reason)
     return { success: true }
+  },
+  updateGanttChart: async (
+    projectId: string,
+    boqId: string,
+    data: {
+      preliminary: Array<{ startDate: string; endDate: string }>
+      fittingOut: Array<{
+        name: string
+        products: Array<{ startDate: string; endDate: string }>
+      }>
+      furnitureWork: Array<{
+        name: string
+        products: Array<{ startDate: string; endDate: string }>
+      }>
+    },
+  ) => {
+    const result = await updateGanttChart(projectId, boqId, data)
+    return { success: true, data: result }
   },
 }

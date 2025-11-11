@@ -2,10 +2,13 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Upload, Calendar, ImageIcon, TrendingUp, FileCheck } from "lucide-react"
+import { Upload, Calendar, ImageIcon, TrendingUp, FileCheck, Edit } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { boqApi } from "@/lib/api/boq"
+import { GanttChartEditor } from "./gantt-chart-editor"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 interface ProjectProgressProps {
   projectId: string
@@ -13,6 +16,10 @@ interface ProjectProgressProps {
 
 export function ProjectProgress({ projectId }: ProjectProgressProps) {
   const [activeTab, setActiveTab] = useState("gantt")
+  const [mainBOQ, setMainBOQ] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [showGanttEditor, setShowGanttEditor] = useState(false)
+  const [ganttTasks, setGanttTasks] = useState<any[]>([])
 
   const tabs = [
     { value: "gantt", label: "Gantt Chart" },
@@ -20,6 +27,101 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
     { value: "scurve", label: "S Curve" },
     { value: "bast", label: "BAST/BAPP" },
   ]
+
+  useEffect(() => {
+    loadBOQData()
+  }, [projectId])
+
+  const loadBOQData = async () => {
+    try {
+      const response = await boqApi.getByProject(projectId)
+      if (response.success && response.data && Array.isArray(response.data)) {
+        const main = response.data.find((boq: any) => boq.number === 1)
+        setMainBOQ(main || null)
+        if (main) {
+          generateGanttTasks(main)
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load BOQ:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const generateGanttTasks = (boq: any) => {
+    const tasks: any[] = []
+
+    // Add preliminary tasks
+    if (Array.isArray(boq.preliminary)) {
+      boq.preliminary.forEach((item: any, index: number) => {
+        if (item.startDate && item.endDate) {
+          tasks.push({
+            id: `preliminary-${index}`,
+            name: item.name,
+            category: "Preliminary",
+            startDate: new Date(item.startDate),
+            endDate: new Date(item.endDate),
+            duration: calculateDuration(item.startDate, item.endDate),
+          })
+        }
+      })
+    }
+
+    // Add fitting out tasks
+    if (Array.isArray(boq.fittingOut)) {
+      boq.fittingOut.forEach((category: any) => {
+        if (Array.isArray(category.products)) {
+          category.products.forEach((product: any, index: number) => {
+            if (product.startDate && product.endDate) {
+              tasks.push({
+                id: `fitting-${category.name}-${index}`,
+                name: product.name,
+                category: `Fitting Out - ${category.name}`,
+                startDate: new Date(product.startDate),
+                endDate: new Date(product.endDate),
+                duration: calculateDuration(product.startDate, product.endDate),
+              })
+            }
+          })
+        }
+      })
+    }
+
+    // Add furniture work tasks
+    if (Array.isArray(boq.furnitureWork)) {
+      boq.furnitureWork.forEach((category: any) => {
+        if (Array.isArray(category.products)) {
+          category.products.forEach((product: any, index: number) => {
+            if (product.startDate && product.endDate) {
+              tasks.push({
+                id: `furniture-${category.name}-${index}`,
+                name: product.name,
+                category: `Furniture Work - ${category.name}`,
+                startDate: new Date(product.startDate),
+                endDate: new Date(product.endDate),
+                duration: calculateDuration(product.startDate, product.endDate),
+              })
+            }
+          })
+        }
+      })
+    }
+
+    setGanttTasks(tasks)
+  }
+
+  const calculateDuration = (start: string, end: string) => {
+    const startDate = new Date(start)
+    const endDate = new Date(end)
+    const diffTime = Math.abs(endDate.getTime() - startDate.getTime())
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    return diffDays
+  }
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })
+  }
 
   // Dummy data for project photos
   const projectPhotos = [
@@ -34,6 +136,8 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
     { id: 2, type: "BAPP", title: "Progress Payment 1", date: "2025-01-15", status: "Approved" },
     { id: 3, type: "BAST", title: "Material Delivery", date: "2025-01-10", status: "Pending" },
   ]
+
+  const hasGanttDates = ganttTasks.length > 0
 
   return (
     <div className="space-y-6">
@@ -66,17 +170,74 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
         <TabsContent value="gantt">
           <Card>
             <CardHeader>
-              <CardTitle>Gantt Chart</CardTitle>
-              <CardDescription>Project timeline and task scheduling</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Gantt Chart</CardTitle>
+                  <CardDescription>Project timeline from Main BOQ</CardDescription>
+                </div>
+                {mainBOQ && (
+                  <Button onClick={() => setShowGanttEditor(true)}>
+                    <Edit className="h-4 w-4 mr-2" />
+                    {hasGanttDates ? "Edit Timeline" : "Add Timeline"}
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-center h-[400px] border-2 border-dashed rounded-lg">
-                <div className="text-center space-y-2">
-                  <Calendar className="h-12 w-12 mx-auto text-muted-foreground" />
-                  <p className="text-muted-foreground">Gantt Chart visualization will be displayed here</p>
-                  <p className="text-sm text-muted-foreground">Integration with project management tools coming soon</p>
+              {loading ? (
+                <div className="flex items-center justify-center h-[400px]">
+                  <p className="text-muted-foreground">Loading...</p>
                 </div>
-              </div>
+              ) : !mainBOQ ? (
+                <Alert>
+                  <AlertDescription>
+                    No Main BOQ found. Please create a Main BOQ first to generate the Gantt Chart.
+                  </AlertDescription>
+                </Alert>
+              ) : !hasGanttDates ? (
+                <div className="flex items-center justify-center h-[400px] border-2 border-dashed rounded-lg">
+                  <div className="text-center space-y-3">
+                    <Calendar className="h-12 w-12 mx-auto text-muted-foreground" />
+                    <p className="text-muted-foreground">No timeline set for BOQ items</p>
+                    <Button onClick={() => setShowGanttEditor(true)}>
+                      <Calendar className="h-4 w-4 mr-2" />
+                      Add Timeline
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="overflow-x-auto">
+                    <div className="min-w-[800px] space-y-2">
+                      {ganttTasks.map((task) => (
+                        <div key={task.id} className="border rounded-lg p-4">
+                          <div className="grid grid-cols-12 gap-4 items-center">
+                            <div className="col-span-4">
+                              <p className="font-medium text-sm">{task.name}</p>
+                              <p className="text-xs text-muted-foreground mt-1">{task.category}</p>
+                            </div>
+                            <div className="col-span-2 text-sm">
+                              <p className="text-muted-foreground text-xs">Start</p>
+                              <p className="font-medium">{formatDate(task.startDate)}</p>
+                            </div>
+                            <div className="col-span-2 text-sm">
+                              <p className="text-muted-foreground text-xs">End</p>
+                              <p className="font-medium">{formatDate(task.endDate)}</p>
+                            </div>
+                            <div className="col-span-2 text-sm">
+                              <p className="text-muted-foreground text-xs">Duration</p>
+                              <p className="font-medium">{task.duration} days</p>
+                            </div>
+                            <div className="col-span-2">
+                              <Badge variant="secondary">{task.category.split(" - ")[0]}</Badge>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -175,6 +336,16 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {mainBOQ && (
+        <GanttChartEditor
+          projectId={projectId}
+          boq={mainBOQ}
+          open={showGanttEditor}
+          onOpenChange={setShowGanttEditor}
+          onSuccess={loadBOQData}
+        />
+      )}
     </div>
   )
 }

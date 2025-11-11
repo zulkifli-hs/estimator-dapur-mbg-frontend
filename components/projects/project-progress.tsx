@@ -2,7 +2,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Upload, Calendar, ImageIcon, TrendingUp, FileCheck, Edit, Plus } from "lucide-react"
+import { Upload, Calendar, ImageIcon, TrendingUp, FileCheck, Edit, Plus, X } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useEffect, useState } from "react"
@@ -14,6 +14,17 @@ import { GanttChartView } from "./gantt-chart-view"
 import { CreateAlbumDialog } from "./create-album-dialog"
 import { AlbumDetailDialog } from "./album-detail-dialog"
 import { useToast } from "@/hooks/use-toast"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { Loader2 } from "lucide-react"
 
 interface ProjectProgressProps {
   projectId: string
@@ -30,6 +41,8 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
   const [albumsLoading, setAlbumsLoading] = useState(false)
   const [showCreateAlbum, setShowCreateAlbum] = useState(false)
   const [selectedAlbum, setSelectedAlbum] = useState<{ id: string; name: string } | null>(null)
+  const [deleteAlbumConfirm, setDeleteAlbumConfirm] = useState<{ id: string; name: string } | null>(null)
+  const [deletingAlbum, setDeletingAlbum] = useState(false)
   const { toast } = useToast()
 
   const tabs = [
@@ -157,6 +170,33 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
 
   const hasGanttDates = ganttTasks.length > 0
 
+  const handleDeleteAlbum = async () => {
+    if (!deleteAlbumConfirm) return
+
+    setDeletingAlbum(true)
+    try {
+      const response = await albumsApi.delete(deleteAlbumConfirm.id, projectId)
+      if (response.success) {
+        toast({
+          title: "Success",
+          description: "Album deleted successfully",
+        })
+        await loadAlbums()
+      } else {
+        throw new Error("Failed to delete album")
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete album",
+        variant: "destructive",
+      })
+    } finally {
+      setDeletingAlbum(false)
+      setDeleteAlbumConfirm(null)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -254,11 +294,14 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
                   {albums.map((album) => (
                     <Card
                       key={album._id}
-                      className="cursor-pointer hover:shadow-lg transition-shadow"
+                      className="group hover:shadow-lg transition-shadow"
                       onClick={() => setSelectedAlbum({ id: album._id, name: album.name })}
                     >
                       <CardContent className="p-4">
-                        <div className="aspect-video bg-muted rounded-lg mb-3 flex items-center justify-center">
+                        <div
+                          className="aspect-video bg-muted rounded-lg mb-3 flex items-center justify-center cursor-pointer"
+                          onClick={() => setSelectedAlbum({ id: album._id, name: album.name })}
+                        >
                           {album.list && album.list.length > 0 ? (
                             <img
                               src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${album.list[0].provider}/${album.list[0].url}`}
@@ -269,13 +312,31 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
                             <ImageIcon className="h-12 w-12 text-muted-foreground" />
                           )}
                         </div>
-                        <h3 className="font-semibold mb-1">{album.name}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {new Date(album.createdAt).toLocaleDateString("id-ID")}
-                        </p>
-                        <Badge variant="secondary" className="mt-2">
-                          {album.list?.length || 0} photo{album.list?.length !== 1 ? "s" : ""}
-                        </Badge>
+                        <div className="flex items-start justify-between gap-2">
+                          <div
+                            className="flex-1 cursor-pointer"
+                            onClick={() => setSelectedAlbum({ id: album._id, name: album.name })}
+                          >
+                            <h3 className="font-semibold mb-1">{album.name}</h3>
+                            <p className="text-sm text-muted-foreground">
+                              {new Date(album.createdAt).toLocaleDateString("id-ID")}
+                            </p>
+                            <Badge variant="secondary" className="mt-2">
+                              {album.list?.length || 0} photo{album.list?.length !== 1 ? "s" : ""}
+                            </Badge>
+                          </div>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setDeleteAlbumConfirm({ id: album._id, name: album.name })
+                            }}
+                          >
+                            <X className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
                       </CardContent>
                     </Card>
                   ))}
@@ -383,6 +444,35 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
           onPhotoAdded={loadAlbums}
         />
       )}
+
+      <AlertDialog open={!!deleteAlbumConfirm} onOpenChange={(open) => !open && setDeleteAlbumConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Album</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the album "{deleteAlbumConfirm?.name}"? This will also delete all photos
+              in this album. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingAlbum}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteAlbum}
+              disabled={deletingAlbum}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletingAlbum ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete Album"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

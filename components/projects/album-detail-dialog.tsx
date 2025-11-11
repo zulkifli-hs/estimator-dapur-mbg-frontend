@@ -15,7 +15,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
-import { Upload, X, Loader2, Download } from "lucide-react"
+import { Upload, X, Loader2, Download, Maximize2 } from "lucide-react"
 import { albumsApi } from "@/lib/api/albums"
 import { uploadApi } from "@/lib/api/upload"
 import { useToast } from "@/hooks/use-toast"
@@ -44,6 +44,7 @@ export function AlbumDetailDialog({
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [photoToDelete, setPhotoToDelete] = useState<number | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [fullPhotoUrl, setFullPhotoUrl] = useState<string | null>(null)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -205,7 +206,17 @@ export function AlbumDetailDialog({
                         size="icon"
                         variant="secondary"
                         className="h-8 w-8"
+                        onClick={() => setFullPhotoUrl(getPhotoUrl(photo))}
+                        title="View full size"
+                      >
+                        <Maximize2 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="secondary"
+                        className="h-8 w-8"
                         onClick={() => window.open(getPhotoUrl(photo), "_blank")}
+                        title="Download"
                       >
                         <Download className="h-4 w-4" />
                       </Button>
@@ -214,6 +225,7 @@ export function AlbumDetailDialog({
                         variant="destructive"
                         className="h-8 w-8"
                         onClick={() => handleDeletePhotoClick(index)}
+                        title="Delete"
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -257,6 +269,22 @@ export function AlbumDetailDialog({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={!!fullPhotoUrl} onOpenChange={(open) => !open && setFullPhotoUrl(null)}>
+        <DialogContent className="max-w-7xl max-h-[90vh] p-0">
+          <div className="relative w-full h-full flex items-center justify-center bg-black/90 p-4">
+            <img src={fullPhotoUrl || ""} alt="Full size photo" className="max-w-full max-h-[85vh] object-contain" />
+            <Button
+              size="icon"
+              variant="secondary"
+              className="absolute top-4 right-4"
+              onClick={() => setFullPhotoUrl(null)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

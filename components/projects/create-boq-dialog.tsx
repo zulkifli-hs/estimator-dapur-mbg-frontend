@@ -224,7 +224,7 @@ export function CreateBOQDialog({ projectId, open, onOpenChange, onSuccess }: Cr
                     <div className="flex items-start gap-4">
                       <div className="flex-1 grid grid-cols-4 gap-4">
                         <div>
-                          <Label>Item Name</Label>
+                          <Label className="mb-1.5 block">Item Name</Label>
                           <Input
                             value={item.name}
                             onChange={(e) => updatePreliminaryItem(index, "name", e.target.value)}
@@ -232,7 +232,7 @@ export function CreateBOQDialog({ projectId, open, onOpenChange, onSuccess }: Cr
                           />
                         </div>
                         <div>
-                          <Label>Quantity</Label>
+                          <Label className="mb-1.5 block">Quantity</Label>
                           <Input
                             type="number"
                             value={item.qty}
@@ -241,7 +241,7 @@ export function CreateBOQDialog({ projectId, open, onOpenChange, onSuccess }: Cr
                           />
                         </div>
                         <div>
-                          <Label>Unit</Label>
+                          <Label className="mb-1.5 block">Unit</Label>
                           <Input
                             value={item.unit}
                             onChange={(e) => updatePreliminaryItem(index, "unit", e.target.value)}
@@ -249,7 +249,7 @@ export function CreateBOQDialog({ projectId, open, onOpenChange, onSuccess }: Cr
                           />
                         </div>
                         <div>
-                          <Label>Price</Label>
+                          <Label className="mb-1.5 block">Price</Label>
                           <Input
                             type="number"
                             value={item.price}
@@ -285,7 +285,7 @@ export function CreateBOQDialog({ projectId, open, onOpenChange, onSuccess }: Cr
                 <CardContent className="pt-6 space-y-4">
                   <div className="flex items-center gap-4">
                     <div className="flex-1">
-                      <Label>Category Name</Label>
+                      <Label className="mb-1.5 block">Category Name</Label>
                       <Input
                         value={category.name}
                         onChange={(e) => updateFittingOutCategory(categoryIndex, e.target.value)}
@@ -309,7 +309,7 @@ export function CreateBOQDialog({ projectId, open, onOpenChange, onSuccess }: Cr
                       <div key={productIndex} className="flex items-start gap-4">
                         <div className="flex-1 grid grid-cols-4 gap-4">
                           <div>
-                            <Label className="text-sm">Product Name</Label>
+                            <Label className="text-sm mb-1.5 block">Product Name</Label>
                             <Input
                               value={product.name}
                               onChange={(e) =>
@@ -319,7 +319,7 @@ export function CreateBOQDialog({ projectId, open, onOpenChange, onSuccess }: Cr
                             />
                           </div>
                           <div>
-                            <Label className="text-sm">Qty</Label>
+                            <Label className="text-sm mb-1.5 block">Qty</Label>
                             <Input
                               type="number"
                               value={product.qty}
@@ -330,7 +330,7 @@ export function CreateBOQDialog({ projectId, open, onOpenChange, onSuccess }: Cr
                             />
                           </div>
                           <div>
-                            <Label className="text-sm">Unit</Label>
+                            <Label className="text-sm mb-1.5 block">Unit</Label>
                             <Input
                               value={product.unit}
                               onChange={(e) =>
@@ -340,7 +340,7 @@ export function CreateBOQDialog({ projectId, open, onOpenChange, onSuccess }: Cr
                             />
                           </div>
                           <div>
-                            <Label className="text-sm">Price</Label>
+                            <Label className="text-sm mb-1.5 block">Price</Label>
                             <Input
                               type="number"
                               value={product.price}
@@ -388,7 +388,7 @@ export function CreateBOQDialog({ projectId, open, onOpenChange, onSuccess }: Cr
                 <CardContent className="pt-6 space-y-4">
                   <div className="flex items-center gap-4">
                     <div className="flex-1">
-                      <Label>Category Name</Label>
+                      <Label className="mb-1.5 block">Category Name</Label>
                       <Input
                         value={category.name}
                         onChange={(e) => updateFurnitureWorkCategory(categoryIndex, e.target.value)}
@@ -412,7 +412,7 @@ export function CreateBOQDialog({ projectId, open, onOpenChange, onSuccess }: Cr
                       <div key={productIndex} className="flex items-start gap-4">
                         <div className="flex-1 grid grid-cols-4 gap-4">
                           <div>
-                            <Label className="text-sm">Product Name</Label>
+                            <Label className="text-sm mb-1.5 block">Product Name</Label>
                             <Input
                               value={product.name}
                               onChange={(e) =>
@@ -422,7 +422,7 @@ export function CreateBOQDialog({ projectId, open, onOpenChange, onSuccess }: Cr
                             />
                           </div>
                           <div>
-                            <Label className="text-sm">Qty</Label>
+                            <Label className="text-sm mb-1.5 block">Qty</Label>
                             <Input
                               type="number"
                               value={product.qty}
@@ -433,7 +433,7 @@ export function CreateBOQDialog({ projectId, open, onOpenChange, onSuccess }: Cr
                             />
                           </div>
                           <div>
-                            <Label className="text-sm">Unit</Label>
+                            <Label className="text-sm mb-1.5 block">Unit</Label>
                             <Input
                               value={product.unit}
                               onChange={(e) =>
@@ -443,7 +443,7 @@ export function CreateBOQDialog({ projectId, open, onOpenChange, onSuccess }: Cr
                             />
                           </div>
                           <div>
-                            <Label className="text-sm">Price</Label>
+                            <Label className="text-sm mb-1.5 block">Price</Label>
                             <Input
                               type="number"
                               value={product.price}

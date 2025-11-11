@@ -4,12 +4,23 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Upload, Calendar, ImageIcon, TrendingUp, FileCheck } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useState } from "react"
 
 interface ProjectProgressProps {
   projectId: string
 }
 
 export function ProjectProgress({ projectId }: ProjectProgressProps) {
+  const [activeTab, setActiveTab] = useState("gantt")
+
+  const tabs = [
+    { value: "gantt", label: "Gantt Chart" },
+    { value: "photos", label: "Project Photos" },
+    { value: "scurve", label: "S Curve" },
+    { value: "bast", label: "BAST/BAPP" },
+  ]
+
   // Dummy data for project photos
   const projectPhotos = [
     { id: 1, title: "Site Preparation", date: "2025-01-05", photos: 12 },
@@ -26,12 +37,30 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="gantt" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="gantt">Gantt Chart</TabsTrigger>
-          <TabsTrigger value="photos">Project Photos</TabsTrigger>
-          <TabsTrigger value="scurve">S Curve</TabsTrigger>
-          <TabsTrigger value="bast">BAST/BAPP</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        {/* Mobile: Dropdown */}
+        <div className="block md:hidden">
+          <Select value={activeTab} onValueChange={setActiveTab}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select section" />
+            </SelectTrigger>
+            <SelectContent>
+              {tabs.map((tab) => (
+                <SelectItem key={tab.value} value={tab.value}>
+                  {tab.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Desktop: Tabs */}
+        <TabsList className="hidden md:grid w-full grid-cols-4">
+          {tabs.map((tab) => (
+            <TabsTrigger key={tab.value} value={tab.value}>
+              {tab.label}
+            </TabsTrigger>
+          ))}
         </TabsList>
 
         <TabsContent value="gantt">

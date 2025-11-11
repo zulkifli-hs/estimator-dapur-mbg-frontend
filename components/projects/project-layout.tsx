@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input"
 import { uploadProjectFile } from "@/lib/api/files"
 import { useToast } from "@/hooks/use-toast"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface ProjectLayoutProps {
   projectId: string
@@ -30,7 +31,17 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [activeTab, setActiveTab] = useState("main-layout")
   const { toast } = useToast()
+
+  const tabs = [
+    { value: "main-layout", label: "Main Layout" },
+    { value: "cad", label: "CAD Files" },
+    { value: "fitout", label: "Fitout Drawing" },
+    { value: "furniture", label: "Furniture Drawing" },
+    { value: "material", label: "Approved Material" },
+    { value: "approved-furniture", label: "Approved Furniture" },
+  ]
 
   const getFileUrl = (provider: string, url: string) => {
     const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.gema-interior.com"
@@ -102,14 +113,30 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="main-layout" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-6">
-          <TabsTrigger value="main-layout">Main Layout</TabsTrigger>
-          <TabsTrigger value="cad">CAD Files</TabsTrigger>
-          <TabsTrigger value="fitout">Fitout Drawing</TabsTrigger>
-          <TabsTrigger value="furniture">Furniture Drawing</TabsTrigger>
-          <TabsTrigger value="material">Approved Material</TabsTrigger>
-          <TabsTrigger value="approved-furniture">Approved Furniture</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        {/* Mobile: Dropdown */}
+        <div className="block md:hidden">
+          <Select value={activeTab} onValueChange={setActiveTab}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select section" />
+            </SelectTrigger>
+            <SelectContent>
+              {tabs.map((tab) => (
+                <SelectItem key={tab.value} value={tab.value}>
+                  {tab.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Desktop: Tabs */}
+        <TabsList className="hidden md:grid w-full grid-cols-3 lg:grid-cols-6">
+          {tabs.map((tab) => (
+            <TabsTrigger key={tab.value} value={tab.value}>
+              {tab.label}
+            </TabsTrigger>
+          ))}
         </TabsList>
 
         <TabsContent value="main-layout" className="space-y-4">

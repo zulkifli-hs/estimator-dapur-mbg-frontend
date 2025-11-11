@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import React from "react"
 import { CreateBOQDialog } from "./create-boq-dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface ProjectBOQProps {
   projectId: string
@@ -25,6 +26,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     progress: 0,
   })
   const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [activeTab, setActiveTab] = useState("main")
 
   useEffect(() => {
     loadBOQ()
@@ -346,8 +348,22 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         </Card>
       </div>
 
-      <Tabs defaultValue="main" className="w-full">
-        <TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        {/* Mobile: Dropdown */}
+        <div className="block md:hidden mb-4">
+          <Select value={activeTab} onValueChange={setActiveTab}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select BOQ type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="main">Main BOQ</SelectItem>
+              {additionalBOQs.length > 0 && <SelectItem value="additional">Additional BOQs</SelectItem>}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Desktop: Tabs */}
+        <TabsList className="hidden md:flex">
           <TabsTrigger value="main">Main BOQ</TabsTrigger>
           {additionalBOQs.length > 0 && <TabsTrigger value="additional">Additional BOQs</TabsTrigger>}
         </TabsList>

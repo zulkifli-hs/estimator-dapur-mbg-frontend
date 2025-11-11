@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Upload, FileText } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { terminApi } from "@/lib/api/termin"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface ProjectInvoiceProps {
   projectId: string
@@ -15,6 +16,13 @@ interface ProjectInvoiceProps {
 export function ProjectInvoice({ projectId }: ProjectInvoiceProps) {
   const [termins, setTermins] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState("termin")
+
+  const tabs = [
+    { value: "termin", label: "Termin" },
+    { value: "invoice", label: "Invoice" },
+    { value: "tax", label: "Tax Invoice" },
+  ]
 
   useEffect(() => {
     loadTermins()
@@ -23,7 +31,6 @@ export function ProjectInvoice({ projectId }: ProjectInvoiceProps) {
   const loadTermins = async () => {
     try {
       const response = await terminApi.getByProject(projectId)
-      console.log("[v0] Termin response:", response)
 
       if (response.success && response.data) {
         if (Array.isArray(response.data)) {
@@ -85,11 +92,30 @@ export function ProjectInvoice({ projectId }: ProjectInvoiceProps) {
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="termin" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="termin">Termin</TabsTrigger>
-          <TabsTrigger value="invoice">Invoice</TabsTrigger>
-          <TabsTrigger value="tax">Tax Invoice</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        {/* Mobile: Dropdown */}
+        <div className="block md:hidden">
+          <Select value={activeTab} onValueChange={setActiveTab}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select section" />
+            </SelectTrigger>
+            <SelectContent>
+              {tabs.map((tab) => (
+                <SelectItem key={tab.value} value={tab.value}>
+                  {tab.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Desktop: Tabs */}
+        <TabsList className="hidden md:grid w-full grid-cols-3">
+          {tabs.map((tab) => (
+            <TabsTrigger key={tab.value} value={tab.value}>
+              {tab.label}
+            </TabsTrigger>
+          ))}
         </TabsList>
 
         <TabsContent value="termin">

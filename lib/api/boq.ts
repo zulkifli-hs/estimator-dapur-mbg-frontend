@@ -87,6 +87,27 @@ export const createAdditionalBOQ = async (
   })
 }
 
+// Create BOQ with new API format
+export const createBOQ = async (
+  projectId: string,
+  data: {
+    preliminary: Array<{ qty: number; name: string; unit: string; price: number }>
+    fittingOut: Array<{
+      name: string
+      products: Array<{ qty: number; name: string; unit: string; price: number }>
+    }>
+    furnitureWork: Array<{
+      name: string
+      products: Array<{ qty: number; name: string; unit: string; price: number }>
+    }>
+  },
+): Promise<any> => {
+  return apiRequest<any>(`/projects/${projectId}/boq`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  })
+}
+
 // Get all BOQs for a project
 export const getBOQList = async (projectId: string): Promise<BOQ[]> => {
   const response = await apiRequest<{ code: number; message: any; data: BOQListResponse }>(
@@ -185,6 +206,23 @@ export const boqApi = {
   },
   createAdditional: async (projectId: string, boqData: { name: string; items: Omit<BOQItem, "id">[] }) => {
     const data = await createAdditionalBOQ(projectId, boqData)
+    return { success: true, data }
+  },
+  create: async (
+    projectId: string,
+    boqData: {
+      preliminary: Array<{ qty: number; name: string; unit: string; price: number }>
+      fittingOut: Array<{
+        name: string
+        products: Array<{ qty: number; name: string; unit: string; price: number }>
+      }>
+      furnitureWork: Array<{
+        name: string
+        products: Array<{ qty: number; name: string; unit: string; price: number }>
+      }>
+    },
+  ) => {
+    const data = await createBOQ(projectId, boqData)
     return { success: true, data }
   },
   update: async (projectId: string, boqId: string, boqData: Partial<BOQ>) => {

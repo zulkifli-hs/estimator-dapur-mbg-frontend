@@ -3,13 +3,14 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Edit, Trash2 } from "lucide-react"
+import { Edit, Trash2, Plus } from "lucide-react"
 import { boqApi } from "@/lib/api/boq"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import React from "react"
+import { CreateBOQDialog } from "./create-boq-dialog"
 
 interface ProjectBOQProps {
   projectId: string
@@ -23,6 +24,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     totalSpent: 0,
     progress: 0,
   })
+  const [showCreateDialog, setShowCreateDialog] = useState(false)
 
   useEffect(() => {
     loadBOQ()
@@ -299,6 +301,17 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold">Bill of Quantity</h2>
+          <p className="text-muted-foreground">Manage project BOQs and cost estimates</p>
+        </div>
+        <Button onClick={() => setShowCreateDialog(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add BOQ
+        </Button>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="pb-3">
@@ -417,6 +430,13 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
           )}
         </TabsContent>
       </Tabs>
+
+      <CreateBOQDialog
+        projectId={projectId}
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        onSuccess={loadBOQ}
+      />
     </div>
   )
 }

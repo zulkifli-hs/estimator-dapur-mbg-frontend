@@ -364,25 +364,25 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
               <CardDescription>Project progress vs planned progress</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-center h-[400px] bg-gradient-to-br from-muted/30 to-muted/10 rounded-lg">
-                <div className="text-center space-y-4 max-w-md px-6">
-                  <div className="relative">
-                    <TrendingUp className="h-20 w-20 mx-auto text-primary/30" />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="h-16 w-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+              <div className="flex items-center justify-center h-[500px] bg-gradient-to-br from-primary/5 via-primary/10 to-background rounded-xl border-2 border-dashed border-primary/20">
+                <div className="text-center space-y-8 max-w-sm px-6">
+                  <div className="relative inline-block">
+                    <div className="absolute inset-0 animate-ping">
+                      <TrendingUp className="h-24 w-24 text-primary/30" />
                     </div>
+                    <TrendingUp className="h-24 w-24 text-primary relative z-10" />
                   </div>
-                  <div className="space-y-2">
-                    <h3 className="text-2xl font-bold text-foreground">Coming Soon</h3>
-                    <Badge variant="secondary" className="text-sm">
+                  <div className="space-y-3">
+                    <h3 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                      Coming Soon
+                    </h3>
+                    <Badge variant="outline" className="text-sm px-4 py-1 border-primary/40">
                       Under Construction
                     </Badge>
                   </div>
-                  <p className="text-muted-foreground">
-                    S Curve feature is currently under development. This will show planned vs actual progress over time
-                    to help track project performance.
+                  <p className="text-base text-muted-foreground leading-relaxed">
+                    We're building something amazing to track your project progress
                   </p>
-                  <p className="text-sm text-muted-foreground italic">Stay tuned for updates!</p>
                 </div>
               </div>
             </CardContent>

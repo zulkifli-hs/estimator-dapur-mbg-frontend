@@ -8,6 +8,7 @@ import { Upload, FileText } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { terminApi } from "@/lib/api/termin"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { CreateTerminDialog } from "./create-termin-dialog"
 
 interface ProjectInvoiceProps {
   projectId: string
@@ -17,12 +18,7 @@ export function ProjectInvoice({ projectId }: ProjectInvoiceProps) {
   const [termins, setTermins] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("termin")
-
-  const tabs = [
-    { value: "termin", label: "Termin" },
-    { value: "invoice", label: "Invoice" },
-    { value: "tax", label: "Tax Invoice" },
-  ]
+  const [showCreateTermin, setShowCreateTermin] = useState(false)
 
   useEffect(() => {
     loadTermins()
@@ -92,6 +88,13 @@ export function ProjectInvoice({ projectId }: ProjectInvoiceProps) {
 
   return (
     <div className="space-y-6">
+      <CreateTerminDialog
+        open={showCreateTermin}
+        onOpenChange={setShowCreateTermin}
+        projectId={projectId}
+        onSuccess={loadTermins}
+      />
+
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         {/* Mobile: Dropdown */}
         <div className="block md:hidden">
@@ -126,9 +129,9 @@ export function ProjectInvoice({ projectId }: ProjectInvoiceProps) {
                   <CardTitle>Payment Terms (Termin)</CardTitle>
                   <CardDescription>Project payment schedule and milestones</CardDescription>
                 </div>
-                <Button>
+                <Button onClick={() => setShowCreateTermin(true)} disabled={termins.length > 0}>
                   <Upload className="h-4 w-4 mr-2" />
-                  Add Termin
+                  {termins.length > 0 ? "Terms Created" : "Create Terms"}
                 </Button>
               </div>
             </CardHeader>
@@ -136,7 +139,13 @@ export function ProjectInvoice({ projectId }: ProjectInvoiceProps) {
               {loading ? (
                 <p className="text-center text-muted-foreground py-8">Loading termins...</p>
               ) : termins.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">No payment terms defined yet</p>
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground mb-4">No payment terms defined yet</p>
+                  <Button onClick={() => setShowCreateTermin(true)} variant="outline">
+                    <Upload className="h-4 w-4 mr-2" />
+                    Create Payment Terms
+                  </Button>
+                </div>
               ) : (
                 <div className="space-y-3">
                   {termins.map((termin, index) => (
@@ -250,3 +259,9 @@ export function ProjectInvoice({ projectId }: ProjectInvoiceProps) {
     </div>
   )
 }
+
+const tabs = [
+  { value: "termin", label: "Termin" },
+  { value: "invoice", label: "Invoice" },
+  { value: "tax", label: "Tax Invoice" },
+]

@@ -82,6 +82,27 @@ export const getFileUrl = (provider: string, url: string): string => {
   return `${API_BASE_URL}/public/${provider}/${encodeURIComponent(url)}`
 }
 
+export const uploadProjectFile = async (projectId: string, file: File, type: string): Promise<any> => {
+  const formData = new FormData()
+  formData.append("file", file)
+
+  const token = getAuthToken()
+  const response = await fetch(`${API_BASE_URL}/projects/${projectId}/${type}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  })
+
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.message || "Upload failed")
+  }
+
+  return response.json()
+}
+
 export const filesApi = {
   getByProject: async (projectId: string) => {
     try {
@@ -107,4 +128,5 @@ export const filesApi = {
     return { success: response.code === 200, data: response.data }
   },
   getFileUrl,
+  uploadProjectFile,
 }

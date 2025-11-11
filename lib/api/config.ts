@@ -59,6 +59,12 @@ export async function apiRequest<T>(endpoint: string, options: RequestInit = {})
     headers["Content-Type"] = "application/json"
   }
 
+  console.log("[v0] API Request:", {
+    endpoint,
+    method: options.method,
+    body: options.body,
+  })
+
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers,
@@ -70,8 +76,21 @@ export async function apiRequest<T>(endpoint: string, options: RequestInit = {})
     data: null,
   }))
 
+  console.log("[v0] API Response:", {
+    status: response.status,
+    ok: response.ok,
+    jsonResponse,
+  })
+
   // Accept both 200 (OK) and 201 (Created) as successful responses
   if (!response.ok || (jsonResponse.code !== 200 && jsonResponse.code !== 201)) {
+    console.error("[v0] API Error:", {
+      endpoint,
+      status: response.status,
+      responseOk: response.ok,
+      code: jsonResponse.code,
+      message: jsonResponse.message,
+    })
     throw new Error(jsonResponse.message?.user || `HTTP ${response.status}`)
   }
 

@@ -90,6 +90,10 @@ export function GanttChartEditor({ projectId, boq, open, onOpenChange, onSuccess
         })),
       }
 
+      console.log("[v0] Gantt chart update data:", JSON.stringify(apiData, null, 2))
+      console.log("[v0] Project ID:", projectId)
+      console.log("[v0] BOQ ID:", boq._id)
+
       await boqApi.updateGanttChart(projectId, boq._id, apiData)
 
       toast({
@@ -100,7 +104,12 @@ export function GanttChartEditor({ projectId, boq, open, onOpenChange, onSuccess
       onSuccess()
       onOpenChange(false)
     } catch (error) {
-      console.error("Failed to update gantt chart:", error)
+      console.error("[v0] Failed to update gantt chart:", error)
+      console.error("[v0] Error details:", {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      })
+
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to update gantt chart",

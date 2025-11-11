@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Building2, FolderKanban, TrendingUp, Users } from "lucide-react"
-import { Bar, BarChart, Line, LineChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid } from "recharts"
+import { Bar, BarChart, Line, LineChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Legend } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { projectsApi } from "@/lib/api/projects"
 
@@ -126,34 +126,35 @@ export default function DashboardPage() {
       </div>
 
       {/* Charts */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Project Progress</CardTitle>
             <CardDescription>Completed vs Ongoing projects over time</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 sm:p-6">
             <ChartContainer
               config={{
                 completed: {
                   label: "Completed",
-                  color: "hsl(var(--primary))",
+                  color: "hsl(142, 76%, 36%)",
                 },
                 ongoing: {
                   label: "Ongoing",
-                  color: "hsl(var(--accent))",
+                  color: "hsl(221, 83%, 53%)",
                 },
               }}
-              className="h-[300px]"
+              className="h-[250px] sm:h-[300px] w-full"
             >
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={projectProgressData}>
+                <BarChart data={projectProgressData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="month" className="text-xs" />
-                  <YAxis className="text-xs" />
+                  <XAxis dataKey="month" className="text-xs" tick={{ fontSize: 12 }} />
+                  <YAxis className="text-xs" tick={{ fontSize: 12 }} />
                   <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="completed" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="ongoing" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} />
+                  <Legend wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }} iconType="circle" />
+                  <Bar dataKey="completed" fill="hsl(142, 76%, 36%)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="ongoing" fill="hsl(221, 83%, 53%)" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </ChartContainer>
@@ -165,39 +166,42 @@ export default function DashboardPage() {
             <CardTitle>Budget Overview</CardTitle>
             <CardDescription>Budget allocation vs actual spending</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 sm:p-6">
             <ChartContainer
               config={{
                 budget: {
                   label: "Budget",
-                  color: "hsl(var(--primary))",
+                  color: "hsl(262, 83%, 58%)",
                 },
                 spent: {
                   label: "Spent",
-                  color: "hsl(var(--accent))",
+                  color: "hsl(346, 77%, 50%)",
                 },
               }}
-              className="h-[300px]"
+              className="h-[250px] sm:h-[300px] w-full"
             >
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={budgetData}>
+                <LineChart data={budgetData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="month" className="text-xs" />
-                  <YAxis className="text-xs" />
+                  <XAxis dataKey="month" className="text-xs" tick={{ fontSize: 12 }} />
+                  <YAxis className="text-xs" tick={{ fontSize: 12 }} />
                   <ChartTooltip content={<ChartTooltipContent />} />
+                  <Legend wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }} iconType="circle" />
                   <Line
                     type="monotone"
                     dataKey="budget"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={2}
-                    dot={{ fill: "hsl(var(--primary))" }}
+                    stroke="hsl(262, 83%, 58%)"
+                    strokeWidth={3}
+                    dot={{ fill: "hsl(262, 83%, 58%)", r: 4 }}
+                    activeDot={{ r: 6 }}
                   />
                   <Line
                     type="monotone"
                     dataKey="spent"
-                    stroke="hsl(var(--accent))"
-                    strokeWidth={2}
-                    dot={{ fill: "hsl(var(--accent))" }}
+                    stroke="hsl(346, 77%, 50%)"
+                    strokeWidth={3}
+                    dot={{ fill: "hsl(346, 77%, 50%)", r: 4 }}
+                    activeDot={{ r: 6 }}
                   />
                 </LineChart>
               </ResponsiveContainer>

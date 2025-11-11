@@ -65,18 +65,31 @@ export function AlbumDetailDialog({ open, onOpenChange, projectId, albumId, albu
 
     setUploading(true)
     try {
-      const uploadResponse = await uploadApi.uploadPhoto(file)
+      console.log("[v0] Starting photo upload for file:", file.name)
 
+      const uploadResponse = await uploadApi.uploadPhoto(file)
+      console.log("[v0] Upload successful:", uploadResponse)
+
+      console.log("[v0] Adding photo to album:", {
+        projectId,
+        albumId,
+        url: uploadResponse.url,
+        provider: uploadResponse.provider,
+      })
       const response = await albumsApi.addPhoto(projectId, albumId, uploadResponse.url, uploadResponse.provider)
+      console.log("[v0] Add photo response:", response)
 
       if (response.success) {
         toast({
           title: "Success",
           description: "Photo uploaded and added to album successfully",
         })
-        loadAlbum()
+        await loadAlbum()
+      } else {
+        throw new Error("Failed to add photo to album")
       }
     } catch (error: any) {
+      console.error("[v0] Upload error:", error)
       toast({
         title: "Error",
         description: error.message || "Failed to upload photo",

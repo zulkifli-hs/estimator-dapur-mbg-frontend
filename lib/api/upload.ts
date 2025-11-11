@@ -21,16 +21,23 @@ export const uploadPhoto = async (file: File): Promise<UploadResponse> => {
     headers["Authorization"] = `Bearer ${token}`
   }
 
+  console.log("[v0] Uploading photo to:", `${API_BASE_URL}/upload/photos`)
+
   const response = await fetch(`${API_BASE_URL}/upload/photos`, {
     method: "POST",
     headers,
     body: formData,
   })
 
-  const jsonResponse = await response.json()
+  console.log("[v0] Upload response status:", response.status, response.ok)
 
-  if (!response.ok || jsonResponse.code !== 200) {
-    throw new Error(jsonResponse.message?.user || "Upload failed")
+  const jsonResponse = await response.json()
+  console.log("[v0] Upload response data:", jsonResponse)
+
+  if (!response.ok || (jsonResponse.code !== 200 && jsonResponse.code !== 201)) {
+    const errorMsg = jsonResponse.message?.user || jsonResponse.message || "Upload failed"
+    console.error("[v0] Upload error:", errorMsg)
+    throw new Error(errorMsg)
   }
 
   return jsonResponse.data

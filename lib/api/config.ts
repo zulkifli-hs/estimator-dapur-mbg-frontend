@@ -33,6 +33,9 @@ export interface ApiResponse<T> {
   data: T
 }
 
+export const BASIC_AUTH_USERNAME = process.env.NEXT_PUBLIC_BASIC_AUTH_USERNAME || ""
+export const BASIC_AUTH_PASSWORD = process.env.NEXT_PUBLIC_BASIC_AUTH_PASSWORD || ""
+
 // API request helper with auth
 export async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
   const token = getAuthToken()
@@ -41,7 +44,12 @@ export async function apiRequest<T>(endpoint: string, options: RequestInit = {})
     ...options.headers,
   }
 
-  // Add auth token if available
+  if (BASIC_AUTH_USERNAME && BASIC_AUTH_PASSWORD) {
+    const basicAuthCredentials = btoa(`${BASIC_AUTH_USERNAME}:${BASIC_AUTH_PASSWORD}`)
+    headers["Authorization"] = `Basic ${basicAuthCredentials}`
+  }
+
+  // Add Bearer token if available (overrides Basic Auth)
   if (token) {
     headers["Authorization"] = `Bearer ${token}`
   }

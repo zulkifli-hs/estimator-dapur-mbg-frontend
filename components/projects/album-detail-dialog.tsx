@@ -4,6 +4,16 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Upload, X, Loader2, Download } from "lucide-react"
 import { albumsApi } from "@/lib/api/albums"
@@ -31,6 +41,9 @@ export function AlbumDetailDialog({
   const [album, setAlbum] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [photoToDelete, setPhotoToDelete] = useState<number | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -61,7 +74,6 @@ export function AlbumDetailDialog({
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Validate file type
     if (!file.type.startsWith("image/")) {
       toast({
         title: "Invalid file",
@@ -73,19 +85,9 @@ export function AlbumDetailDialog({
 
     setUploading(true)
     try {
-      console.log("[v0] Starting photo upload for file:", file.name)
-
       const uploadResponse = await uploadApi.uploadPhoto(file)
-      console.log("[v0] Upload successful:", uploadResponse)
 
-      console.log("[v0] Adding photo to album:", {
-        projectId,
-        albumId,
-        url: uploadResponse.url,
-        provider: uploadResponse.provider,
-      })
       const response = await albumsApi.addPhoto(projectId, albumId, uploadResponse.url, uploadResponse.provider)
-      console.log("[v0] Add photo response:", response)
 
       if (response.success) {
         toast({
@@ -98,7 +100,6 @@ export function AlbumDetailDialog({
         throw new Error("Failed to add photo to album")
       }
     } catch (error: any) {
-      console.error("[v0] Upload error:", error)
       toast({
         title: "Error",
         description: error.message || "Failed to upload photo",
@@ -110,15 +111,24 @@ export function AlbumDetailDialog({
     }
   }
 
-  const handleDeletePhoto = async (index: number) => {
+  const handleDeletePhotoClick = (index: number) => {
+    setPhotoToDelete(index)
+    setDeleteConfirmOpen(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (photoToDelete === null) return
+
+    setDeleting(true)
     try {
-      const response = await albumsApi.deletePhoto(projectId, albumId, [index])
+      const response = await albumsApi.deletePhoto(projectId, albumId, [photoToDelete])
       if (response.success) {
         toast({
           title: "Success",
           description: "Photo deleted successfully",
         })
-        loadAlbum()
+        await loadAlbum()
+        onPhotoAdded?.()
       }
     } catch (error: any) {
       toast({
@@ -126,6 +136,10 @@ export function AlbumDetailDialog({
         description: error.message || "Failed to delete photo",
         variant: "destructive",
       })
+    } finally {
+      setDeleting(false)
+      setDeleteConfirmOpen(false)
+      setPhotoToDelete(null)
     }
   }
 
@@ -134,85 +148,115 @@ export function AlbumDetailDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{albumName}</DialogTitle>
-          <DialogDescription>
-            {album?.list?.length || 0} photo{album?.list?.length !== 1 ? "s" : ""}
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{albumName}</DialogTitle>
+            <DialogDescription>
+              {album?.list?.length || 0} photo{album?.list?.length !== 1 ? "s" : ""}
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="space-y-4">
-          {/* Upload Button */}
-          <div>
-            <Button onClick={() => document.getElementById(`album-upload-${albumId}`)?.click()} disabled={uploading}>
-              {uploading ? (
+          <div className="space-y-4">
+            {/* Upload Button */}
+            <div>
+              <Button onClick={() => document.getElementById(`album-upload-${albumId}`)?.click()} disabled={uploading}>
+                {uploading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload Photo
+                  </>
+                )}
+              </Button>
+              <input
+                id={`album-upload-${albumId}`}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleUploadPhoto}
+              />
+            </div>
+
+            {/* Photos Grid */}
+            {loading ? (
+              <div className="flex items-center justify-center h-48">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : album?.list && album.list.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {album.list.map((photo: any, index: number) => (
+                  <div key={photo._id} className="relative group">
+                    <div className="aspect-square bg-muted rounded-lg overflow-hidden">
+                      <img
+                        src={getPhotoUrl(photo) || "/placeholder.svg"}
+                        alt={photo.name || "Photo"}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    {/* Action buttons */}
+                    <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        size="icon"
+                        variant="secondary"
+                        className="h-8 w-8"
+                        onClick={() => window.open(getPhotoUrl(photo), "_blank")}
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="destructive"
+                        className="h-8 w-8"
+                        onClick={() => handleDeletePhotoClick(index)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-48 border-2 border-dashed rounded-lg">
+                <p className="text-muted-foreground">No photos in this album</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Photo</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this photo? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Uploading...
+                  Deleting...
                 </>
               ) : (
-                <>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Upload Photo
-                </>
+                "Delete"
               )}
-            </Button>
-            <input
-              id={`album-upload-${albumId}`}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleUploadPhoto}
-            />
-          </div>
-
-          {/* Photos Grid */}
-          {loading ? (
-            <div className="flex items-center justify-center h-48">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : album?.list && album.list.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {album.list.map((photo: any, index: number) => (
-                <div key={photo._id} className="relative group">
-                  <div className="aspect-square bg-muted rounded-lg overflow-hidden">
-                    <img
-                      src={getPhotoUrl(photo) || "/placeholder.svg"}
-                      alt={photo.name || "Photo"}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  {/* Action buttons */}
-                  <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button
-                      size="icon"
-                      variant="secondary"
-                      className="h-8 w-8"
-                      onClick={() => window.open(getPhotoUrl(photo), "_blank")}
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="destructive"
-                      className="h-8 w-8"
-                      onClick={() => handleDeletePhoto(index)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="flex items-center justify-center h-48 border-2 border-dashed rounded-lg">
-              <p className="text-muted-foreground">No photos in this album</p>
-            </div>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   )
 }

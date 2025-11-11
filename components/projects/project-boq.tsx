@@ -269,33 +269,14 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                     </React.Fragment>
                   )
                 })}
-                <TableRow className="bg-muted/30">
-                  <TableCell colSpan={5} className="text-right font-semibold px-4 py-3">
-                    Subtotal Furniture Work
+                <TableRow className="bg-primary/20 font-bold">
+                  <TableCell colSpan={5} className="text-right text-lg px-4 py-4">
+                    GRAND TOTAL
                   </TableCell>
-                  <TableCell className="text-right font-semibold px-4 py-3">
-                    {formatCurrency(
-                      boq.furnitureWork.reduce(
-                        (sum: number, cat: any) =>
-                          sum +
-                          (Array.isArray(cat.products)
-                            ? cat.products.reduce((s: number, p: any) => s + (p.qty || 0) * (p.price || 0), 0)
-                            : 0),
-                        0,
-                      ),
-                    )}
-                  </TableCell>
+                  <TableCell className="text-right text-lg px-4 py-4">{formatCurrency(grandTotal)}</TableCell>
                 </TableRow>
               </>
             )}
-
-            {/* GRAND TOTAL */}
-            <TableRow className="bg-primary/20 font-bold">
-              <TableCell colSpan={5} className="text-right text-lg px-4 py-4">
-                GRAND TOTAL
-              </TableCell>
-              <TableCell className="text-right text-lg px-4 py-4">{formatCurrency(grandTotal)}</TableCell>
-            </TableRow>
           </TableBody>
         </Table>
       </div>
@@ -314,20 +295,34 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     }
   }
 
+  const getStatusBadge = (status: string) => {
+    const statusLower = status.toLowerCase()
+    if (statusLower === "approved") {
+      return <Badge className="bg-green-500 text-white hover:bg-green-600">Approved</Badge>
+    } else if (statusLower === "rejected") {
+      return <Badge className="bg-red-500 text-white hover:bg-red-600">Rejected</Badge>
+    } else if (statusLower === "request") {
+      return <Badge className="bg-yellow-500 text-white hover:bg-yellow-600">Request</Badge>
+    } else if (statusLower === "revision") {
+      return <Badge className="bg-blue-500 text-white hover:bg-blue-600">Revision</Badge>
+    }
+    return <Badge variant="secondary">{status}</Badge>
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold">Bill of Quantity</h2>
           <p className="text-muted-foreground">Manage project BOQs and cost estimates</p>
         </div>
         {!mainBOQ ? (
-          <Button onClick={() => setShowCreateDialog(true)}>
+          <Button onClick={() => setShowCreateDialog(true)} className="w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
             Add Main BOQ
           </Button>
         ) : (
-          <Button onClick={() => setShowCreateDialog(true)}>
+          <Button onClick={() => setShowCreateDialog(true)} className="w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
             Add Additional BOQ
           </Button>
@@ -358,11 +353,15 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Status</CardTitle>
+            <CardTitle className="text-sm font-medium">Main BOQ Status</CardTitle>
           </CardHeader>
           <CardContent>
-            {mainBOQ && (
-              <Badge variant={mainBOQ.status === "Request" ? "secondary" : "default"}>{mainBOQ.status}</Badge>
+            {mainBOQ ? (
+              getStatusBadge(mainBOQ.status)
+            ) : (
+              <Badge variant="outline" className="text-muted-foreground">
+                Not Created
+              </Badge>
             )}
           </CardContent>
         </Card>
@@ -376,16 +375,26 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
               <SelectValue placeholder="Select BOQ type" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="main">Main BOQ</SelectItem>
-              {additionalBOQs.length > 0 && <SelectItem value="additional">Additional BOQs</SelectItem>}
+              <SelectItem value="main">Main BOQ {mainBOQ && `(${mainBOQ.status})`}</SelectItem>
+              <SelectItem value="additional">Additional BOQs ({additionalBOQs.length})</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         {/* Desktop: Tabs */}
         <TabsList className="hidden md:flex">
-          <TabsTrigger value="main">Main BOQ</TabsTrigger>
-          {additionalBOQs.length > 0 && <TabsTrigger value="additional">Additional BOQs</TabsTrigger>}
+          <TabsTrigger value="main" className="flex items-center gap-2">
+            Main BOQ
+            {mainBOQ && <span className="text-xs opacity-70">({mainBOQ.status})</span>}
+          </TabsTrigger>
+          <TabsTrigger value="additional" className="flex items-center gap-2">
+            Additional BOQs
+            {additionalBOQs.length > 0 && (
+              <Badge variant="secondary" className="ml-1 h-5 min-w-5 flex items-center justify-center px-1">
+                {additionalBOQs.length}
+              </Badge>
+            )}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="main" className="space-y-4">
@@ -408,14 +417,22 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
           ) : (
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>Main BOQ (#{mainBOQ.number})</CardTitle>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <CardTitle>Main BOQ</CardTitle>
+                      {getStatusBadge(mainBOQ.status)}
+                    </div>
                     <CardDescription>
-                      Status: {mainBOQ.status} • Created: {new Date(mainBOQ.createdAt).toLocaleDateString("id-ID")}
+                      BOQ #{mainBOQ.number} • Created: {new Date(mainBOQ.createdAt).toLocaleDateString("id-ID")}
                     </CardDescription>
                   </div>
-                  <Button variant="outline" size="sm" onClick={() => handleEditBOQ(mainBOQ)}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEditBOQ(mainBOQ)}
+                    className="w-full sm:w-auto"
+                  >
                     <Edit className="h-4 w-4 mr-2" />
                     Edit
                   </Button>
@@ -441,19 +458,25 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
             additionalBOQs.map((boq) => (
               <Card key={boq._id}>
                 <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle>Additional BOQ #{boq.number}</CardTitle>
-                      <CardDescription>
-                        Status: {boq.status} • Created: {new Date(boq.createdAt).toLocaleDateString("id-ID")}
-                      </CardDescription>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <CardTitle>Additional BOQ #{boq.number}</CardTitle>
+                        {getStatusBadge(boq.status)}
+                      </div>
+                      <CardDescription>Created: {new Date(boq.createdAt).toLocaleDateString("id-ID")}</CardDescription>
                     </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => handleEditBOQ(boq)}>
+                    <div className="flex gap-2 w-full sm:w-auto">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditBOQ(boq)}
+                        className="flex-1 sm:flex-none"
+                      >
                         <Edit className="h-4 w-4 mr-2" />
                         Edit
                       </Button>
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" className="flex-1 sm:flex-none bg-transparent">
                         <Trash2 className="h-4 w-4 mr-2" />
                         Delete
                       </Button>

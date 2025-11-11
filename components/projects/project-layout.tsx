@@ -11,15 +11,15 @@ import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { uploadProjectFile } from "@/lib/api/files"
-import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 
 interface ProjectLayoutProps {
   projectId: string
   project?: any
+  onUpdate?: () => void
 }
 
-export function ProjectLayout({ projectId, project }: ProjectLayoutProps) {
+export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutProps) {
   const projectDetail = project?.detail || {}
   const mainLayout = projectDetail.layout
   const shopDrawingFitout = projectDetail.shopDrawingFitout || []
@@ -28,7 +28,6 @@ export function ProjectLayout({ projectId, project }: ProjectLayoutProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
   const [uploading, setUploading] = useState(false)
-  const router = useRouter()
   const { toast } = useToast()
 
   const getFileUrl = (provider: string, url: string) => {
@@ -63,15 +62,8 @@ export function ProjectLayout({ projectId, project }: ProjectLayoutProps) {
 
   const handleView = (provider: string, url: string, filename?: string) => {
     const fileUrl = getFileUrl(provider, url)
-    const isPdf = filename?.toLowerCase().endsWith(".pdf") || url.toLowerCase().endsWith(".pdf")
-
-    if (isPdf) {
-      // Open PDF in new tab to avoid cross-origin iframe restrictions
-      window.open(fileUrl, "_blank")
-    } else {
-      setPreviewUrl(fileUrl)
-      setPreviewOpen(true)
-    }
+    setPreviewUrl(fileUrl)
+    setPreviewOpen(true)
   }
 
   const handleFileUpload = async (file: File, type: string) => {
@@ -84,7 +76,9 @@ export function ProjectLayout({ projectId, project }: ProjectLayoutProps) {
         title: "Success",
         description: "File uploaded successfully",
       })
-      router.refresh()
+      if (onUpdate) {
+        onUpdate()
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -405,22 +399,27 @@ export function ProjectLayout({ projectId, project }: ProjectLayoutProps) {
       </Tabs>
 
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-w-6xl max-h-[90vh]">
+        <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>File Preview</DialogTitle>
           </DialogHeader>
-          <div className="overflow-auto max-h-[calc(90vh-100px)]">
+          <div className="flex-1 overflow-hidden">
             {previewUrl && (
-              <img
-                src={previewUrl || "/placeholder.svg"}
-                alt="Preview"
-                className="w-full h-auto"
-                onError={(e) => {
-                  e.currentTarget.style.display = "none"
-                  e.currentTarget.parentElement!.innerHTML =
-                    '<p class="text-center text-muted-foreground py-8">Preview not available. Please download the file to view.</p>'
-                }}
-              />
+              <object data={previewUrl} type="application/pdf" className="w-full h-full" aria-label="PDF preview">
+                <iframe
+                  src={`https://docs.google.com/viewer?url=${encodeURIComponent(previewUrl)}&embedded=true`}
+                  className="w-full h-full border-0"
+                  title="PDF preview"
+                >
+                  <p className="text-center text-muted-foreground py-8">
+                    Unable to display PDF. Please{" "}
+                    <a href={previewUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                      download the file
+                    </a>{" "}
+                    to view.
+                  </p>
+                </iframe>
+              </object>
             )}
           </div>
         </DialogContent>

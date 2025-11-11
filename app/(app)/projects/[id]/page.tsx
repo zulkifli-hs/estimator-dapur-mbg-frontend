@@ -129,7 +129,7 @@ export default function ProjectDetailPage() {
         </TabsContent>
 
         <TabsContent value="layout">
-          <ProjectLayout projectId={project._id} project={project} />
+          <ProjectLayout projectId={project._id} project={project} onUpdate={loadProject} />
         </TabsContent>
 
         <TabsContent value="boq">

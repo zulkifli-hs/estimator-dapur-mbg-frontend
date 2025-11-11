@@ -22,7 +22,8 @@ interface ProjectLayoutProps {
 
 export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutProps) {
   const projectDetail = project?.detail || {}
-  const mainLayout = projectDetail.layout
+  const layoutFiles = projectDetail.layout || []
+  const cadFiles = projectDetail.cad || []
   const shopDrawingFitout = projectDetail.shopDrawingFitout || []
   const shopDrawingFurniture = projectDetail.shopDrawingFurniture || []
   const approvedMaterial = projectDetail.approvedMaterial || []
@@ -47,26 +48,6 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
     const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.gema-interior.com"
     return `${baseUrl}/public/${provider}/${url}`
   }
-
-  const layoutRevisions = mainLayout
-    ? [
-        {
-          id: mainLayout._id,
-          version: `v${mainLayout.version || 1}.0`,
-          date: mainLayout.createdAt ? format(new Date(mainLayout.createdAt), "yyyy-MM-dd") : "N/A",
-          uploadedBy: mainLayout.createdBy || "Unknown",
-          status: "Current",
-          file: mainLayout.name,
-          url: mainLayout.url,
-          provider: mainLayout.provider,
-        },
-      ]
-    : []
-
-  const cadFiles = [
-    { id: 1, name: "Building-Floor-1.dwg", uploadedBy: "John Doe", date: "2025-01-10", size: "2.4 MB" },
-    { id: 2, name: "Building-Floor-2.dwg", uploadedBy: "Jane Smith", date: "2025-01-10", size: "2.1 MB" },
-  ]
 
   const handleDownload = (provider: string, url: string, filename: string) => {
     const fileUrl = getFileUrl(provider, url)
@@ -145,7 +126,7 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle>Main Layout</CardTitle>
-                  <CardDescription>Upload and manage main layout revisions</CardDescription>
+                  <CardDescription>Upload and manage main layout files</CardDescription>
                 </div>
                 <div>
                   <Input
@@ -159,36 +140,35 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
                   <Button asChild disabled={uploading}>
                     <label htmlFor="layout-upload" className="cursor-pointer">
                       <Upload className="h-4 w-4 mr-2" />
-                      {uploading ? "Uploading..." : "Upload New Version"}
+                      {uploading ? "Uploading..." : "Upload Layout"}
                     </label>
                   </Button>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              {layoutRevisions.length === 0 ? (
+              {layoutFiles.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>No layout files uploaded yet</p>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {layoutRevisions.map((revision) => (
+                  {layoutFiles.map((layout: any) => (
                     <div
-                      key={revision.id}
+                      key={layout._id}
                       className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                     >
                       <div className="flex items-center gap-4">
                         <FileText className="h-8 w-8 text-primary" />
                         <div>
                           <div className="flex items-center gap-2">
-                            <p className="font-medium">{revision.file}</p>
-                            <Badge variant={revision.status === "Current" ? "default" : "secondary"}>
-                              {revision.status}
-                            </Badge>
+                            <p className="font-medium">{layout.name}</p>
+                            <Badge variant="default">v{layout.version || 1}.0</Badge>
                           </div>
                           <p className="text-sm text-muted-foreground">
-                            {revision.version} • Uploaded by {revision.uploadedBy} on {revision.date}
+                            Uploaded by {layout.createdBy || "Unknown"} •{" "}
+                            {layout.createdAt ? format(new Date(layout.createdAt), "yyyy-MM-dd") : "N/A"}
                           </p>
                         </div>
                       </div>
@@ -196,7 +176,7 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleView(revision.provider, revision.url, revision.file)}
+                          onClick={() => handleView(layout.provider, layout.url, layout.name)}
                           title="View file"
                         >
                           <Eye className="h-4 w-4" />
@@ -204,7 +184,7 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleDownload(revision.provider, revision.url, revision.file)}
+                          onClick={() => handleDownload(layout.provider, layout.url, layout.name)}
                           title="Download file"
                         >
                           <Download className="h-4 w-4" />
@@ -224,7 +204,7 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle>CAD Files - Empty Building</CardTitle>
-                  <CardDescription>Upload CAD files of empty building structure</CardDescription>
+                  <CardDescription>Upload CAD files (.dwg) of empty building structure</CardDescription>
                 </div>
                 <div>
                   <Input
@@ -245,29 +225,42 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {cadFiles.map((file) => (
-                  <div
-                    key={file.id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-4">
-                      <FileText className="h-8 w-8 text-blue-500" />
-                      <div>
-                        <p className="font-medium">{file.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {file.size} • Uploaded by {file.uploadedBy} on {file.date}
-                        </p>
+              {cadFiles.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No CAD files uploaded yet</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {cadFiles.map((file: any) => (
+                    <div
+                      key={file._id}
+                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-4">
+                        <FileText className="h-8 w-8 text-blue-500" />
+                        <div>
+                          <p className="font-medium">{file.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            Uploaded by {file.createdBy || "Unknown"} •{" "}
+                            {file.createdAt ? format(new Date(file.createdAt), "yyyy-MM-dd") : "N/A"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDownload(file.provider, file.url, file.name)}
+                          title="Download file"
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="icon">
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

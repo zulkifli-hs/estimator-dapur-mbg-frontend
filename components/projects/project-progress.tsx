@@ -380,6 +380,7 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
           projectId={projectId}
           albumId={selectedAlbum.id}
           albumName={selectedAlbum.name}
+          onPhotoAdded={loadAlbums}
         />
       )}
     </div>

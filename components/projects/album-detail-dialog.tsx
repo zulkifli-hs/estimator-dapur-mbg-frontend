@@ -17,9 +17,17 @@ interface AlbumDetailDialogProps {
   projectId: string
   albumId: string
   albumName: string
+  onPhotoAdded?: () => void
 }
 
-export function AlbumDetailDialog({ open, onOpenChange, projectId, albumId, albumName }: AlbumDetailDialogProps) {
+export function AlbumDetailDialog({
+  open,
+  onOpenChange,
+  projectId,
+  albumId,
+  albumName,
+  onPhotoAdded,
+}: AlbumDetailDialogProps) {
   const [album, setAlbum] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -85,6 +93,7 @@ export function AlbumDetailDialog({ open, onOpenChange, projectId, albumId, albu
           description: "Photo uploaded and added to album successfully",
         })
         await loadAlbum()
+        onPhotoAdded?.()
       } else {
         throw new Error("Failed to add photo to album")
       }

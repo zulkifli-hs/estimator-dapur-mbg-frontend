@@ -2,14 +2,18 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Upload, Calendar, ImageIcon, TrendingUp, FileCheck, Edit } from "lucide-react"
+import { Upload, Calendar, ImageIcon, TrendingUp, FileCheck, Edit, Plus } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useEffect, useState } from "react"
 import { boqApi } from "@/lib/api/boq"
+import { albumsApi } from "@/lib/api/albums"
 import { GanttChartEditor } from "./gantt-chart-editor"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { GanttChartView } from "./gantt-chart-view"
+import { CreateAlbumDialog } from "./create-album-dialog"
+import { AlbumDetailDialog } from "./album-detail-dialog"
+import { useToast } from "@/hooks/use-toast"
 
 interface ProjectProgressProps {
   projectId: string
@@ -22,6 +26,12 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
   const [showGanttEditor, setShowGanttEditor] = useState(false)
   const [ganttTasks, setGanttTasks] = useState<any[]>([])
 
+  const [albums, setAlbums] = useState<any[]>([])
+  const [albumsLoading, setAlbumsLoading] = useState(false)
+  const [showCreateAlbum, setShowCreateAlbum] = useState(false)
+  const [selectedAlbum, setSelectedAlbum] = useState<{ id: string; name: string } | null>(null)
+  const { toast } = useToast()
+
   const tabs = [
     { value: "gantt", label: "Gantt Chart" },
     { value: "photos", label: "Project Photos" },
@@ -31,6 +41,7 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
 
   useEffect(() => {
     loadBOQData()
+    loadAlbums()
   }, [projectId])
 
   const loadBOQData = async () => {
@@ -124,19 +135,25 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
     return date.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })
   }
 
-  // Dummy data for project photos
-  const projectPhotos = [
-    { id: 1, title: "Site Preparation", date: "2025-01-05", photos: 12 },
-    { id: 2, title: "Foundation Work", date: "2025-01-10", photos: 8 },
-    { id: 3, title: "Partition Installation", date: "2025-01-15", photos: 15 },
-  ]
-
-  // Dummy data for BAST/BAPP
-  const bastDocuments = [
-    { id: 1, type: "BAST", title: "Handover Phase 1", date: "2025-01-20", status: "Signed" },
-    { id: 2, type: "BAPP", title: "Progress Payment 1", date: "2025-01-15", status: "Approved" },
-    { id: 3, type: "BAST", title: "Material Delivery", date: "2025-01-10", status: "Pending" },
-  ]
+  const loadAlbums = async () => {
+    setAlbumsLoading(true)
+    try {
+      const response = await albumsApi.getByProject(projectId, { limit: 100 })
+      if (response.success) {
+        // Handle both array and paginated response
+        const albumsData = Array.isArray(response.data) ? response.data : response.data?.list || []
+        setAlbums(albumsData)
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to load albums",
+        variant: "destructive",
+      })
+    } finally {
+      setAlbumsLoading(false)
+    }
+  }
 
   const hasGanttDates = ganttTasks.length > 0
 
@@ -221,29 +238,60 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
                   <CardTitle>Project Photos</CardTitle>
                   <CardDescription>Progress documentation and site photos</CardDescription>
                 </div>
-                <Button>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Upload Photos
+                <Button onClick={() => setShowCreateAlbum(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Album
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {projectPhotos.map((album) => (
-                  <Card key={album.id} className="cursor-pointer hover:shadow-lg transition-shadow">
-                    <CardContent className="p-4">
-                      <div className="aspect-video bg-muted rounded-lg mb-3 flex items-center justify-center">
-                        <ImageIcon className="h-12 w-12 text-muted-foreground" />
-                      </div>
-                      <h3 className="font-semibold mb-1">{album.title}</h3>
-                      <p className="text-sm text-muted-foreground">{album.date}</p>
-                      <Badge variant="secondary" className="mt-2">
-                        {album.photos} photos
-                      </Badge>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+              {albumsLoading ? (
+                <div className="flex items-center justify-center h-48">
+                  <p className="text-muted-foreground">Loading albums...</p>
+                </div>
+              ) : albums.length > 0 ? (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {albums.map((album) => (
+                    <Card
+                      key={album._id}
+                      className="cursor-pointer hover:shadow-lg transition-shadow"
+                      onClick={() => setSelectedAlbum({ id: album._id, name: album.name })}
+                    >
+                      <CardContent className="p-4">
+                        <div className="aspect-video bg-muted rounded-lg mb-3 flex items-center justify-center">
+                          {album.list && album.list.length > 0 ? (
+                            <img
+                              src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${album.list[0].provider}/${album.list[0].url}`}
+                              alt={album.name}
+                              className="w-full h-full object-cover rounded-lg"
+                            />
+                          ) : (
+                            <ImageIcon className="h-12 w-12 text-muted-foreground" />
+                          )}
+                        </div>
+                        <h3 className="font-semibold mb-1">{album.name}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(album.createdAt).toLocaleDateString("id-ID")}
+                        </p>
+                        <Badge variant="secondary" className="mt-2">
+                          {album.list?.length || 0} photo{album.list?.length !== 1 ? "s" : ""}
+                        </Badge>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-48 border-2 border-dashed rounded-lg">
+                  <div className="text-center space-y-2">
+                    <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground" />
+                    <p className="text-muted-foreground">No albums yet</p>
+                    <Button onClick={() => setShowCreateAlbum(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create First Album
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -317,6 +365,30 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
           onSuccess={loadBOQData}
         />
       )}
+
+      <CreateAlbumDialog
+        open={showCreateAlbum}
+        onOpenChange={setShowCreateAlbum}
+        projectId={projectId}
+        onSuccess={loadAlbums}
+      />
+
+      {selectedAlbum && (
+        <AlbumDetailDialog
+          open={!!selectedAlbum}
+          onOpenChange={(open) => !open && setSelectedAlbum(null)}
+          projectId={projectId}
+          albumId={selectedAlbum.id}
+          albumName={selectedAlbum.name}
+        />
+      )}
     </div>
   )
 }
+
+// Dummy data for BAST/BAPP
+const bastDocuments = [
+  { id: 1, type: "BAST", title: "Handover Phase 1", date: "2025-01-20", status: "Signed" },
+  { id: 2, type: "BAPP", title: "Progress Payment 1", date: "2025-01-15", status: "Approved" },
+  { id: 3, type: "BAST", title: "Material Delivery", date: "2025-01-10", status: "Pending" },
+]

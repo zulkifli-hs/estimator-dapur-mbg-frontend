@@ -321,10 +321,17 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
           <h2 className="text-2xl font-bold">Bill of Quantity</h2>
           <p className="text-muted-foreground">Manage project BOQs and cost estimates</p>
         </div>
-        <Button onClick={() => setShowCreateDialog(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add BOQ
-        </Button>
+        {!mainBOQ ? (
+          <Button onClick={() => setShowCreateDialog(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Main BOQ
+          </Button>
+        ) : (
+          <Button onClick={() => setShowCreateDialog(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Additional BOQ
+          </Button>
+        )}
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -393,7 +400,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
               <CardContent className="py-8">
                 <Alert>
                   <AlertDescription className="text-center">
-                    No main BOQ found. Create a main BOQ to start tracking project costs.
+                    No main BOQ found. Click "Add Main BOQ" to create the main BOQ for this project.
                   </AlertDescription>
                 </Alert>
               </CardContent>

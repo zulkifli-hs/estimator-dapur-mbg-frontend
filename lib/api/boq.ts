@@ -188,7 +188,7 @@ export const updateGanttChart = async (
   },
 ): Promise<any> => {
   return apiRequest<any>(`/projects/${projectId}/boq/${boqId}/gantt-chart`, {
-    method: "PUT",
+    method: "PATCH",
     body: JSON.stringify(data),
   })
 }

@@ -84,14 +84,24 @@ export async function apiRequest<T>(endpoint: string, options: RequestInit = {})
 
   // Accept both 200 (OK) and 201 (Created) as successful responses
   if (!response.ok || (jsonResponse.code !== 200 && jsonResponse.code !== 201)) {
-    console.error("[v0] API Error:", {
+    const errorDetails = {
       endpoint,
+      method: options.method,
       status: response.status,
       responseOk: response.ok,
       code: jsonResponse.code,
       message: jsonResponse.message,
-    })
-    throw new Error(jsonResponse.message?.user || `HTTP ${response.status}`)
+      devProblems: jsonResponse.message?.dev?.problems || [],
+    }
+    console.error("[v0] API Error Details:", JSON.stringify(errorDetails, null, 2))
+
+    // Build a more descriptive error message
+    let errorMessage = jsonResponse.message?.user || `HTTP ${response.status}`
+    if (response.status === 404) {
+      errorMessage = `Endpoint tidak ditemukan (404): ${endpoint}. Pastikan endpoint API sudah tersedia di backend.`
+    }
+
+    throw new Error(errorMessage)
   }
 
   return jsonResponse

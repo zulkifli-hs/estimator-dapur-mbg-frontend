@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,6 +16,7 @@ interface CreateBOQDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess: () => void
+  boq?: any
 }
 
 interface PreliminaryItem {
@@ -37,7 +38,7 @@ interface Category {
   products: Product[]
 }
 
-export function CreateBOQDialog({ projectId, open, onOpenChange, onSuccess }: CreateBOQDialogProps) {
+export function CreateBOQDialog({ projectId, open, onOpenChange, onSuccess, boq }: CreateBOQDialogProps) {
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
 
@@ -49,10 +50,62 @@ export function CreateBOQDialog({ projectId, open, onOpenChange, onSuccess }: Cr
     { name: "", products: [{ qty: 0, name: "", unit: "", price: 0 }] },
   ])
 
+  useEffect(() => {
+    if (boq && open) {
+      if (Array.isArray(boq.preliminary) && boq.preliminary.length > 0) {
+        setPreliminary(
+          boq.preliminary.map((item: any) => ({
+            qty: item.qty || 0,
+            name: item.name || "",
+            unit: item.unit || "",
+            price: item.price || 0,
+          })),
+        )
+      }
+
+      if (Array.isArray(boq.fittingOut) && boq.fittingOut.length > 0) {
+        setFittingOut(
+          boq.fittingOut.map((cat: any) => ({
+            name: cat.name || "",
+            products:
+              Array.isArray(cat.products) && cat.products.length > 0
+                ? cat.products.map((p: any) => ({
+                    qty: p.qty || 0,
+                    name: p.name || "",
+                    unit: p.unit || "",
+                    price: p.price || 0,
+                  }))
+                : [{ qty: 0, name: "", unit: "", price: 0 }],
+          })),
+        )
+      }
+
+      if (Array.isArray(boq.furnitureWork) && boq.furnitureWork.length > 0) {
+        setFurnitureWork(
+          boq.furnitureWork.map((cat: any) => ({
+            name: cat.name || "",
+            products:
+              Array.isArray(cat.products) && cat.products.length > 0
+                ? cat.products.map((p: any) => ({
+                    qty: p.qty || 0,
+                    name: p.name || "",
+                    unit: p.unit || "",
+                    price: p.price || 0,
+                  }))
+                : [{ qty: 0, name: "", unit: "", price: 0 }],
+          })),
+        )
+      }
+    } else if (!open) {
+      if (!boq) {
+        resetForm()
+      }
+    }
+  }, [boq, open])
+
   const handleSubmit = async () => {
     setLoading(true)
     try {
-      // Filter out empty items
       const filteredPreliminary = preliminary.filter((item) => item.name.trim() !== "")
       const filteredFittingOut = fittingOut
         .filter((cat) => cat.name.trim() !== "")
@@ -79,16 +132,27 @@ export function CreateBOQDialog({ projectId, open, onOpenChange, onSuccess }: Cr
         return
       }
 
-      await boqApi.create(projectId, {
-        preliminary: filteredPreliminary,
-        fittingOut: filteredFittingOut,
-        furnitureWork: filteredFurnitureWork,
-      })
-
-      toast({
-        title: "Success",
-        description: "BOQ created successfully",
-      })
+      if (boq) {
+        await boqApi.update(projectId, boq._id, {
+          preliminary: filteredPreliminary,
+          fittingOut: filteredFittingOut,
+          furnitureWork: filteredFurnitureWork,
+        })
+        toast({
+          title: "Success",
+          description: "BOQ updated successfully",
+        })
+      } else {
+        await boqApi.create(projectId, {
+          preliminary: filteredPreliminary,
+          fittingOut: filteredFittingOut,
+          furnitureWork: filteredFurnitureWork,
+        })
+        toast({
+          title: "Success",
+          description: "BOQ created successfully",
+        })
+      }
 
       onSuccess()
       onOpenChange(false)
@@ -96,7 +160,7 @@ export function CreateBOQDialog({ projectId, open, onOpenChange, onSuccess }: Cr
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Failed to create BOQ",
+        description: error.message || `Failed to ${boq ? "update" : "create"} BOQ`,
         variant: "destructive",
       })
     } finally {
@@ -110,7 +174,6 @@ export function CreateBOQDialog({ projectId, open, onOpenChange, onSuccess }: Cr
     setFurnitureWork([{ name: "", products: [{ qty: 0, name: "", unit: "", price: 0 }] }])
   }
 
-  // Preliminary handlers
   const addPreliminaryItem = () => {
     setPreliminary([...preliminary, { qty: 0, name: "", unit: "", price: 0 }])
   }
@@ -125,7 +188,6 @@ export function CreateBOQDialog({ projectId, open, onOpenChange, onSuccess }: Cr
     setPreliminary(updated)
   }
 
-  // Fitting Out handlers
   const addFittingOutCategory = () => {
     setFittingOut([...fittingOut, { name: "", products: [{ qty: 0, name: "", unit: "", price: 0 }] }])
   }
@@ -161,7 +223,6 @@ export function CreateBOQDialog({ projectId, open, onOpenChange, onSuccess }: Cr
     setFittingOut(updated)
   }
 
-  // Furniture Work handlers
   const addFurnitureWorkCategory = () => {
     setFurnitureWork([...furnitureWork, { name: "", products: [{ qty: 0, name: "", unit: "", price: 0 }] }])
   }
@@ -206,7 +267,7 @@ export function CreateBOQDialog({ projectId, open, onOpenChange, onSuccess }: Cr
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create New BOQ</DialogTitle>
+          <DialogTitle>{boq ? "Edit BOQ" : "Create New BOQ"}</DialogTitle>
         </DialogHeader>
 
         <Tabs defaultValue="preliminary" className="w-full">
@@ -496,7 +557,7 @@ export function CreateBOQDialog({ projectId, open, onOpenChange, onSuccess }: Cr
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={loading}>
-            {loading ? "Creating..." : "Create BOQ"}
+            {loading ? (boq ? "Updating..." : "Creating...") : boq ? "Update BOQ" : "Create BOQ"}
           </Button>
         </div>
       </DialogContent>

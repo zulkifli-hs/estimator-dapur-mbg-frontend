@@ -127,9 +127,23 @@ export const getBOQ = async (projectId: string, boqId: string): Promise<BOQ> => 
   })
 }
 
-// Update BOQ
-export const updateBOQ = async (projectId: string, boqId: string, data: Partial<BOQ>): Promise<BOQ> => {
-  return apiRequest<BOQ>(`/projects/${projectId}/boq/${boqId}`, {
+// Update BOQ with new API format
+export const updateBOQ = async (
+  projectId: string,
+  boqId: string,
+  data: {
+    preliminary: Array<{ qty: number; name: string; unit: string; price: number }>
+    fittingOut: Array<{
+      name: string
+      products: Array<{ qty: number; name: string; unit: string; price: number }>
+    }>
+    furnitureWork: Array<{
+      name: string
+      products: Array<{ qty: number; name: string; unit: string; price: number }>
+    }>
+  },
+): Promise<any> => {
+  return apiRequest<any>(`/projects/${projectId}/boq/${boqId}`, {
     method: "PUT",
     body: JSON.stringify(data),
   })
@@ -225,7 +239,21 @@ export const boqApi = {
     const data = await createBOQ(projectId, boqData)
     return { success: true, data }
   },
-  update: async (projectId: string, boqId: string, boqData: Partial<BOQ>) => {
+  update: async (
+    projectId: string,
+    boqId: string,
+    boqData: {
+      preliminary: Array<{ qty: number; name: string; unit: string; price: number }>
+      fittingOut: Array<{
+        name: string
+        products: Array<{ qty: number; name: string; unit: string; price: number }>
+      }>
+      furnitureWork: Array<{
+        name: string
+        products: Array<{ qty: number; name: string; unit: string; price: number }>
+      }>
+    },
+  ) => {
     const data = await updateBOQ(projectId, boqId, boqData)
     return { success: true, data }
   },

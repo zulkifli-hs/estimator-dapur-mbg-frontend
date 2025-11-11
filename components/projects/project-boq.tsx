@@ -26,6 +26,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     progress: 0,
   })
   const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [editingBOQ, setEditingBOQ] = useState<any>(null)
   const [activeTab, setActiveTab] = useState("main")
 
   useEffect(() => {
@@ -301,6 +302,18 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     )
   }
 
+  const handleEditBOQ = (boq: any) => {
+    setEditingBOQ(boq)
+    setShowCreateDialog(true)
+  }
+
+  const handleDialogClose = (open: boolean) => {
+    setShowCreateDialog(open)
+    if (!open) {
+      setEditingBOQ(null)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -395,7 +408,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                       Status: {mainBOQ.status} • Created: {new Date(mainBOQ.createdAt).toLocaleDateString("id-ID")}
                     </CardDescription>
                   </div>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={() => handleEditBOQ(mainBOQ)}>
                     <Edit className="h-4 w-4 mr-2" />
                     Edit
                   </Button>
@@ -429,7 +442,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                       </CardDescription>
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" onClick={() => handleEditBOQ(boq)}>
                         <Edit className="h-4 w-4 mr-2" />
                         Edit
                       </Button>
@@ -450,8 +463,9 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       <CreateBOQDialog
         projectId={projectId}
         open={showCreateDialog}
-        onOpenChange={setShowCreateDialog}
+        onOpenChange={handleDialogClose}
         onSuccess={loadBOQ}
+        boq={editingBOQ}
       />
     </div>
   )

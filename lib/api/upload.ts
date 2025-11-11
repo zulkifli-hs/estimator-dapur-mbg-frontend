@@ -1,4 +1,4 @@
-import { API_BASE_URL, getAuthToken, BASIC_AUTH_USERNAME, BASIC_AUTH_PASSWORD } from "./config"
+import { API_BASE_URL, BASIC_AUTH_USERNAME, BASIC_AUTH_PASSWORD } from "./config"
 
 export interface UploadResponse {
   url: string
@@ -9,16 +9,13 @@ export const uploadPhoto = async (file: File): Promise<UploadResponse> => {
   const formData = new FormData()
   formData.append("file", file)
 
-  const token = getAuthToken()
   const headers: HeadersInit = {}
 
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`
-    console.log("[v0] Using Bearer token for upload")
-  } else if (BASIC_AUTH_USERNAME && BASIC_AUTH_PASSWORD) {
+  if (BASIC_AUTH_USERNAME && BASIC_AUTH_PASSWORD) {
     const basicAuthCredentials = btoa(`${BASIC_AUTH_USERNAME}:${BASIC_AUTH_PASSWORD}`)
     headers["Authorization"] = `Basic ${basicAuthCredentials}`
-    console.log("[v0] Using Basic Auth for upload")
+  } else {
+    throw new Error("Basic Auth credentials not configured")
   }
 
   console.log("[v0] Uploading photo to:", `${API_BASE_URL}/upload/photos`)

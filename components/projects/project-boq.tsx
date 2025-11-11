@@ -27,6 +27,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   })
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [editingBOQ, setEditingBOQ] = useState<any>(null)
+  const [isCreatingAdditional, setIsCreatingAdditional] = useState(false)
   const [activeTab, setActiveTab] = useState("main")
 
   useEffect(() => {
@@ -292,7 +293,13 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     setShowCreateDialog(open)
     if (!open) {
       setEditingBOQ(null)
+      setIsCreatingAdditional(false)
     }
+  }
+
+  const handleCreateAdditionalBOQ = () => {
+    setIsCreatingAdditional(true)
+    setShowCreateDialog(true)
   }
 
   const getStatusBadge = (status: string) => {
@@ -322,7 +329,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
             Add Main BOQ
           </Button>
         ) : (
-          <Button onClick={() => setShowCreateDialog(true)} className="w-full sm:w-auto">
+          <Button onClick={handleCreateAdditionalBOQ} className="w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
             Add Additional BOQ
           </Button>
@@ -496,6 +503,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         onOpenChange={handleDialogClose}
         onSuccess={loadBOQ}
         boq={editingBOQ}
+        isAdditional={isCreatingAdditional}
       />
     </div>
   )

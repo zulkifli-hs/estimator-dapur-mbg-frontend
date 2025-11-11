@@ -17,6 +17,7 @@ interface CreateBOQDialogProps {
   onOpenChange: (open: boolean) => void
   onSuccess: () => void
   boq?: any
+  isAdditional?: boolean
 }
 
 interface PreliminaryItem {
@@ -38,7 +39,14 @@ interface Category {
   products: Product[]
 }
 
-export function CreateBOQDialog({ projectId, open, onOpenChange, onSuccess, boq }: CreateBOQDialogProps) {
+export function CreateBOQDialog({
+  projectId,
+  open,
+  onOpenChange,
+  onSuccess,
+  boq,
+  isAdditional = false,
+}: CreateBOQDialogProps) {
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
 
@@ -132,22 +140,24 @@ export function CreateBOQDialog({ projectId, open, onOpenChange, onSuccess, boq 
         return
       }
 
+      const boqData = {
+        preliminary: filteredPreliminary,
+        fittingOut: filteredFittingOut,
+        furnitureWork: filteredFurnitureWork,
+      }
+
       if (boq) {
-        await boqApi.update(projectId, boq._id, {
-          preliminary: filteredPreliminary,
-          fittingOut: filteredFittingOut,
-          furnitureWork: filteredFurnitureWork,
-        })
+        await boqApi.update(projectId, boq._id, boqData)
         toast({
           title: "Success",
           description: "BOQ updated successfully",
         })
       } else {
-        await boqApi.create(projectId, {
-          preliminary: filteredPreliminary,
-          fittingOut: filteredFittingOut,
-          furnitureWork: filteredFurnitureWork,
-        })
+        if (isAdditional) {
+          await boqApi.createAdditional(projectId, boqData)
+        } else {
+          await boqApi.create(projectId, boqData)
+        }
         toast({
           title: "Success",
           description: "BOQ created successfully",

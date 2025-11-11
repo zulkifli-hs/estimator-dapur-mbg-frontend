@@ -65,16 +65,14 @@ export function AlbumDetailDialog({ open, onOpenChange, projectId, albumId, albu
 
     setUploading(true)
     try {
-      // Upload photo
       const uploadResponse = await uploadApi.uploadPhoto(file)
 
-      // Add photo to album
       const response = await albumsApi.addPhoto(projectId, albumId, uploadResponse.url, uploadResponse.provider)
 
       if (response.success) {
         toast({
           title: "Success",
-          description: "Photo uploaded successfully",
+          description: "Photo uploaded and added to album successfully",
         })
         loadAlbum()
       }

@@ -52,8 +52,8 @@ export function CreateAlbumDialog({ open, onOpenChange, projectId, onSuccess }: 
           description: "Album created successfully",
         })
         setName("")
-        onOpenChange(false)
         onSuccess()
+        onOpenChange(false)
       }
     } catch (error: any) {
       toast({
@@ -68,7 +68,7 @@ export function CreateAlbumDialog({ open, onOpenChange, projectId, onSuccess }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-md">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Create Album</DialogTitle>

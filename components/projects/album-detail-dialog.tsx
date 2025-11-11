@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import { ImageIcon } from "lucide-react"
 
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -145,6 +146,9 @@ export function AlbumDetailDialog({
   }
 
   const getPhotoUrl = (photo: any) => {
+    if (!photo?.provider || !photo?.url) {
+      return null
+    }
     return `${API_BASE_URL}/public/${photo.provider}/${photo.url}`
   }
 
@@ -194,11 +198,17 @@ export function AlbumDetailDialog({
                 {album.list.map((photo: any, index: number) => (
                   <div key={photo._id} className="relative group">
                     <div className="aspect-square bg-muted rounded-lg overflow-hidden">
-                      <img
-                        src={getPhotoUrl(photo) || "/placeholder.svg"}
-                        alt={photo.name || "Photo"}
-                        className="w-full h-full object-cover"
-                      />
+                      {getPhotoUrl(photo) ? (
+                        <img
+                          src={(getPhotoUrl(photo) as string) || "/placeholder.svg"}
+                          alt={photo.name || "Photo"}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <ImageIcon className="h-12 w-12 text-muted-foreground" />
+                        </div>
+                      )}
                     </div>
                     {/* Action buttons */}
                     <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -273,7 +283,13 @@ export function AlbumDetailDialog({
       <Dialog open={!!fullPhotoUrl} onOpenChange={(open) => !open && setFullPhotoUrl(null)}>
         <DialogContent className="max-w-7xl max-h-[90vh] p-0">
           <div className="relative w-full h-full flex items-center justify-center bg-black/90 p-4">
-            <img src={fullPhotoUrl || ""} alt="Full size photo" className="max-w-full max-h-[85vh] object-contain" />
+            {fullPhotoUrl && (
+              <img
+                src={fullPhotoUrl || "/placeholder.svg"}
+                alt="Full size photo"
+                className="max-w-full max-h-[85vh] object-contain"
+              />
+            )}
             <Button
               size="icon"
               variant="secondary"

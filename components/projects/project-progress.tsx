@@ -302,7 +302,7 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
                           className="aspect-video bg-muted rounded-lg mb-3 flex items-center justify-center cursor-pointer"
                           onClick={() => setSelectedAlbum({ id: album._id, name: album.name })}
                         >
-                          {album.list && album.list.length > 0 ? (
+                          {album.list && album.list.length > 0 && album.list[0].provider && album.list[0].url ? (
                             <img
                               src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${album.list[0].provider}/${album.list[0].url}`}
                               alt={album.name}

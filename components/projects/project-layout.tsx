@@ -65,8 +65,13 @@ export function ProjectLayout({ projectId, project }: ProjectLayoutProps) {
     const fileUrl = getFileUrl(provider, url)
     const isPdf = filename?.toLowerCase().endsWith(".pdf") || url.toLowerCase().endsWith(".pdf")
 
-    setPreviewUrl(fileUrl)
-    setPreviewOpen(true)
+    if (isPdf) {
+      // Open PDF in new tab to avoid cross-origin iframe restrictions
+      window.open(fileUrl, "_blank")
+    } else {
+      setPreviewUrl(fileUrl)
+      setPreviewOpen(true)
+    }
   }
 
   const handleFileUpload = async (file: File, type: string) => {
@@ -406,22 +411,16 @@ export function ProjectLayout({ projectId, project }: ProjectLayoutProps) {
           </DialogHeader>
           <div className="overflow-auto max-h-[calc(90vh-100px)]">
             {previewUrl && (
-              <>
-                {previewUrl.toLowerCase().includes(".pdf") || previewUrl.toLowerCase().endsWith(".pdf") ? (
-                  <iframe src={previewUrl} className="w-full h-[calc(90vh-150px)] border-0" title="PDF Preview" />
-                ) : (
-                  <img
-                    src={previewUrl || "/placeholder.svg"}
-                    alt="Preview"
-                    className="w-full h-auto"
-                    onError={(e) => {
-                      e.currentTarget.style.display = "none"
-                      e.currentTarget.parentElement!.innerHTML =
-                        '<p class="text-center text-muted-foreground py-8">Preview not available. Please download the file to view.</p>'
-                    }}
-                  />
-                )}
-              </>
+              <img
+                src={previewUrl || "/placeholder.svg"}
+                alt="Preview"
+                className="w-full h-auto"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none"
+                  e.currentTarget.parentElement!.innerHTML =
+                    '<p class="text-center text-muted-foreground py-8">Preview not available. Please download the file to view.</p>'
+                }}
+              />
             )}
           </div>
         </DialogContent>

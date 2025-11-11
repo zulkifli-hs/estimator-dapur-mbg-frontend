@@ -9,6 +9,7 @@ import { useEffect, useState } from "react"
 import { boqApi } from "@/lib/api/boq"
 import { GanttChartEditor } from "./gantt-chart-editor"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { GanttChartView } from "./gantt-chart-view"
 
 interface ProjectProgressProps {
   projectId: string
@@ -206,37 +207,7 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
                   </div>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  <div className="overflow-x-auto">
-                    <div className="min-w-[800px] space-y-2">
-                      {ganttTasks.map((task) => (
-                        <div key={task.id} className="border rounded-lg p-4">
-                          <div className="grid grid-cols-12 gap-4 items-center">
-                            <div className="col-span-4">
-                              <p className="font-medium text-sm">{task.name}</p>
-                              <p className="text-xs text-muted-foreground mt-1">{task.category}</p>
-                            </div>
-                            <div className="col-span-2 text-sm">
-                              <p className="text-muted-foreground text-xs">Start</p>
-                              <p className="font-medium">{formatDate(task.startDate)}</p>
-                            </div>
-                            <div className="col-span-2 text-sm">
-                              <p className="text-muted-foreground text-xs">End</p>
-                              <p className="font-medium">{formatDate(task.endDate)}</p>
-                            </div>
-                            <div className="col-span-2 text-sm">
-                              <p className="text-muted-foreground text-xs">Duration</p>
-                              <p className="font-medium">{task.duration} days</p>
-                            </div>
-                            <div className="col-span-2">
-                              <Badge variant="secondary">{task.category.split(" - ")[0]}</Badge>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+                <GanttChartView tasks={ganttTasks} />
               )}
             </CardContent>
           </Card>

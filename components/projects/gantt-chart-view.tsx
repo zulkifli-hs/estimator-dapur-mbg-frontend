@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 
 interface GanttTask {
   id: string
@@ -16,6 +16,7 @@ interface GanttChartViewProps {
 }
 
 export function GanttChartView({ tasks }: GanttChartViewProps) {
+  const [hoveredTaskId, setHoveredTaskId] = useState<string | null>(null)
   const { startDate, endDate, totalDays, monthHeaders } = useMemo(() => {
     if (tasks.length === 0) return { startDate: new Date(), endDate: new Date(), totalDays: 0, monthHeaders: [] }
 
@@ -112,7 +113,19 @@ export function GanttChartView({ tasks }: GanttChartViewProps) {
                   {categoryTasks.map((task) => (
                     <div
                       key={task.id}
-                      className="h-[73px] flex flex-col justify-center px-3 border-b last:border-b-0 hover:bg-muted/50 transition-colors"
+                      className="h-[73px] flex flex-col justify-center px-3 border-b last:border-b-0 transition-colors"
+                      style={{
+                        backgroundColor:
+                          hoveredTaskId === task.id
+                            ? category === "Preliminary"
+                              ? "rgba(59, 130, 246, 0.15)" // blue with 15% opacity
+                              : category === "Fitting Out"
+                                ? "rgba(168, 85, 247, 0.15)" // purple with 15% opacity
+                                : "rgba(34, 197, 94, 0.15)" // green with 15% opacity
+                            : "transparent",
+                      }}
+                      onMouseEnter={() => setHoveredTaskId(task.id)}
+                      onMouseLeave={() => setHoveredTaskId(null)}
                     >
                       <p className="text-sm font-medium truncate">{task.name}</p>
                       <p className="text-xs text-muted-foreground mt-1">
@@ -164,7 +177,19 @@ export function GanttChartView({ tasks }: GanttChartViewProps) {
                       return (
                         <div
                           key={task.id}
-                          className="relative h-[73px] border-b last:border-b-0 hover:bg-muted/50 transition-colors"
+                          className="relative h-[73px] border-b last:border-b-0 transition-colors"
+                          style={{
+                            backgroundColor:
+                              hoveredTaskId === task.id
+                                ? category === "Preliminary"
+                                  ? "rgba(59, 130, 246, 0.15)" // blue with 15% opacity
+                                  : category === "Fitting Out"
+                                    ? "rgba(168, 85, 247, 0.15)" // purple with 15% opacity
+                                    : "rgba(34, 197, 94, 0.15)" // green with 15% opacity
+                                : "transparent",
+                          }}
+                          onMouseEnter={() => setHoveredTaskId(task.id)}
+                          onMouseLeave={() => setHoveredTaskId(null)}
                         >
                           {/* Grid background */}
                           <div className="absolute inset-0 flex">

@@ -1,7 +1,6 @@
 "use client"
 
 import { useMemo } from "react"
-import { ScrollArea } from "@/components/ui/scroll-area"
 
 interface GanttTask {
   id: string
@@ -93,87 +92,109 @@ export function GanttChartView({ tasks }: GanttChartViewProps) {
 
   return (
     <div className="space-y-4">
-      <ScrollArea className="w-full">
-        <div className="min-w-[1200px]">
-          {/* Timeline Header */}
-          <div className="flex border-b bg-muted/50">
-            <div className="w-80 flex-shrink-0 p-4 font-semibold border-r">Task Name</div>
-            <div className="flex-1 relative">
-              <div className="flex border-b">
-                {monthHeaders.map((header, index) => (
-                  <div
-                    key={index}
-                    className="border-r last:border-r-0 p-2 text-center font-semibold text-sm bg-muted"
-                    style={{ width: `${(header.days / totalDays) * 100}%` }}
-                  >
-                    {header.month}
-                  </div>
-                ))}
+      <div className="border rounded-lg overflow-hidden">
+        <div className="flex">
+          {/* Sticky Task Names Column */}
+          <div className="w-80 flex-shrink-0 border-r bg-background z-10">
+            {/* Header */}
+            <div className="p-4 font-semibold border-b bg-muted/50">Task Name</div>
+
+            {/* Task Rows */}
+            <div className="space-y-1">
+              {Object.entries(groupedTasks).map(([category, categoryTasks]) => (
+                <div key={category} className="border-b last:border-b-0">
+                  {/* Category Header */}
+                  <div className="p-2 font-semibold text-sm bg-muted/30 border-b">{category}</div>
+
+                  {/* Tasks in this category */}
+                  {categoryTasks.map((task) => (
+                    <div key={task.id} className="p-3 border-b last:border-b-0 hover:bg-muted/50 transition-colors">
+                      <p className="text-sm font-medium truncate">{task.name}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {formatDate(task.startDate)} - {formatDate(task.endDate)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Scrollable Timeline */}
+          <div className="flex-1 overflow-x-auto">
+            <div className="min-w-[800px]">
+              {/* Timeline Header */}
+              <div className="border-b bg-muted/50">
+                <div className="flex border-b">
+                  {monthHeaders.map((header, index) => (
+                    <div
+                      key={index}
+                      className="border-r last:border-r-0 p-2 text-center font-semibold text-sm bg-muted"
+                      style={{ width: `${(header.days / totalDays) * 100}%` }}
+                    >
+                      {header.month}
+                    </div>
+                  ))}
+                </div>
+                {/* Day grid lines */}
+                <div className="flex h-8">
+                  {Array.from({ length: totalDays }).map((_, i) => (
+                    <div key={i} className="border-r flex-1 text-center text-xs text-muted-foreground py-1">
+                      {i % 5 === 0 && i > 0 ? i : ""}
+                    </div>
+                  ))}
+                </div>
               </div>
-              {/* Day grid lines */}
-              <div className="flex h-8">
-                {Array.from({ length: totalDays }).map((_, i) => (
-                  <div key={i} className="border-r flex-1 text-center text-xs text-muted-foreground py-1">
-                    {i % 5 === 0 && i > 0 ? i : ""}
+
+              {/* Timeline Task Bars */}
+              <div className="space-y-1">
+                {Object.entries(groupedTasks).map(([category, categoryTasks]) => (
+                  <div key={category} className="border-b last:border-b-0">
+                    {/* Category Header Spacer */}
+                    <div className="h-[33px] bg-muted/30 border-b"></div>
+
+                    {/* Task Bars */}
+                    {categoryTasks.map((task) => {
+                      const position = getTaskPosition(task)
+                      return (
+                        <div
+                          key={task.id}
+                          className="relative h-[73px] border-b last:border-b-0 hover:bg-muted/50 transition-colors"
+                        >
+                          {/* Grid background */}
+                          <div className="absolute inset-0 flex">
+                            {Array.from({ length: totalDays }).map((_, i) => (
+                              <div key={i} className="border-r flex-1"></div>
+                            ))}
+                          </div>
+
+                          {/* Task bar */}
+                          <div className="relative h-full flex items-center px-3">
+                            <div
+                              className={`h-8 rounded ${
+                                categoryColors[category] || "bg-gray-500"
+                              } opacity-80 hover:opacity-100 transition-opacity cursor-pointer shadow-sm`}
+                              style={{
+                                marginLeft: position.left,
+                                width: position.width,
+                              }}
+                              title={`${task.name} (${task.duration} days)`}
+                            >
+                              <div className="px-2 py-1 text-xs text-white font-medium truncate h-full flex items-center">
+                                {task.duration}d
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
                 ))}
               </div>
             </div>
           </div>
-
-          {/* Task Rows */}
-          <div className="space-y-1">
-            {Object.entries(groupedTasks).map(([category, categoryTasks]) => (
-              <div key={category} className="border-b last:border-b-0">
-                {/* Category Header */}
-                <div className="flex bg-muted/30">
-                  <div className="w-80 flex-shrink-0 p-2 font-semibold text-sm border-r">{category}</div>
-                  <div className="flex-1 p-2"></div>
-                </div>
-
-                {/* Tasks in this category */}
-                {categoryTasks.map((task) => {
-                  const position = getTaskPosition(task)
-                  return (
-                    <div key={task.id} className="flex hover:bg-muted/50 transition-colors group">
-                      <div className="w-80 flex-shrink-0 p-3 border-r">
-                        <p className="text-sm font-medium truncate">{task.name}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {formatDate(task.startDate)} - {formatDate(task.endDate)}
-                        </p>
-                      </div>
-                      <div className="flex-1 relative p-3">
-                        {/* Grid background */}
-                        <div className="absolute inset-0 flex">
-                          {Array.from({ length: totalDays }).map((_, i) => (
-                            <div key={i} className="border-r flex-1"></div>
-                          ))}
-                        </div>
-
-                        {/* Task bar */}
-                        <div className="relative h-8">
-                          <div
-                            className={`absolute top-1 h-6 rounded ${
-                              categoryColors[category] || "bg-gray-500"
-                            } opacity-80 hover:opacity-100 transition-opacity cursor-pointer shadow-sm`}
-                            style={{
-                              left: position.left,
-                              width: position.width,
-                            }}
-                            title={`${task.name} (${task.duration} days)`}
-                          >
-                            <div className="px-2 py-1 text-xs text-white font-medium truncate">{task.duration}d</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            ))}
-          </div>
         </div>
-      </ScrollArea>
+      </div>
 
       {/* Legend */}
       <div className="flex items-center gap-6 pt-4 border-t">

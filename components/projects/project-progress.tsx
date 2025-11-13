@@ -201,6 +201,13 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
     if (!mainBOQ) return
 
     try {
+      const formatDateForAPI = (date: Date): string => {
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, "0")
+        const day = String(date.getDate()).padStart(2, "0")
+        return `${year}-${month}-${day}`
+      }
+
       // Find which section the task belongs to
       const taskData = ganttTasks.find((t) => t.id === taskId)
       if (!taskData) return
@@ -212,12 +219,11 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
         furnitureWork: [],
       }
 
-      // Copy existing data
       if (Array.isArray(mainBOQ.preliminary)) {
         updatePayload.preliminary = mainBOQ.preliminary.map((item: any) => ({
           name: item.name,
-          startDate: item.startDate,
-          endDate: item.endDate,
+          startDate: item.startDate ? formatDateForAPI(new Date(item.startDate)) : undefined,
+          endDate: item.endDate ? formatDateForAPI(new Date(item.endDate)) : undefined,
         }))
       }
 
@@ -226,8 +232,8 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
           name: category.name,
           products: (category.products || []).map((product: any) => ({
             name: product.name,
-            startDate: product.startDate,
-            endDate: product.endDate,
+            startDate: product.startDate ? formatDateForAPI(new Date(product.startDate)) : undefined,
+            endDate: product.endDate ? formatDateForAPI(new Date(product.endDate)) : undefined,
           })),
         }))
       }
@@ -237,18 +243,17 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
           name: category.name,
           products: (category.products || []).map((product: any) => ({
             name: product.name,
-            startDate: product.startDate,
-            endDate: product.endDate,
+            startDate: product.startDate ? formatDateForAPI(new Date(product.startDate)) : undefined,
+            endDate: product.endDate ? formatDateForAPI(new Date(product.endDate)) : undefined,
           })),
         }))
       }
 
-      // Update the specific task
       if (taskId.startsWith("preliminary-")) {
         const index = Number.parseInt(taskId.split("-")[1])
         if (updatePayload.preliminary[index]) {
-          updatePayload.preliminary[index].startDate = startDate.toISOString()
-          updatePayload.preliminary[index].endDate = endDate.toISOString()
+          updatePayload.preliminary[index].startDate = formatDateForAPI(startDate)
+          updatePayload.preliminary[index].endDate = formatDateForAPI(endDate)
         }
       } else if (taskId.startsWith("fitting-")) {
         // Parse category and index from taskId
@@ -258,8 +263,8 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
 
         const categoryIndex = updatePayload.fittingOut.findIndex((cat: any) => cat.name === categoryName)
         if (categoryIndex !== -1 && updatePayload.fittingOut[categoryIndex].products[index]) {
-          updatePayload.fittingOut[categoryIndex].products[index].startDate = startDate.toISOString()
-          updatePayload.fittingOut[categoryIndex].products[index].endDate = endDate.toISOString()
+          updatePayload.fittingOut[categoryIndex].products[index].startDate = formatDateForAPI(startDate)
+          updatePayload.fittingOut[categoryIndex].products[index].endDate = formatDateForAPI(endDate)
         }
       } else if (taskId.startsWith("furniture-")) {
         // Parse category and index from taskId
@@ -269,8 +274,8 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
 
         const categoryIndex = updatePayload.furnitureWork.findIndex((cat: any) => cat.name === categoryName)
         if (categoryIndex !== -1 && updatePayload.furnitureWork[categoryIndex].products[index]) {
-          updatePayload.furnitureWork[categoryIndex].products[index].startDate = startDate.toISOString()
-          updatePayload.furnitureWork[categoryIndex].products[index].endDate = endDate.toISOString()
+          updatePayload.furnitureWork[categoryIndex].products[index].startDate = formatDateForAPI(startDate)
+          updatePayload.furnitureWork[categoryIndex].products[index].endDate = formatDateForAPI(endDate)
         }
       }
 
@@ -501,7 +506,12 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {bastDocuments.map((doc) => (
+                {/* Dummy data for BAST/BAPP */}
+                {[
+                  { id: 1, type: "BAST", title: "Handover Phase 1", date: "2025-01-20", status: "Signed" },
+                  { id: 2, type: "BAPP", title: "Progress Payment 1", date: "2025-01-15", status: "Approved" },
+                  { id: 3, type: "BAST", title: "Material Delivery", date: "2025-01-10", status: "Pending" },
+                ].map((doc) => (
                   <div
                     key={doc.id}
                     className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
@@ -586,10 +596,3 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
     </div>
   )
 }
-
-// Dummy data for BAST/BAPP
-const bastDocuments = [
-  { id: 1, type: "BAST", title: "Handover Phase 1", date: "2025-01-20", status: "Signed" },
-  { id: 2, type: "BAPP", title: "Progress Payment 1", date: "2025-01-15", status: "Approved" },
-  { id: 3, type: "BAST", title: "Material Delivery", date: "2025-01-10", status: "Pending" },
-]

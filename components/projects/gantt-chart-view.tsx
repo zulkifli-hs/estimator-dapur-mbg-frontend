@@ -97,18 +97,23 @@ export function GanttChartView({ tasks }: GanttChartViewProps) {
           {/* Sticky Task Names Column */}
           <div className="w-80 flex-shrink-0 border-r bg-background z-10">
             {/* Header */}
-            <div className="p-4 font-semibold border-b bg-muted/50">Task Name</div>
+            <div className="h-[53px] flex items-center px-4 font-semibold border-b bg-muted/50">Task Name</div>
 
             {/* Task Rows */}
-            <div className="space-y-1">
+            <div>
               {Object.entries(groupedTasks).map(([category, categoryTasks]) => (
                 <div key={category} className="border-b last:border-b-0">
-                  {/* Category Header */}
-                  <div className="p-2 font-semibold text-sm bg-muted/30 border-b">{category}</div>
+                  {/* Category Header - Fixed height to match timeline */}
+                  <div className="h-[33px] flex items-center px-2 font-semibold text-sm bg-muted/30 border-b">
+                    {category}
+                  </div>
 
-                  {/* Tasks in this category */}
+                  {/* Tasks in this category - Fixed height to match timeline */}
                   {categoryTasks.map((task) => (
-                    <div key={task.id} className="p-3 border-b last:border-b-0 hover:bg-muted/50 transition-colors">
+                    <div
+                      key={task.id}
+                      className="h-[73px] flex flex-col justify-center px-3 border-b last:border-b-0 hover:bg-muted/50 transition-colors"
+                    >
                       <p className="text-sm font-medium truncate">{task.name}</p>
                       <p className="text-xs text-muted-foreground mt-1">
                         {formatDate(task.startDate)} - {formatDate(task.endDate)}
@@ -123,13 +128,13 @@ export function GanttChartView({ tasks }: GanttChartViewProps) {
           {/* Scrollable Timeline */}
           <div className="flex-1 overflow-x-auto">
             <div className="min-w-[800px]">
-              {/* Timeline Header */}
+              {/* Timeline Header - Fixed height to match task names header */}
               <div className="border-b bg-muted/50">
-                <div className="flex border-b">
+                <div className="flex border-b h-[37px]">
                   {monthHeaders.map((header, index) => (
                     <div
                       key={index}
-                      className="border-r last:border-r-0 p-2 text-center font-semibold text-sm bg-muted"
+                      className="border-r last:border-r-0 flex items-center justify-center font-semibold text-sm bg-muted"
                       style={{ width: `${(header.days / totalDays) * 100}%` }}
                     >
                       {header.month}
@@ -137,9 +142,9 @@ export function GanttChartView({ tasks }: GanttChartViewProps) {
                   ))}
                 </div>
                 {/* Day grid lines */}
-                <div className="flex h-8">
+                <div className="flex h-4">
                   {Array.from({ length: totalDays }).map((_, i) => (
-                    <div key={i} className="border-r flex-1 text-center text-xs text-muted-foreground py-1">
+                    <div key={i} className="border-r flex-1 text-center text-xs text-muted-foreground">
                       {i % 5 === 0 && i > 0 ? i : ""}
                     </div>
                   ))}
@@ -147,7 +152,7 @@ export function GanttChartView({ tasks }: GanttChartViewProps) {
               </div>
 
               {/* Timeline Task Bars */}
-              <div className="space-y-1">
+              <div>
                 {Object.entries(groupedTasks).map(([category, categoryTasks]) => (
                   <div key={category} className="border-b last:border-b-0">
                     {/* Category Header Spacer */}

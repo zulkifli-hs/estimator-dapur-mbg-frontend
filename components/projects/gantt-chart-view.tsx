@@ -1,6 +1,13 @@
 "use client"
 
 import { useMemo, useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Label } from "@/components/ui/label"
+import { Pencil, CalendarIcon } from "lucide-react"
+import { format } from "date-fns"
+import { cn } from "@/lib/utils"
 
 interface GanttTask {
   id: string
@@ -13,10 +20,15 @@ interface GanttTask {
 
 interface GanttChartViewProps {
   tasks: GanttTask[]
+  onUpdateTask?: (taskId: string, startDate: Date, endDate: Date) => Promise<void>
 }
 
-export function GanttChartView({ tasks }: GanttChartViewProps) {
+export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
   const [hoveredTaskId, setHoveredTaskId] = useState<string | null>(null)
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
+  const [editStartDate, setEditStartDate] = useState<Date | undefined>()
+  const [editEndDate, setEditEndDate] = useState<Date | undefined>()
+  const [saving, setSaving] = useState(false)
   const { startDate, endDate, totalDays, monthHeaders } = useMemo(() => {
     if (tasks.length === 0) return { startDate: new Date(), endDate: new Date(), totalDays: 0, monthHeaders: [] }
 
@@ -91,6 +103,26 @@ export function GanttChartView({ tasks }: GanttChartViewProps) {
     "Furniture Work": "bg-green-500",
   }
 
+  const handleEditTask = (task: GanttTask) => {
+    setEditingTaskId(task.id)
+    setEditStartDate(task.startDate)
+    setEditEndDate(task.endDate)
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editingTaskId || !editStartDate || !editEndDate || !onUpdateTask) return
+
+    setSaving(true)
+    try {
+      await onUpdateTask(editingTaskId, editStartDate, editEndDate)
+      setEditingTaskId(null)
+    } catch (error) {
+      console.error("Failed to update task:", error)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="border rounded-lg overflow-hidden">
@@ -118,10 +150,10 @@ export function GanttChartView({ tasks }: GanttChartViewProps) {
                         backgroundColor:
                           hoveredTaskId === task.id
                             ? category === "Preliminary"
-                              ? "rgba(59, 130, 246, 0.15)" // blue with 15% opacity
+                              ? "rgba(59, 130, 246, 0.15)"
                               : category === "Fitting Out"
-                                ? "rgba(168, 85, 247, 0.15)" // purple with 15% opacity
-                                : "rgba(34, 197, 94, 0.15)" // green with 15% opacity
+                                ? "rgba(168, 85, 247, 0.15)"
+                                : "rgba(34, 197, 94, 0.15)"
                             : "transparent",
                       }}
                       onMouseEnter={() => setHoveredTaskId(task.id)}
@@ -182,10 +214,10 @@ export function GanttChartView({ tasks }: GanttChartViewProps) {
                             backgroundColor:
                               hoveredTaskId === task.id
                                 ? category === "Preliminary"
-                                  ? "rgba(59, 130, 246, 0.15)" // blue with 15% opacity
+                                  ? "rgba(59, 130, 246, 0.15)"
                                   : category === "Fitting Out"
-                                    ? "rgba(168, 85, 247, 0.15)" // purple with 15% opacity
-                                    : "rgba(34, 197, 94, 0.15)" // green with 15% opacity
+                                    ? "rgba(168, 85, 247, 0.15)"
+                                    : "rgba(34, 197, 94, 0.15)"
                                 : "transparent",
                           }}
                           onMouseEnter={() => setHoveredTaskId(task.id)}
@@ -203,15 +235,119 @@ export function GanttChartView({ tasks }: GanttChartViewProps) {
                             <div
                               className={`h-8 rounded ${
                                 categoryColors[category] || "bg-gray-500"
-                              } opacity-80 hover:opacity-100 transition-opacity cursor-pointer shadow-sm`}
+                              } opacity-80 hover:opacity-100 transition-opacity group relative`}
                               style={{
                                 marginLeft: position.left,
                                 width: position.width,
                               }}
-                              title={`${task.name} (${task.duration} days)`}
                             >
-                              <div className="px-2 py-1 text-xs text-white font-medium truncate h-full flex items-center">
-                                {task.duration}d
+                              <div className="relative h-full flex items-center justify-between px-2">
+                                <div className="text-xs text-white font-medium truncate flex-1">{task.duration}d</div>
+                                {onUpdateTask && (
+                                  <Popover
+                                    open={editingTaskId === task.id}
+                                    onOpenChange={(open) => {
+                                      if (open) {
+                                        handleEditTask(task)
+                                      } else {
+                                        setEditingTaskId(null)
+                                      }
+                                    }}
+                                  >
+                                    <PopoverTrigger asChild>
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 hover:bg-white"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          handleEditTask(task)
+                                        }}
+                                      >
+                                        <Pencil className="h-3 w-3 text-gray-700" />
+                                      </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-80" align="start">
+                                      <div className="space-y-4">
+                                        <div className="space-y-2">
+                                          <h4 className="font-semibold text-sm">{task.name}</h4>
+                                          <p className="text-xs text-muted-foreground">{category}</p>
+                                        </div>
+                                        <div className="space-y-3">
+                                          <div className="space-y-2">
+                                            <Label className="text-xs">Start Date</Label>
+                                            <Popover>
+                                              <PopoverTrigger asChild>
+                                                <Button
+                                                  variant="outline"
+                                                  className={cn(
+                                                    "w-full justify-start text-left font-normal",
+                                                    !editStartDate && "text-muted-foreground",
+                                                  )}
+                                                >
+                                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                                  {editStartDate ? format(editStartDate, "PPP") : "Pick a date"}
+                                                </Button>
+                                              </PopoverTrigger>
+                                              <PopoverContent className="w-auto p-0" align="start">
+                                                <Calendar
+                                                  mode="single"
+                                                  selected={editStartDate}
+                                                  onSelect={setEditStartDate}
+                                                  initialFocus
+                                                />
+                                              </PopoverContent>
+                                            </Popover>
+                                          </div>
+                                          <div className="space-y-2">
+                                            <Label className="text-xs">End Date</Label>
+                                            <Popover>
+                                              <PopoverTrigger asChild>
+                                                <Button
+                                                  variant="outline"
+                                                  className={cn(
+                                                    "w-full justify-start text-left font-normal",
+                                                    !editEndDate && "text-muted-foreground",
+                                                  )}
+                                                >
+                                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                                  {editEndDate ? format(editEndDate, "PPP") : "Pick a date"}
+                                                </Button>
+                                              </PopoverTrigger>
+                                              <PopoverContent className="w-auto p-0" align="start">
+                                                <Calendar
+                                                  mode="single"
+                                                  selected={editEndDate}
+                                                  onSelect={setEditEndDate}
+                                                  initialFocus
+                                                  disabled={(date) => (editStartDate ? date < editStartDate : false)}
+                                                />
+                                              </PopoverContent>
+                                            </Popover>
+                                          </div>
+                                        </div>
+                                        <div className="flex gap-2">
+                                          <Button
+                                            size="sm"
+                                            onClick={handleSaveEdit}
+                                            disabled={!editStartDate || !editEndDate || saving}
+                                            className="flex-1"
+                                          >
+                                            {saving ? "Saving..." : "Save"}
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => setEditingTaskId(null)}
+                                            disabled={saving}
+                                          >
+                                            Cancel
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    </PopoverContent>
+                                  </Popover>
+                                )}
                               </div>
                             </div>
                           </div>

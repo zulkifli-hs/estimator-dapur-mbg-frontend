@@ -197,6 +197,102 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
     }
   }
 
+  const handleUpdateGanttTask = async (taskId: string, startDate: Date, endDate: Date) => {
+    if (!mainBOQ) return
+
+    try {
+      // Find which section the task belongs to
+      const taskData = ganttTasks.find((t) => t.id === taskId)
+      if (!taskData) return
+
+      // Prepare update payload based on task category
+      const updatePayload: any = {
+        preliminary: [],
+        fittingOut: [],
+        furnitureWork: [],
+      }
+
+      // Copy existing data
+      if (Array.isArray(mainBOQ.preliminary)) {
+        updatePayload.preliminary = mainBOQ.preliminary.map((item: any) => ({
+          name: item.name,
+          startDate: item.startDate,
+          endDate: item.endDate,
+        }))
+      }
+
+      if (Array.isArray(mainBOQ.fittingOut)) {
+        updatePayload.fittingOut = mainBOQ.fittingOut.map((category: any) => ({
+          name: category.name,
+          products: (category.products || []).map((product: any) => ({
+            name: product.name,
+            startDate: product.startDate,
+            endDate: product.endDate,
+          })),
+        }))
+      }
+
+      if (Array.isArray(mainBOQ.furnitureWork)) {
+        updatePayload.furnitureWork = mainBOQ.furnitureWork.map((category: any) => ({
+          name: category.name,
+          products: (category.products || []).map((product: any) => ({
+            name: product.name,
+            startDate: product.startDate,
+            endDate: product.endDate,
+          })),
+        }))
+      }
+
+      // Update the specific task
+      if (taskId.startsWith("preliminary-")) {
+        const index = Number.parseInt(taskId.split("-")[1])
+        if (updatePayload.preliminary[index]) {
+          updatePayload.preliminary[index].startDate = startDate.toISOString()
+          updatePayload.preliminary[index].endDate = endDate.toISOString()
+        }
+      } else if (taskId.startsWith("fitting-")) {
+        // Parse category and index from taskId
+        const parts = taskId.split("-")
+        const categoryName = parts.slice(1, -1).join("-")
+        const index = Number.parseInt(parts[parts.length - 1])
+
+        const categoryIndex = updatePayload.fittingOut.findIndex((cat: any) => cat.name === categoryName)
+        if (categoryIndex !== -1 && updatePayload.fittingOut[categoryIndex].products[index]) {
+          updatePayload.fittingOut[categoryIndex].products[index].startDate = startDate.toISOString()
+          updatePayload.fittingOut[categoryIndex].products[index].endDate = endDate.toISOString()
+        }
+      } else if (taskId.startsWith("furniture-")) {
+        // Parse category and index from taskId
+        const parts = taskId.split("-")
+        const categoryName = parts.slice(1, -1).join("-")
+        const index = Number.parseInt(parts[parts.length - 1])
+
+        const categoryIndex = updatePayload.furnitureWork.findIndex((cat: any) => cat.name === categoryName)
+        if (categoryIndex !== -1 && updatePayload.furnitureWork[categoryIndex].products[index]) {
+          updatePayload.furnitureWork[categoryIndex].products[index].startDate = startDate.toISOString()
+          updatePayload.furnitureWork[categoryIndex].products[index].endDate = endDate.toISOString()
+        }
+      }
+
+      // Call API to update gantt chart
+      const response = await boqApi.updateGanttChart(projectId, mainBOQ._id, updatePayload)
+      if (response.success) {
+        toast({
+          title: "Success",
+          description: "Task timeline updated successfully",
+        })
+        await loadBOQData()
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update task timeline",
+        variant: "destructive",
+      })
+      throw error
+    }
+  }
+
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -264,7 +360,7 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
                   </div>
                 </div>
               ) : (
-                <GanttChartView tasks={ganttTasks} />
+                <GanttChartView tasks={ganttTasks} onUpdateTask={handleUpdateGanttTask} />
               )}
             </CardContent>
           </Card>

@@ -28,6 +28,8 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
   const [editStartDate, setEditStartDate] = useState<Date | undefined>()
   const [editEndDate, setEditEndDate] = useState<Date | undefined>()
+  const [originalStartDate, setOriginalStartDate] = useState<Date | undefined>()
+  const [originalEndDate, setOriginalEndDate] = useState<Date | undefined>()
   const [saving, setSaving] = useState(false)
   const { startDate, endDate, totalDays, monthHeaders } = useMemo(() => {
     if (tasks.length === 0) return { startDate: new Date(), endDate: new Date(), totalDays: 0, monthHeaders: [] }
@@ -107,6 +109,8 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
     setEditingTaskId(task.id)
     setEditStartDate(task.startDate)
     setEditEndDate(task.endDate)
+    setOriginalStartDate(task.startDate)
+    setOriginalEndDate(task.endDate)
   }
 
   const handleSaveEdit = async () => {
@@ -294,7 +298,17 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
                                                   mode="single"
                                                   selected={editStartDate}
                                                   onSelect={setEditStartDate}
+                                                  defaultMonth={originalStartDate || new Date()}
                                                   initialFocus
+                                                  modifiers={{
+                                                    original: originalStartDate ? [originalStartDate] : [],
+                                                  }}
+                                                  modifiersStyles={{
+                                                    original: {
+                                                      border: "2px solid hsl(var(--primary))",
+                                                      fontWeight: "bold",
+                                                    },
+                                                  }}
                                                 />
                                               </PopoverContent>
                                             </Popover>
@@ -319,8 +333,18 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
                                                   mode="single"
                                                   selected={editEndDate}
                                                   onSelect={setEditEndDate}
+                                                  defaultMonth={originalEndDate || new Date()}
                                                   initialFocus
                                                   disabled={(date) => (editStartDate ? date < editStartDate : false)}
+                                                  modifiers={{
+                                                    original: originalEndDate ? [originalEndDate] : [],
+                                                  }}
+                                                  modifiersStyles={{
+                                                    original: {
+                                                      border: "2px solid hsl(var(--primary))",
+                                                      fontWeight: "bold",
+                                                    },
+                                                  }}
                                                 />
                                               </PopoverContent>
                                             </Popover>

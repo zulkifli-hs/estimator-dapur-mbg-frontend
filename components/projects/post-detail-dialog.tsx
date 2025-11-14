@@ -220,7 +220,13 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate }:
                   placeholder="Add a comment to this note..."
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
-                  className={`min-h-[80px] resize-none bg-white/80 dark:bg-black/40 border-2 ${color.border} focus-visible:ring-offset-0 focus-visible:ring-2 ${color.ring}`}
+                  className={`min-h-[80px] resize-none bg-white/80 dark:bg-black/40 border-2 ${color.border} focus-visible:ring-offset-0 focus-visible:ring-2 ${
+                    getColorForPost(postId) === 0 ? 'focus-visible:ring-blue-200 dark:focus-visible:ring-blue-700' :
+                    getColorForPost(postId) === 1 ? 'focus-visible:ring-green-200 dark:focus-visible:ring-green-700' :
+                    getColorForPost(postId) === 2 ? 'focus-visible:ring-pink-200 dark:focus-visible:ring-pink-700' :
+                    getColorForPost(postId) === 3 ? 'focus-visible:ring-purple-200 dark:focus-visible:ring-purple-700' :
+                    'focus-visible:ring-orange-200 dark:focus-visible:ring-orange-700'
+                  }`}
                   disabled={submitting}
                 />
                 <Button

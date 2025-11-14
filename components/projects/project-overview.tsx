@@ -423,14 +423,26 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
                               placeholder="Add a comment..."
                               value={newComments[post._id] || ""}
                               onChange={(e) => setNewComments({ ...newComments, [post._id]: e.target.value })}
-                              className={`min-h-[60px] text-xs resize-none bg-white/70 dark:bg-black/30 border ${color.border} focus-visible:ring-1 focus-visible:${color.border.replace('border-', 'ring-')}`}
+                              className={`min-h-[60px] text-xs resize-none bg-white/70 dark:bg-black/30 border ${color.border} focus-visible:ring-1 ${
+                                getColorForPost(post._id) === 0 ? 'focus-visible:ring-blue-200 dark:focus-visible:ring-blue-700' :
+                                getColorForPost(post._id) === 1 ? 'focus-visible:ring-green-200 dark:focus-visible:ring-green-700' :
+                                getColorForPost(post._id) === 2 ? 'focus-visible:ring-pink-200 dark:focus-visible:ring-pink-700' :
+                                getColorForPost(post._id) === 3 ? 'focus-visible:ring-purple-200 dark:focus-visible:ring-purple-700' :
+                                'focus-visible:ring-orange-200 dark:focus-visible:ring-orange-700'
+                              }`}
                               disabled={commentingPostId === post._id}
                             />
                             <Button
                               onClick={() => handleAddComment(post._id)}
                               disabled={!newComments[post._id]?.trim() || commentingPostId === post._id}
                               size="sm"
-                              className={`h-[60px] px-3 shadow-md ${color.pin.replace('bg-', 'bg-').replace('dark:bg-', 'hover:bg-').replace(/\d+/, (m) => parseInt(m) + 100)} text-white`}
+                              className={`h-[60px] px-3 shadow-md text-white ${
+                                getColorForPost(post._id) === 0 ? 'bg-blue-500 hover:bg-blue-600' :
+                                getColorForPost(post._id) === 1 ? 'bg-green-500 hover:bg-green-600' :
+                                getColorForPost(post._id) === 2 ? 'bg-pink-500 hover:bg-pink-600' :
+                                getColorForPost(post._id) === 3 ? 'bg-purple-500 hover:bg-purple-600' :
+                                'bg-orange-500 hover:bg-orange-600'
+                              }`}
                             >
                               {commentingPostId === post._id ? (
                                 <Loader2 className="h-3 w-3 animate-spin" />

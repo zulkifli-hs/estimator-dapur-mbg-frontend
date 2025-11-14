@@ -186,13 +186,16 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
                     </div>
                   ))}
                 </div>
-                {/* Day grid lines */}
                 <div className="flex h-4">
-                  {Array.from({ length: totalDays }).map((_, i) => (
-                    <div key={i} className="border-r flex-1 text-center text-xs text-muted-foreground">
-                      {i % 5 === 0 && i > 0 ? i : ""}
-                    </div>
-                  ))}
+                  {Array.from({ length: totalDays }).map((_, i) => {
+                    const currentDay = new Date(startDate)
+                    currentDay.setDate(currentDay.getDate() + i)
+                    return (
+                      <div key={i} className="border-r flex-1 text-center text-[10px] text-muted-foreground leading-4">
+                        {currentDay.getDate()}
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
 

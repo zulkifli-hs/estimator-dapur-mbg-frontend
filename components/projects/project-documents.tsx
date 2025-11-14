@@ -3,13 +3,14 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus, FolderIcon, Trash2, Upload, FileText, X, Download } from 'lucide-react'
+import { Plus, FolderIcon, Trash2, Upload, FileText, Download } from 'lucide-react'
 import { foldersApi } from "@/lib/api/folders"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { uploadApi } from "@/lib/api/upload"
+import { useToast } from "@/hooks/use-toast"
 
 interface ProjectDocumentsProps {
   projectId: string
@@ -23,6 +24,7 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
   const [selectedFolder, setSelectedFolder] = useState<any>(null)
   const [folderDetailOpen, setFolderDetailOpen] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const { toast } = useToast()
 
   useEffect(() => {
     loadFolders()
@@ -90,26 +92,33 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
 
     setUploading(true)
     try {
-      const uploadResponse = await uploadApi.uploadFile(file)
+      const uploadResponse = await uploadApi.uploadPhoto(file)
       
-      if (uploadResponse.success && uploadResponse.data?.url) {
-        const addResponse = await foldersApi.addFile(
-          projectId,
-          selectedFolder._id,
-          uploadResponse.data.url,
-          uploadResponse.data.provider || "local"
-        )
-        
-        if (addResponse.success) {
-          const refreshedFolder = await foldersApi.getFolder(projectId, selectedFolder._id)
-          if (refreshedFolder.success && refreshedFolder.data) {
-            setSelectedFolder(refreshedFolder.data)
-          }
-          loadFolders()
+      const addResponse = await foldersApi.addFile(
+        projectId,
+        selectedFolder._id,
+        uploadResponse.url,
+        uploadResponse.provider
+      )
+      
+      if (addResponse.success) {
+        toast({
+          title: "Success",
+          description: "File uploaded successfully",
+        })
+        const refreshedFolder = await foldersApi.getFolder(projectId, selectedFolder._id)
+        if (refreshedFolder.success && refreshedFolder.data) {
+          setSelectedFolder(refreshedFolder.data)
         }
+        loadFolders()
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to upload file:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to upload file",
+        variant: "destructive",
+      })
     } finally {
       setUploading(false)
       e.target.value = ""

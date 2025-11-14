@@ -423,14 +423,14 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
                               placeholder="Add a comment..."
                               value={newComments[post._id] || ""}
                               onChange={(e) => setNewComments({ ...newComments, [post._id]: e.target.value })}
-                              className="min-h-[60px] text-xs resize-none bg-white/70 dark:bg-black/30 border-none focus-visible:ring-1 focus-visible:ring-primary"
+                              className={`min-h-[60px] text-xs resize-none bg-white/70 dark:bg-black/30 border ${color.border} focus-visible:ring-1 focus-visible:${color.border.replace('border-', 'ring-')}`}
                               disabled={commentingPostId === post._id}
                             />
                             <Button
                               onClick={() => handleAddComment(post._id)}
                               disabled={!newComments[post._id]?.trim() || commentingPostId === post._id}
                               size="sm"
-                              className="h-[60px] px-3"
+                              className={`h-[60px] px-3 shadow-md ${color.pin.replace('bg-', 'bg-').replace('dark:bg-', 'hover:bg-').replace(/\d+/, (m) => parseInt(m) + 100)} text-white`}
                             >
                               {commentingPostId === post._id ? (
                                 <Loader2 className="h-3 w-3 animate-spin" />

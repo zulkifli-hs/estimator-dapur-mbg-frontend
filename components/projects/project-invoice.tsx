@@ -158,14 +158,22 @@ export function ProjectInvoice({ projectId }: ProjectInvoiceProps) {
                           {index + 1}
                         </div>
                         <div>
-                          <p className="font-medium">Termin {index + 1}</p>
+                          <p className="font-medium">{termin.name}</p>
                           <p className="text-sm text-muted-foreground">
                             {termin.value}
-                            {termin.valueType === "%" ? "%" : " IDR"}
+                            {termin.valueType === "%" ? "%" : " IDR"} • Category: {termin.category}
                           </p>
                         </div>
                       </div>
-                      <Badge variant="secondary">Scheduled</Badge>
+                      <Badge 
+                        variant={
+                          termin.status === "Approved" ? "default" : 
+                          termin.status === "Rejected" ? "destructive" : 
+                          "secondary"
+                        }
+                      >
+                        {termin.status}
+                      </Badge>
                     </div>
                   ))}
                 </div>

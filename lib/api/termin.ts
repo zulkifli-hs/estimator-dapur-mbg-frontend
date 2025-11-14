@@ -1,17 +1,30 @@
 import { apiRequest } from "./config"
 
 export interface Termin {
-  id: string
+  _id: string
   name: string
-  percentage: number
-  amount: number
-  status: "pending" | "sent" | "approved" | "rejected"
-  photos: string[]
-  tax_files: string[]
-  slip_url?: string
-  due_date: string
-  created_at: string
-  updated_at: string
+  status: "Draft" | "Pending" | "Sent" | "Approved" | "Rejected"
+  value: number
+  category: "DP" | "BAPP" | "BAST"
+  valueType: "%" | "IDR"
+  createdBy: {
+    _id: string
+    email: string
+    profile: {
+      name: string
+      photo?: {
+        url: string
+        provider: string
+      }
+      phone: string
+    }
+  }
+  updatedBy: string
+  photos: any[]
+  taxes: any[]
+  rejections: any[]
+  createdAt: string
+  updatedAt: string
 }
 
 // Create termin format

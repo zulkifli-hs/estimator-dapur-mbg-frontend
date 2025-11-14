@@ -2,10 +2,10 @@
 
 import { useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Label } from "@/components/ui/label"
-import { Pencil, CalendarIcon } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Pencil } from 'lucide-react'
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 
@@ -26,10 +26,8 @@ interface GanttChartViewProps {
 export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
   const [hoveredTaskId, setHoveredTaskId] = useState<string | null>(null)
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
-  const [editStartDate, setEditStartDate] = useState<Date | undefined>()
-  const [editEndDate, setEditEndDate] = useState<Date | undefined>()
-  const [originalStartDate, setOriginalStartDate] = useState<Date | undefined>()
-  const [originalEndDate, setOriginalEndDate] = useState<Date | undefined>()
+  const [editStartDate, setEditStartDate] = useState<string>("")
+  const [editEndDate, setEditEndDate] = useState<string>("")
   const [saving, setSaving] = useState(false)
   const { startDate, endDate, totalDays, monthHeaders } = useMemo(() => {
     if (tasks.length === 0) return { startDate: new Date(), endDate: new Date(), totalDays: 0, monthHeaders: [] }
@@ -107,10 +105,8 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
 
   const handleEditTask = (task: GanttTask) => {
     setEditingTaskId(task.id)
-    setEditStartDate(task.startDate)
-    setEditEndDate(task.endDate)
-    setOriginalStartDate(task.startDate)
-    setOriginalEndDate(task.endDate)
+    setEditStartDate(format(task.startDate, "yyyy-MM-dd"))
+    setEditEndDate(format(task.endDate, "yyyy-MM-dd"))
   }
 
   const handleSaveEdit = async () => {
@@ -118,7 +114,7 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
 
     setSaving(true)
     try {
-      await onUpdateTask(editingTaskId, editStartDate, editEndDate)
+      await onUpdateTask(editingTaskId, new Date(editStartDate), new Date(editEndDate))
       setEditingTaskId(null)
     } catch (error) {
       console.error("Failed to update task:", error)
@@ -279,75 +275,21 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
                                         </div>
                                         <div className="space-y-3">
                                           <div className="space-y-2">
-                                            <Label className="text-xs">Start Date</Label>
-                                            <Popover>
-                                              <PopoverTrigger asChild>
-                                                <Button
-                                                  variant="outline"
-                                                  className={cn(
-                                                    "w-full justify-start text-left font-normal",
-                                                    !editStartDate && "text-muted-foreground",
-                                                  )}
-                                                >
-                                                  <CalendarIcon className="mr-2 h-4 w-4" />
-                                                  {editStartDate ? format(editStartDate, "PPP") : "Pick a date"}
-                                                </Button>
-                                              </PopoverTrigger>
-                                              <PopoverContent className="w-auto p-0" align="start">
-                                                <Calendar
-                                                  mode="single"
-                                                  selected={editStartDate}
-                                                  onSelect={setEditStartDate}
-                                                  defaultMonth={originalStartDate || new Date()}
-                                                  initialFocus
-                                                  modifiers={{
-                                                    original: originalStartDate ? [originalStartDate] : [],
-                                                  }}
-                                                  modifiersStyles={{
-                                                    original: {
-                                                      border: "2px solid hsl(var(--primary))",
-                                                      fontWeight: "bold",
-                                                    },
-                                                  }}
-                                                />
-                                              </PopoverContent>
-                                            </Popover>
+                                            <Label>Start Date</Label>
+                                            <Input
+                                              type="date"
+                                              value={editStartDate}
+                                              onChange={(e) => setEditStartDate(e.target.value)}
+                                            />
                                           </div>
                                           <div className="space-y-2">
-                                            <Label className="text-xs">End Date</Label>
-                                            <Popover>
-                                              <PopoverTrigger asChild>
-                                                <Button
-                                                  variant="outline"
-                                                  className={cn(
-                                                    "w-full justify-start text-left font-normal",
-                                                    !editEndDate && "text-muted-foreground",
-                                                  )}
-                                                >
-                                                  <CalendarIcon className="mr-2 h-4 w-4" />
-                                                  {editEndDate ? format(editEndDate, "PPP") : "Pick a date"}
-                                                </Button>
-                                              </PopoverTrigger>
-                                              <PopoverContent className="w-auto p-0" align="start">
-                                                <Calendar
-                                                  mode="single"
-                                                  selected={editEndDate}
-                                                  onSelect={setEditEndDate}
-                                                  defaultMonth={originalEndDate || new Date()}
-                                                  initialFocus
-                                                  disabled={(date) => (editStartDate ? date < editStartDate : false)}
-                                                  modifiers={{
-                                                    original: originalEndDate ? [originalEndDate] : [],
-                                                  }}
-                                                  modifiersStyles={{
-                                                    original: {
-                                                      border: "2px solid hsl(var(--primary))",
-                                                      fontWeight: "bold",
-                                                    },
-                                                  }}
-                                                />
-                                              </PopoverContent>
-                                            </Popover>
+                                            <Label>End Date</Label>
+                                            <Input
+                                              type="date"
+                                              value={editEndDate}
+                                              onChange={(e) => setEditEndDate(e.target.value)}
+                                              min={editStartDate}
+                                            />
                                           </div>
                                         </div>
                                         <div className="flex gap-2">

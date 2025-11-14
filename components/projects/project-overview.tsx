@@ -274,15 +274,15 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
         </CardHeader>
         <CardContent className="space-y-6">
           {/* New Post Input - Sticky Note Style */}
-          <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 p-4 rounded-lg shadow-md border-2 border-yellow-200 dark:border-yellow-700 relative">
-            <div className="absolute -top-3 left-4 bg-yellow-300 dark:bg-yellow-600 px-3 py-1 rounded-full text-xs font-medium shadow-sm">
+          <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 p-4 rounded-lg shadow-md border-2 border-green-200 dark:border-green-700 relative">
+            <div className="absolute -top-3 left-4 bg-green-500 dark:bg-green-600 px-3 py-1 rounded-full text-xs font-medium shadow-sm text-white">
               New Post
             </div>
             <Textarea
               placeholder="Write a note for the team..."
               value={newPost}
               onChange={(e) => setNewPost(e.target.value)}
-              className="min-h-[100px] bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-yellow-600/60 dark:placeholder:text-yellow-400/60 resize-none"
+              className="min-h-[100px] bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-green-600/60 dark:placeholder:text-green-400/60 resize-none"
               disabled={submitting}
             />
             <div className="flex justify-end mt-2">
@@ -290,7 +290,7 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
                 onClick={handleAddPost} 
                 disabled={!newPost.trim() || submitting}
                 size="sm"
-                className="bg-yellow-500 hover:bg-yellow-600 text-white shadow-md"
+                className="bg-green-600 hover:bg-green-700 text-white shadow-md"
               >
                 {submitting ? (
                   <>
@@ -342,30 +342,33 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
                       <div className={`absolute -top-2 left-1/2 -translate-x-1/2 ${color.pin} h-4 w-4 rounded-full shadow-md border-2 border-white dark:border-gray-800`} />
                       
                       {/* Post Header */}
-                      <div className="flex gap-2 items-start mb-3">
-                        <Avatar className="h-8 w-8 border-2 border-white dark:border-gray-700 shadow-sm">
-                          <AvatarImage src={getUserAvatar(post.createdBy) || "/placeholder.svg"} />
-                          <AvatarFallback className="text-xs font-semibold">
-                            {getUserName(post.createdBy)
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")
-                              .toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-sm truncate">{getUserName(post.createdBy)}</p>
-                          <p className="text-xs text-muted-foreground">{formatRelativeTime(post.createdAt)}</p>
+                      <div 
+                        onClick={() => setSelectedPostId(post._id)}
+                        className="cursor-pointer"
+                      >
+                        <div className="flex gap-2 items-start mb-3">
+                          <Avatar className="h-8 w-8 border-2 border-white dark:border-gray-700 shadow-sm">
+                            <AvatarImage src={getUserAvatar(post.createdBy) || "/placeholder.svg"} />
+                            <AvatarFallback className="text-xs font-semibold">
+                              {getUserName(post.createdBy)
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")
+                                .toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-sm truncate">{getUserName(post.createdBy)}</p>
+                            <p className="text-xs text-muted-foreground">{formatRelativeTime(post.createdAt)}</p>
+                          </div>
                         </div>
-                      </div>
 
-                      {/* Post Content */}
-                      <p className="text-sm mb-4 whitespace-pre-wrap line-clamp-6 leading-relaxed">{post.content}</p>
+                        {/* Post Content */}
+                        <p className="text-sm mb-4 whitespace-pre-wrap line-clamp-6 leading-relaxed">{post.content}</p>
 
-                      {/* Comments Section */}
-                      <div className="space-y-2">
+                        {/* Comments Preview */}
                         {post.comments.length > 0 && (
-                          <div className="bg-white/50 dark:bg-black/20 rounded-md p-2 space-y-2 max-h-40 overflow-y-auto">
+                          <div className="bg-white/50 dark:bg-black/20 rounded-md p-2 space-y-2 max-h-40 overflow-y-auto mb-3">
                             {post.comments.slice(0, 2).map((comment) => (
                               <div key={comment._id} className="flex gap-2 text-xs">
                                 <Avatar className="h-6 w-6 border border-white dark:border-gray-700">
@@ -391,20 +394,33 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
                             )}
                           </div>
                         )}
+                      </div>
 
-                        {/* Add Comment hint */}
-                        <div 
-                          className="text-xs text-center text-muted-foreground py-2 hover:text-foreground transition-colors"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setSelectedPostId(post._id)
-                          }}
-                        >
-                          {post.comments.length === 0 ? (
-                            <span className="font-medium">Click to add comment</span>
-                          ) : (
-                            <span className="font-medium">View all {post.comments.length} comments</span>
-                          )}
+                      {/* Add Comment hint */}
+                      <div 
+                        className="space-y-2 border-t pt-3 mt-2"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="flex gap-2">
+                          <Textarea
+                            placeholder="Add a comment..."
+                            value={newComments[post._id] || ""}
+                            onChange={(e) => setNewComments({ ...newComments, [post._id]: e.target.value })}
+                            className="min-h-[60px] text-xs resize-none bg-white/70 dark:bg-black/30 border-none focus-visible:ring-1 focus-visible:ring-primary"
+                            disabled={commentingPostId === post._id}
+                          />
+                          <Button
+                            onClick={() => handleAddComment(post._id)}
+                            disabled={!newComments[post._id]?.trim() || commentingPostId === post._id}
+                            size="sm"
+                            className="h-[60px] px-3"
+                          >
+                            {commentingPostId === post._id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Send className="h-3 w-3" />
+                            )}
+                          </Button>
                         </div>
                       </div>
                     </div>

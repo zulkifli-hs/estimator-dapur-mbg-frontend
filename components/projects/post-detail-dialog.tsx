@@ -24,7 +24,26 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate }:
   const [loading, setLoading] = useState(true)
   const [newComment, setNewComment] = useState("")
   const [submitting, setSubmitting] = useState(false)
+  const [colorIndex, setColorIndex] = useState(0)
   const { toast } = useToast()
+
+  const colors = [
+    { bg: "from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20", border: "border-blue-200 dark:border-blue-700", pin: "bg-blue-400 dark:bg-blue-600", accent: "bg-blue-300 dark:bg-blue-600" },
+    { bg: "from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20", border: "border-green-200 dark:border-green-700", pin: "bg-green-400 dark:bg-green-600", accent: "bg-green-300 dark:bg-green-600" },
+    { bg: "from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-800/20", border: "border-pink-200 dark:border-pink-700", pin: "bg-pink-400 dark:bg-pink-600", accent: "bg-pink-300 dark:bg-pink-600" },
+    { bg: "from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20", border: "border-purple-200 dark:border-purple-700", pin: "bg-purple-400 dark:bg-purple-600", accent: "bg-purple-300 dark:bg-purple-600" },
+    { bg: "from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20", border: "border-orange-200 dark:border-orange-700", pin: "bg-orange-400 dark:bg-orange-600", accent: "bg-orange-300 dark:bg-orange-600" },
+  ]
+  
+  const getColorForPost = (id: string) => {
+    let hash = 0
+    for (let i = 0; i < id.length; i++) {
+      hash = id.charCodeAt(i) + ((hash << 5) - hash)
+    }
+    return Math.abs(hash) % colors.length
+  }
+
+  const color = colors[getColorForPost(postId)]
 
   useEffect(() => {
     if (open && postId) {
@@ -115,9 +134,9 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate }:
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-0 bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 border-4 border-yellow-200 dark:border-yellow-700 shadow-2xl">
+      <DialogContent className={`max-w-2xl max-h-[85vh] flex flex-col p-0 bg-gradient-to-br ${color.bg} border-4 ${color.border} shadow-2xl`}>
         {/* Pin at top */}
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-yellow-400 dark:bg-yellow-600 h-5 w-5 rounded-full shadow-md border-2 border-white dark:border-gray-800" />
+        <div className={`absolute -top-3 left-1/2 -translate-x-1/2 ${color.pin} h-5 w-5 rounded-full shadow-md border-2 border-white dark:border-gray-800`} />
 
         {loading ? (
           <div className="flex justify-center items-center py-12">
@@ -152,11 +171,11 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate }:
                 {/* Comments */}
                 <div className="pt-4 space-y-3">
                   <div className="flex items-center gap-2">
-                    <div className="h-px bg-yellow-300 dark:bg-yellow-600 flex-1" />
+                    <div className={`h-px ${color.accent} flex-1`} />
                     <h3 className="font-semibold text-sm text-muted-foreground px-2">
                       {post.comments.length} {post.comments.length === 1 ? 'Comment' : 'Comments'}
                     </h3>
-                    <div className="h-px bg-yellow-300 dark:bg-yellow-600 flex-1" />
+                    <div className={`h-px ${color.accent} flex-1`} />
                   </div>
                   
                   {post.comments.length === 0 ? (
@@ -192,19 +211,19 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate }:
             </ScrollArea>
 
             {/* Add Comment Section */}
-            <div className="p-4 border-t-2 border-yellow-300 dark:border-yellow-600 bg-yellow-100/50 dark:bg-yellow-900/30">
+            <div className={`p-4 border-t-2 ${color.border} bg-white/40 dark:bg-black/20`}>
               <div className="flex gap-2">
                 <Textarea
                   placeholder="Add a comment to this note..."
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
-                  className="min-h-[80px] resize-none bg-white/80 dark:bg-black/40 border-yellow-200 dark:border-yellow-700 focus-visible:ring-yellow-400"
+                  className={`min-h-[80px] resize-none bg-white/80 dark:bg-black/40 ${color.border} focus-visible:ring-primary`}
                   disabled={submitting}
                 />
                 <Button
                   onClick={handleAddComment}
                   disabled={!newComment.trim() || submitting}
-                  className="h-[80px] px-4 bg-yellow-500 hover:bg-yellow-600 text-white shadow-md"
+                  className="h-[80px] px-4 shadow-md"
                 >
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 </Button>

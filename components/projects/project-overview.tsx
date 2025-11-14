@@ -25,18 +25,24 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
   const [submitting, setSubmitting] = useState(false)
   const [commentingPostId, setCommentingPostId] = useState<string | null>(null)
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalPosts, setTotalPosts] = useState(0)
+  const postsPerPage = 12
   const { toast } = useToast()
 
   useEffect(() => {
     loadPosts()
-  }, [project._id])
+  }, [project._id, currentPage])
 
   const loadPosts = async () => {
     try {
       setLoading(true)
-      const result = await discussionsApi.getPosts(project._id, 10)
+      const result = await discussionsApi.getPosts(project._id, postsPerPage, currentPage)
       if (result.success) {
         setPosts(result.data)
+        setTotalPages(result.totalPage)
+        setTotalPosts(result.totalData)
       } else {
         toast({
           title: "Error",
@@ -83,6 +89,7 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
       const result = await discussionsApi.createPost(project._id, newPost)
       if (result.success) {
         setNewPost("")
+        setCurrentPage(1)
         await loadPosts()
         toast({
           title: "Success",
@@ -154,9 +161,12 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
   const getColorForPost = (id: string) => {
     let hash = 0
     for (let i = 0; i < id.length; i++) {
-      hash = id.charCodeAt(i) + ((hash << 5) - hash)
+      hash = (hash * 31 + id.charCodeAt(i) * (i + 1)) & 0xffffffff
     }
-    return Math.abs(hash) % 5 // 5 colors available
+    hash = ((hash >> 16) ^ hash) * 0x45d9f3b
+    hash = ((hash >> 16) ^ hash) * 0x45d9f3b
+    hash = (hash >> 16) ^ hash
+    return Math.abs(hash) % 5
   }
 
   return (
@@ -278,10 +288,14 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
           <CardTitle className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5" />
             Discussion Board
+            {totalPosts > 0 && (
+              <Badge variant="secondary" className="ml-auto">
+                {totalPosts} {totalPosts === 1 ? "note" : "notes"}
+              </Badge>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* New Post Input - Sticky Note Style */}
           <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 p-4 rounded-lg shadow-md border-2 border-green-200 dark:border-green-700 relative">
             <div className="absolute -top-3 left-4 bg-green-500 dark:bg-green-600 px-3 py-1 rounded-full text-xs font-medium shadow-sm text-white">
               New Post
@@ -315,7 +329,6 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
             </div>
           </div>
 
-          {/* Posts Grid - Sticky Notes */}
           <div className="pt-4 border-t">
             {loading ? (
               <div className="flex justify-center py-8">
@@ -328,119 +341,163 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
                 <p className="text-sm">Pin your first note to the board!</p>
               </div>
             ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {posts.map((post, index) => {
-                  const colors = [
-                    { bg: "from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20", border: "border-blue-200 dark:border-blue-700", pin: "bg-blue-400 dark:bg-blue-600" },
-                    { bg: "from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20", border: "border-green-200 dark:border-green-700", pin: "bg-green-400 dark:bg-green-600" },
-                    { bg: "from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-800/20", border: "border-pink-200 dark:border-pink-700", pin: "bg-pink-400 dark:bg-pink-600" },
-                    { bg: "from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20", border: "border-purple-200 dark:border-purple-700", pin: "bg-purple-400 dark:bg-purple-600" },
-                    { bg: "from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20", border: "border-orange-200 dark:border-orange-700", pin: "bg-orange-400 dark:bg-orange-600" },
-                  ]
-                  const color = colors[getColorForPost(post._id)]
-                  
-                  return (
-                    <div
-                      key={post._id}
-                      onClick={() => setSelectedPostId(post._id)}
-                      className={`bg-gradient-to-br ${color.bg} p-4 rounded-lg shadow-lg border-2 ${color.border} relative transform hover:scale-105 transition-transform duration-200 hover:shadow-xl cursor-pointer`}
-                      style={{ transform: `rotate(${(index % 3 - 1) * 1}deg)` }}
-                    >
-                      {/* Pin */}
-                      <div className={`absolute -top-2 left-1/2 -translate-x-1/2 ${color.pin} h-4 w-4 rounded-full shadow-md border-2 border-white dark:border-gray-800`} />
-                      
-                      {/* Post Header */}
-                      <div 
+              <>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {posts.map((post, index) => {
+                    const colors = [
+                      { bg: "from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20", border: "border-blue-200 dark:border-blue-700", pin: "bg-blue-400 dark:bg-blue-600" },
+                      { bg: "from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20", border: "border-green-200 dark:border-green-700", pin: "bg-green-400 dark:bg-green-600" },
+                      { bg: "from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-800/20", border: "border-pink-200 dark:border-pink-700", pin: "bg-pink-400 dark:bg-pink-600" },
+                      { bg: "from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20", border: "border-purple-200 dark:border-purple-700", pin: "bg-purple-400 dark:bg-purple-600" },
+                      { bg: "from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20", border: "border-orange-200 dark:border-orange-700", pin: "bg-orange-400 dark:bg-orange-600" },
+                    ]
+                    const color = colors[getColorForPost(post._id)]
+                    
+                    return (
+                      <div
+                        key={post._id}
                         onClick={() => setSelectedPostId(post._id)}
-                        className="cursor-pointer"
+                        className={`bg-gradient-to-br ${color.bg} p-4 rounded-lg shadow-lg border-2 ${color.border} relative transform hover:scale-105 transition-transform duration-200 hover:shadow-xl cursor-pointer`}
+                        style={{ transform: `rotate(${(index % 3 - 1) * 1}deg)` }}
                       >
-                        <div className="flex gap-2 items-start mb-3">
-                          <Avatar className="h-8 w-8 border-2 border-white dark:border-gray-700 shadow-sm">
-                            <AvatarImage src={getUserAvatar(post.createdBy) || "/placeholder.svg"} />
-                            <AvatarFallback className="text-xs font-semibold">
-                              {getUserName(post.createdBy)
-                                .split(" ")
-                                .map((n) => n[0])
-                                .join("")
-                                .toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-sm truncate">{getUserName(post.createdBy)}</p>
-                            <p className="text-xs text-muted-foreground">{formatRelativeTime(post.createdAt)}</p>
+                        <div className={`absolute -top-2 left-1/2 -translate-x-1/2 ${color.pin} h-4 w-4 rounded-full shadow-md border-2 border-white dark:border-gray-800`} />
+                        
+                        <div 
+                          onClick={() => setSelectedPostId(post._id)}
+                          className="cursor-pointer"
+                        >
+                          <div className="flex gap-2 items-start mb-3">
+                            <Avatar className="h-8 w-8 border-2 border-white dark:border-gray-700 shadow-sm">
+                              <AvatarImage src={getUserAvatar(post.createdBy) || "/placeholder.svg"} />
+                              <AvatarFallback className="text-xs font-semibold">
+                                {getUserName(post.createdBy)
+                                  .split(" ")
+                                  .map((n) => n[0])
+                                  .join("")
+                                  .toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-sm truncate">{getUserName(post.createdBy)}</p>
+                              <p className="text-xs text-muted-foreground">{formatRelativeTime(post.createdAt)}</p>
+                            </div>
                           </div>
-                        </div>
 
-                        {/* Post Content */}
-                        <p className="text-sm mb-4 whitespace-pre-wrap line-clamp-6 leading-relaxed">{post.content}</p>
+                          <p className="text-sm mb-4 whitespace-pre-wrap line-clamp-6 leading-relaxed">{post.content}</p>
 
-                        {/* Comments Preview */}
-                        {post.comments.length > 0 && (
-                          <div className="bg-white/50 dark:bg-black/20 rounded-md p-2 space-y-2 max-h-40 overflow-y-auto mb-3">
-                            {post.comments.slice(0, 2).map((comment) => (
-                              <div key={comment._id} className="flex gap-2 text-xs">
-                                <Avatar className="h-6 w-6 border border-white dark:border-gray-700">
-                                  <AvatarImage src={getUserAvatar(comment.createdBy) || "/placeholder.svg"} />
-                                  <AvatarFallback className="text-[10px]">
-                                    {getUserName(comment.createdBy)
-                                      .split(" ")
-                                      .map((n) => n[0])
-                                      .join("")
-                                      .toUpperCase()}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-medium truncate">{getUserName(comment.createdBy)}</p>
-                                  <p className="text-muted-foreground line-clamp-2">{comment.content}</p>
+                          {post.comments.length > 0 && (
+                            <div className="bg-white/50 dark:bg-black/20 rounded-md p-2 space-y-2 max-h-40 overflow-y-auto mb-3">
+                              {post.comments.slice(0, 2).map((comment) => (
+                                <div key={comment._id} className="flex gap-2 text-xs">
+                                  <Avatar className="h-6 w-6 border border-white dark:border-gray-700">
+                                    <AvatarImage src={getUserAvatar(comment.createdBy) || "/placeholder.svg"} />
+                                    <AvatarFallback className="text-[10px]">
+                                      {getUserName(comment.createdBy)
+                                        .split(" ")
+                                        .map((n) => n[0])
+                                        .join("")
+                                        .toUpperCase()}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium truncate">{getUserName(comment.createdBy)}</p>
+                                    <p className="text-muted-foreground line-clamp-2">{comment.content}</p>
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
-                            {post.comments.length > 2 && (
-                              <p className="text-xs text-center text-muted-foreground font-medium">
-                                +{post.comments.length - 2} more comments
-                              </p>
-                            )}
-                          </div>
-                        )}
-                      </div>
+                              ))}
+                              {post.comments.length > 2 && (
+                                <p className="text-xs text-center text-muted-foreground font-medium">
+                                  +{post.comments.length - 2} more comments
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
 
-                      {/* Add Comment hint */}
-                      <div 
-                        className="space-y-2 border-t pt-3 mt-2"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <div className="flex gap-2">
-                          <Textarea
-                            placeholder="Add a comment..."
-                            value={newComments[post._id] || ""}
-                            onChange={(e) => setNewComments({ ...newComments, [post._id]: e.target.value })}
-                            className="min-h-[60px] text-xs resize-none bg-white/70 dark:bg-black/30 border-none focus-visible:ring-1 focus-visible:ring-primary"
-                            disabled={commentingPostId === post._id}
-                          />
-                          <Button
-                            onClick={() => handleAddComment(post._id)}
-                            disabled={!newComments[post._id]?.trim() || commentingPostId === post._id}
-                            size="sm"
-                            className="h-[60px] px-3"
-                          >
-                            {commentingPostId === post._id ? (
-                              <Loader2 className="h-3 w-3 animate-spin" />
-                            ) : (
-                              <Send className="h-3 w-3" />
-                            )}
-                          </Button>
+                        <div 
+                          className="space-y-2 border-t pt-3 mt-2"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="flex gap-2">
+                            <Textarea
+                              placeholder="Add a comment..."
+                              value={newComments[post._id] || ""}
+                              onChange={(e) => setNewComments({ ...newComments, [post._id]: e.target.value })}
+                              className="min-h-[60px] text-xs resize-none bg-white/70 dark:bg-black/30 border-none focus-visible:ring-1 focus-visible:ring-primary"
+                              disabled={commentingPostId === post._id}
+                            />
+                            <Button
+                              onClick={() => handleAddComment(post._id)}
+                              disabled={!newComments[post._id]?.trim() || commentingPostId === post._id}
+                              size="sm"
+                              className="h-[60px] px-3"
+                            >
+                              {commentingPostId === post._id ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <Send className="h-3 w-3" />
+                              )}
+                            </Button>
+                          </div>
                         </div>
                       </div>
+                    )
+                  })}
+                </div>
+                
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-center gap-2 mt-8 pt-6 border-t">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1 || loading}
+                    >
+                      Previous
+                    </Button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        let pageNum
+                        if (totalPages <= 5) {
+                          pageNum = i + 1
+                        } else if (currentPage <= 3) {
+                          pageNum = i + 1
+                        } else if (currentPage >= totalPages - 2) {
+                          pageNum = totalPages - 4 + i
+                        } else {
+                          pageNum = currentPage - 2 + i
+                        }
+                        
+                        return (
+                          <Button
+                            key={pageNum}
+                            variant={currentPage === pageNum ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setCurrentPage(pageNum)}
+                            disabled={loading}
+                            className="w-10"
+                          >
+                            {pageNum}
+                          </Button>
+                        )
+                      })}
                     </div>
-                  )
-                })}
-              </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages || loading}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </CardContent>
       </Card>
 
-      {/* Post Detail Dialog */}
       {selectedPostId && (
         <PostDetailDialog
           open={!!selectedPostId}

@@ -49,8 +49,8 @@ export interface GetPostsResponse {
   list: Post[]
 }
 
-const getPosts = async (projectId: string, limit = 10): Promise<ApiResponse<GetPostsResponse>> => {
-  return apiRequest<GetPostsResponse>(`/projects/${projectId}/post?limit=${limit}`, { method: "GET" })
+const getPosts = async (projectId: string, limit = 10, page = 1): Promise<ApiResponse<GetPostsResponse>> => {
+  return apiRequest<GetPostsResponse>(`/projects/${projectId}/post?limit=${limit}&page=${page}`, { method: "GET" })
 }
 
 const createPost = async (projectId: string, content: string): Promise<ApiResponse<Post>> => {
@@ -72,8 +72,8 @@ const getPostDetail = async (projectId: string, postId: string): Promise<ApiResp
 }
 
 export const discussionsApi = {
-  getPosts: async (projectId: string, limit?: number) => {
-    const response = await getPosts(projectId, limit)
+  getPosts: async (projectId: string, limit?: number, page?: number) => {
+    const response = await getPosts(projectId, limit, page)
     return {
       success: response.code === 200,
       data: response.data.list,

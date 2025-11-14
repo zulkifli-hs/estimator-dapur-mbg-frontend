@@ -20,7 +20,7 @@ interface GanttTask {
 
 interface GanttChartViewProps {
   tasks: GanttTask[]
-  onUpdateTask?: (taskId: string, startDate: Date, endDate: Date) => Promise<void>
+  onUpdateTask?: (taskId: string, startDate: Date | null, endDate: Date | null) => Promise<void>
 }
 
 export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
@@ -107,6 +107,40 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
     setEditingTaskId(task.id)
     setEditStartDate(format(task.startDate, "yyyy-MM-dd"))
     setEditEndDate(format(task.endDate, "yyyy-MM-dd"))
+  }
+
+  const handleStartDateChange = (value: string) => {
+    setEditStartDate(value)
+    // If end date exists and new start date is after it, clear end date
+    if (editEndDate && value > editEndDate) {
+      setEditEndDate(value)
+    }
+  }
+
+  const handleEndDateChange = (value: string) => {
+    // Only allow end date if it's >= start date
+    if (editStartDate && value >= editStartDate) {
+      setEditEndDate(value)
+    } else if (!editStartDate) {
+      setEditEndDate(value)
+    }
+  }
+
+  const handleDeleteDates = async () => {
+    if (!editingTaskId || !onUpdateTask) return
+
+    setSaving(true)
+    try {
+      // Send empty dates or null to backend to remove them
+      await onUpdateTask(editingTaskId, null as any, null as any)
+      setEditingTaskId(null)
+      setEditStartDate("")
+      setEditEndDate("")
+    } catch (error) {
+      console.error("Failed to delete dates:", error)
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleSaveEdit = async () => {
@@ -282,7 +316,8 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
                                             <Input
                                               type="date"
                                               value={editStartDate}
-                                              onChange={(e) => setEditStartDate(e.target.value)}
+                                              onChange={(e) => handleStartDateChange(e.target.value)}
+                                              max={editEndDate || undefined}
                                             />
                                           </div>
                                           <div className="space-y-2">
@@ -290,8 +325,8 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
                                             <Input
                                               type="date"
                                               value={editEndDate}
-                                              onChange={(e) => setEditEndDate(e.target.value)}
-                                              min={editStartDate}
+                                              onChange={(e) => handleEndDateChange(e.target.value)}
+                                              min={editStartDate || undefined}
                                             />
                                           </div>
                                         </div>
@@ -303,6 +338,14 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
                                             className="flex-1"
                                           >
                                             {saving ? "Saving..." : "Save"}
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="destructive"
+                                            onClick={handleDeleteDates}
+                                            disabled={saving}
+                                          >
+                                            Delete
                                           </Button>
                                           <Button
                                             size="sm"

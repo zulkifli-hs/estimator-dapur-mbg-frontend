@@ -72,7 +72,7 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
     const dayWidth = 100 / totalDays
 
     const startOffset = Math.floor((taskStart - chartStart) / (1000 * 60 * 60 * 24))
-    const duration = task.duration
+    const duration = Math.max(task.duration, 1)
 
     return {
       left: `${startOffset * dayWidth}%`,

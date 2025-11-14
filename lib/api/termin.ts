@@ -191,8 +191,16 @@ export const terminApi = {
   acceptTerminSlip,
   rejectTerminSlip,
   getByProject: async (projectId: string) => {
-    const data = await getTerminList(projectId)
-    return { success: true, data }
+    try {
+      const data = await getTerminList(projectId)
+      return { success: true, data }
+    } catch (error: any) {
+      // If 404, return empty array (no termins exist yet)
+      if (error?.status === 404 || error?.code === 404) {
+        return { success: true, data: [] }
+      }
+      throw error
+    }
   },
   getById: async (projectId: string, terminId: string) => {
     const data = await getTermin(projectId, terminId)

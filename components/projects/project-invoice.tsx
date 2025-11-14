@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Upload, FileText } from "lucide-react"
+import { Upload, FileText } from 'lucide-react'
 import { Badge } from "@/components/ui/badge"
 import { terminApi } from "@/lib/api/termin"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -37,7 +37,7 @@ export function ProjectInvoice({ projectId }: ProjectInvoiceProps) {
         }
       }
     } catch (error) {
-      console.error("Failed to load termins:", error)
+      console.log("[v0] No termins found or error loading termins:", error)
       setTermins([])
     } finally {
       setLoading(false)

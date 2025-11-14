@@ -174,9 +174,8 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
     for (let i = 0; i < id.length; i++) {
       hash = (hash * 37 + id.charCodeAt(i) * (i + 7)) & 0xffffffff
     }
-    // Generate rotation between -4 and 4 degrees
-    const rotation = (hash % 9) - 4
-    return rotation
+    const rotations = [-1, -0.5, 0, 0.5, 1]
+    return rotations[Math.abs(hash) % rotations.length]
   }
 
   return (

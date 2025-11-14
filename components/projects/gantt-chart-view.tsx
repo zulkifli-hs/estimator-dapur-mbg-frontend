@@ -6,7 +6,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Pencil, Plus } from 'lucide-react'
-import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 
 interface GanttTask {
@@ -127,8 +126,8 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
 
   const handleEditTask = (task: GanttTask) => {
     setEditingTaskId(task.id)
-    setEditStartDate(task.startDate ? format(task.startDate, "yyyy-MM-dd") : "")
-    setEditEndDate(task.endDate ? format(task.endDate, "yyyy-MM-dd") : "")
+    setEditStartDate(task.startDate ? task.startDate.toISOString().split('T')[0] : "")
+    setEditEndDate(task.endDate ? task.endDate.toISOString().split('T')[0] : "")
   }
 
   const handleStartDateChange = (value: string) => {
@@ -324,7 +323,7 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
                                   </span>
                                   {position.width >= 120 && task.startDate && task.endDate && (
                                     <span className="text-[10px] opacity-90 ml-1">
-                                      {format(task.startDate, "MMM d")} - {format(task.endDate, "MMM d")}
+                                      {task.startDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - {task.endDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                                     </span>
                                   )}
                                   {onUpdateTask && (

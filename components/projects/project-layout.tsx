@@ -4,9 +4,8 @@ import type React from "react"
 
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Upload, FileText, Download, Eye } from "lucide-react"
+import { Upload, FileText, Download, Eye } from 'lucide-react'
 import { Badge } from "@/components/ui/badge"
-import { format } from "date-fns"
 import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -168,7 +167,7 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
                           </div>
                           <p className="text-sm text-muted-foreground">
                             Uploaded by {layout.createdBy || "Unknown"} •{" "}
-                            {layout.createdAt ? format(new Date(layout.createdAt), "yyyy-MM-dd") : "N/A"}
+                            {layout.createdAt ? new Date(layout.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit" }) : "N/A"}
                           </p>
                         </div>
                       </div>
@@ -243,7 +242,7 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
                           <p className="font-medium">{file.name}</p>
                           <p className="text-sm text-muted-foreground">
                             Uploaded by {file.createdBy || "Unknown"} •{" "}
-                            {file.createdAt ? format(new Date(file.createdAt), "yyyy-MM-dd") : "N/A"}
+                            {file.createdAt ? new Date(file.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit" }) : "N/A"}
                           </p>
                         </div>
                       </div>
@@ -315,7 +314,7 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
                           </div>
                           <p className="text-sm text-muted-foreground">
                             v{drawing.version || 1}.0 •{" "}
-                            {drawing.createdAt ? format(new Date(drawing.createdAt), "yyyy-MM-dd") : "N/A"}
+                            {drawing.createdAt ? new Date(drawing.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit" }) : "N/A"}
                           </p>
                         </div>
                       </div>
@@ -393,7 +392,7 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
                           </div>
                           <p className="text-sm text-muted-foreground">
                             v{drawing.version || 1}.0 •{" "}
-                            {drawing.createdAt ? format(new Date(drawing.createdAt), "yyyy-MM-dd") : "N/A"}
+                            {drawing.createdAt ? new Date(drawing.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit" }) : "N/A"}
                           </p>
                         </div>
                       </div>
@@ -468,7 +467,7 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
                             <Badge variant="default">Approved</Badge>
                           </div>
                           <p className="text-sm text-muted-foreground">
-                            {material.createdAt ? format(new Date(material.createdAt), "yyyy-MM-dd") : "N/A"}
+                            {material.createdAt ? new Date(material.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit" }) : "N/A"}
                           </p>
                         </div>
                       </div>
@@ -543,7 +542,7 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
                             <Badge variant="default">Approved</Badge>
                           </div>
                           <p className="text-sm text-muted-foreground">
-                            {furniture.createdAt ? format(new Date(furniture.createdAt), "yyyy-MM-dd") : "N/A"}
+                            {furniture.createdAt ? new Date(furniture.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit" }) : "N/A"}
                           </p>
                         </div>
                       </div>

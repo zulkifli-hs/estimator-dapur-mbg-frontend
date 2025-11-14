@@ -17,7 +17,7 @@ export interface Termin {
 // Create termin format
 export const createTerminFormat = async (
   projectId: string,
-  termins: Array<{ name: string; percentage: number }>,
+  termins: Array<{ name: string; value: number; valueType: string }>,
 ): Promise<Termin[]> => {
   return apiRequest<Termin[]>(`/projects/${projectId}/termin`, {
     method: "POST",
@@ -199,7 +199,12 @@ export const terminApi = {
     return { success: true, data }
   },
   createFormat: async (projectId: string, termins: Array<{ name: string; percentage: number }>) => {
-    const data = await createTerminFormat(projectId, termins)
+    const transformedTermins = termins.map(t => ({
+      name: t.name,
+      value: t.percentage,
+      valueType: "%"
+    }))
+    const data = await createTerminFormat(projectId, transformedTermins)
     return { success: true, data }
   },
   updateFormat: async (projectId: string, termins: Array<{ id: string; name: string; percentage: number }>) => {

@@ -169,6 +169,16 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
     return Math.abs(hash) % 5
   }
 
+  const getRotationForPost = (id: string) => {
+    let hash = 0
+    for (let i = 0; i < id.length; i++) {
+      hash = (hash * 37 + id.charCodeAt(i) * (i + 7)) & 0xffffffff
+    }
+    // Generate rotation between -4 and 4 degrees
+    const rotation = (hash % 9) - 4
+    return rotation
+  }
+
   return (
     <div className="space-y-6">
       <div className="grid gap-6 md:grid-cols-2">
@@ -352,13 +362,14 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
                       { bg: "from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20", border: "border-orange-200 dark:border-orange-700", pin: "bg-orange-400 dark:bg-orange-600" },
                     ]
                     const color = colors[getColorForPost(post._id)]
+                    const rotation = getRotationForPost(post._id)
                     
                     return (
                       <div
                         key={post._id}
                         onClick={() => setSelectedPostId(post._id)}
                         className={`bg-gradient-to-br ${color.bg} p-4 rounded-lg shadow-lg border-2 ${color.border} relative transform hover:scale-105 transition-transform duration-200 hover:shadow-xl cursor-pointer`}
-                        style={{ transform: `rotate(${(index % 3 - 1) * 1}deg)` }}
+                        style={{ transform: `rotate(${rotation}deg)` }}
                       >
                         <div className={`absolute -top-2 left-1/2 -translate-x-1/2 ${color.pin} h-4 w-4 rounded-full shadow-md border-2 border-white dark:border-gray-800`} />
                         

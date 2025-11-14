@@ -73,7 +73,7 @@ export const foldersApi = {
   getByProject: async (projectId: string, params?: { page?: number; limit?: number }) => {
     try {
       const response = await getFolders(projectId, params)
-      return { success: response.code === 200, data: response.data.folders || response.data }
+      return { success: response.code === 200, data: response.data.list || response.data.folders || [] }
     } catch (error: any) {
       if (error.code === 404) {
         return { success: true, data: [] }

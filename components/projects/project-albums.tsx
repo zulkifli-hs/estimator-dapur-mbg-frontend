@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus, ImageIcon, Trash2 } from "lucide-react"
+import { Plus, ImageIcon, Trash2 } from 'lucide-react'
 import { albumsApi } from "@/lib/api/albums"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -42,6 +42,7 @@ export function ProjectAlbums({ projectId }: ProjectAlbumsProps) {
 
     try {
       const response = await albumsApi.create({
+        projectId,
         name: newAlbumName,
       })
       if (response.success) {

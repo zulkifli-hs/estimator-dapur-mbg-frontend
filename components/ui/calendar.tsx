@@ -27,15 +27,15 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
         nav_button_previous: "",
         nav_button_next: "",
         table: "w-full border-collapse mt-2",
-        head_row: "grid grid-cols-7",
-        head_cell: "text-muted-foreground w-full h-10 font-normal text-[0.8rem] flex items-center justify-center",
-        row: "grid grid-cols-7 w-full",
+        head_row: "grid grid-cols-7 gap-0",
+        head_cell: "text-muted-foreground font-normal text-[0.8rem] flex items-center justify-center h-10",
+        row: "grid grid-cols-7 gap-0 w-full mt-1",
         cell: cn(
-          "relative text-center text-sm p-0 w-full h-10 focus-within:relative focus-within:z-20",
+          "relative text-center text-sm p-0 h-10 focus-within:relative focus-within:z-20",
         ),
         day: cn(
           buttonVariants({ variant: "ghost" }), 
-          "h-full w-full p-0 font-normal aria-selected:opacity-100 rounded-md flex items-center justify-center"
+          "h-10 w-10 p-0 font-normal aria-selected:opacity-100 rounded-md"
         ),
         day_range_end: "day-range-end",
         day_selected:

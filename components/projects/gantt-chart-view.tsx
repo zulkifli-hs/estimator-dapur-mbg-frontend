@@ -29,6 +29,8 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
   const [editStartDate, setEditStartDate] = useState<string>("")
   const [editEndDate, setEditEndDate] = useState<string>("")
   const [saving, setSaving] = useState(false)
+  const DAY_WIDTH = 50 // pixels per day
+
   const { startDate, endDate, totalDays, monthHeaders } = useMemo(() => {
     if (tasks.length === 0) return { startDate: new Date(), endDate: new Date(), totalDays: 0, monthHeaders: [] }
 
@@ -69,14 +71,13 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
   const getTaskPosition = (task: GanttTask) => {
     const taskStart = task.startDate.getTime()
     const chartStart = startDate.getTime()
-    const dayWidth = 100 / totalDays
 
     const startOffset = Math.floor((taskStart - chartStart) / (1000 * 60 * 60 * 24))
     const duration = task.duration + 1
 
     return {
-      left: `${startOffset * dayWidth}%`,
-      width: `${duration * dayWidth}%`,
+      left: startOffset * DAY_WIDTH,
+      width: duration * DAY_WIDTH,
     }
   }
 
@@ -206,7 +207,7 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
 
           {/* Scrollable Timeline */}
           <div className="flex-1 overflow-x-auto">
-            <div className="min-w-[800px]">
+            <div style={{ width: `${totalDays * DAY_WIDTH}px` }}>
               {/* Timeline Header - Fixed height to match task names header */}
               <div className="border-b bg-muted/50">
                 <div className="flex border-b h-[37px]">
@@ -214,7 +215,7 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
                     <div
                       key={index}
                       className="border-r last:border-r-0 flex items-center justify-center font-semibold text-sm bg-muted"
-                      style={{ width: `${(header.days / totalDays) * 100}%` }}
+                      style={{ width: `${header.days * DAY_WIDTH}px` }}
                     >
                       {header.month}
                     </div>
@@ -225,7 +226,11 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
                     const currentDay = new Date(startDate)
                     currentDay.setDate(currentDay.getDate() + i)
                     return (
-                      <div key={i} className="border-r flex-1 text-center text-[10px] text-muted-foreground leading-4">
+                      <div 
+                        key={i} 
+                        className="border-r text-center text-[10px] text-muted-foreground leading-4"
+                        style={{ width: `${DAY_WIDTH}px` }}
+                      >
                         {currentDay.getDate()}
                       </div>
                     )
@@ -243,6 +248,7 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
                     {/* Task Bars */}
                     {categoryTasks.map((task) => {
                       const position = getTaskPosition(task)
+                      const duration = task.duration + 1
                       return (
                         <div
                           key={task.id}
@@ -263,23 +269,38 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
                           {/* Grid background */}
                           <div className="absolute inset-0 flex">
                             {Array.from({ length: totalDays }).map((_, i) => (
-                              <div key={i} className="border-r flex-1"></div>
+                              <div 
+                                key={i} 
+                                className="border-r"
+                                style={{ width: `${DAY_WIDTH}px` }}
+                              ></div>
                             ))}
                           </div>
 
                           {/* Task bar */}
                           <div className="relative h-full flex items-center px-3">
                             <div
-                              className={`h-8 rounded ${
-                                categoryColors[category] || "bg-gray-500"
-                              } opacity-80 hover:opacity-100 transition-opacity group relative`}
+                              className={cn(
+                                "h-10 rounded transition-all group relative",
+                                categoryColors[category] || "bg-gray-500",
+                                hoveredTaskId === task.id ? "opacity-100 shadow-lg" : "opacity-80"
+                              )}
                               style={{
-                                marginLeft: position.left,
-                                width: position.width,
+                                marginLeft: `${position.left}px`,
+                                width: `${position.width}px`,
+                                minWidth: "60px"
                               }}
+                              title={`${task.name}\n${formatDate(task.startDate)} - ${formatDate(task.endDate)}\n${duration} day${duration > 1 ? 's' : ''}`}
                             >
-                              <div className="relative h-full flex items-center justify-between px-2">
-                                <div className="text-xs text-white font-medium truncate flex-1">{task.duration + 1}d</div>
+                              <div className="relative h-full flex items-center justify-between px-2 text-white">
+                                <span className="text-xs font-semibold truncate flex-1">
+                                  {duration}d
+                                </span>
+                                {position.width >= 120 && (
+                                  <span className="text-[10px] opacity-90 ml-1">
+                                    {format(task.startDate, "MMM d")} - {format(task.endDate, "MMM d")}
+                                  </span>
+                                )}
                                 {onUpdateTask && (
                                   <Popover
                                     open={editingTaskId === task.id}
@@ -295,7 +316,7 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
                                       <Button
                                         size="icon"
                                         variant="ghost"
-                                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 hover:bg-white"
+                                        className="h-6 w-6 ml-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 hover:bg-white shrink-0"
                                         onClick={(e) => {
                                           e.stopPropagation()
                                           handleEditTask(task)

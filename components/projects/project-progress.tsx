@@ -2,7 +2,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Upload, Calendar, ImageIcon, TrendingUp, FileCheck, Edit, Plus, X } from "lucide-react"
+import { Upload, Calendar, ImageIcon, TrendingUp, FileCheck, Edit, Plus, X } from 'lucide-react'
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useEffect, useState } from "react"
@@ -24,7 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Loader2 } from "lucide-react"
+import { Loader2 } from 'lucide-react'
 
 interface ProjectProgressProps {
   projectId: string
@@ -77,57 +77,48 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
   const generateGanttTasks = (boq: any) => {
     const tasks: any[] = []
 
-    // Add preliminary tasks
     if (Array.isArray(boq.preliminary)) {
       boq.preliminary.forEach((item: any, index: number) => {
-        if (item.startDate && item.endDate) {
-          tasks.push({
-            id: `preliminary-${index}`,
-            name: item.name,
-            category: "Preliminary",
-            startDate: new Date(item.startDate),
-            endDate: new Date(item.endDate),
-            duration: calculateDuration(item.startDate, item.endDate),
-          })
-        }
+        tasks.push({
+          id: `preliminary-${index}`,
+          name: item.name,
+          category: "Preliminary",
+          startDate: item.startDate ? new Date(item.startDate) : null,
+          endDate: item.endDate ? new Date(item.endDate) : null,
+          duration: item.startDate && item.endDate ? calculateDuration(item.startDate, item.endDate) : 0,
+        })
       })
     }
 
-    // Add fitting out tasks
     if (Array.isArray(boq.fittingOut)) {
       boq.fittingOut.forEach((category: any) => {
         if (Array.isArray(category.products)) {
           category.products.forEach((product: any, index: number) => {
-            if (product.startDate && product.endDate) {
-              tasks.push({
-                id: `fitting-${category.name}-${index}`,
-                name: product.name,
-                category: `Fitting Out - ${category.name}`,
-                startDate: new Date(product.startDate),
-                endDate: new Date(product.endDate),
-                duration: calculateDuration(product.startDate, product.endDate),
-              })
-            }
+            tasks.push({
+              id: `fitting-${category.name}-${index}`,
+              name: product.name,
+              category: `Fitting Out - ${category.name}`,
+              startDate: product.startDate ? new Date(product.startDate) : null,
+              endDate: product.endDate ? new Date(product.endDate) : null,
+              duration: product.startDate && product.endDate ? calculateDuration(product.startDate, product.endDate) : 0,
+            })
           })
         }
       })
     }
 
-    // Add furniture work tasks
     if (Array.isArray(boq.furnitureWork)) {
       boq.furnitureWork.forEach((category: any) => {
         if (Array.isArray(category.products)) {
           category.products.forEach((product: any, index: number) => {
-            if (product.startDate && product.endDate) {
-              tasks.push({
-                id: `furniture-${category.name}-${index}`,
-                name: product.name,
-                category: `Furniture Work - ${category.name}`,
-                startDate: new Date(product.startDate),
-                endDate: new Date(product.endDate),
-                duration: calculateDuration(product.startDate, product.endDate),
-              })
-            }
+            tasks.push({
+              id: `furniture-${category.name}-${index}`,
+              name: product.name,
+              category: `Furniture Work - ${category.name}`,
+              startDate: product.startDate ? new Date(product.startDate) : null,
+              endDate: product.endDate ? new Date(product.endDate) : null,
+              duration: product.startDate && product.endDate ? calculateDuration(product.startDate, product.endDate) : 0,
+            })
           })
         }
       })
@@ -168,7 +159,7 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
     }
   }
 
-  const hasGanttDates = ganttTasks.length > 0
+  const hasGanttDates = ganttTasks.some(task => task.startDate && task.endDate)
 
   const handleDeleteAlbum = async () => {
     if (!deleteAlbumConfirm) return
@@ -353,17 +344,6 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
                     No Main BOQ found. Please create a Main BOQ first to generate the Gantt Chart.
                   </AlertDescription>
                 </Alert>
-              ) : !hasGanttDates ? (
-                <div className="flex items-center justify-center h-[400px] border-2 border-dashed rounded-lg">
-                  <div className="text-center space-y-3">
-                    <Calendar className="h-12 w-12 mx-auto text-muted-foreground" />
-                    <p className="text-muted-foreground">No timeline set for BOQ items</p>
-                    <Button onClick={() => setShowGanttEditor(true)}>
-                      <Calendar className="h-4 w-4 mr-2" />
-                      Add Timeline
-                    </Button>
-                  </div>
-                </div>
               ) : (
                 <GanttChartView tasks={ganttTasks} onUpdateTask={handleUpdateGanttTask} />
               )}

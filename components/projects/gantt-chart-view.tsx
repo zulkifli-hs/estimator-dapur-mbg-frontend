@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { Pencil } from 'lucide-react'
+import { Pencil, Plus } from 'lucide-react'
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 
@@ -13,8 +13,8 @@ interface GanttTask {
   id: string
   name: string
   category: string
-  startDate: Date
-  endDate: Date
+  startDate: Date | null  // Allow null for tasks without dates
+  endDate: Date | null    // Allow null for tasks without dates
   duration: number
 }
 
@@ -32,9 +32,27 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
   const DAY_WIDTH = 50 // pixels per day
 
   const { startDate, endDate, totalDays, monthHeaders } = useMemo(() => {
-    if (tasks.length === 0) return { startDate: new Date(), endDate: new Date(), totalDays: 0, monthHeaders: [] }
+    const tasksWithDates = tasks.filter(t => t.startDate && t.endDate)
+    
+    if (tasksWithDates.length === 0) {
+      const today = new Date()
+      const start = new Date(today.getFullYear(), today.getMonth(), 1)
+      const end = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+      
+      const diffTime = end.getTime() - start.getTime()
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
-    const dates = tasks.flatMap((t) => [t.startDate, t.endDate])
+      const monthName = start.toLocaleDateString("en-US", { month: "short", year: "numeric" })
+      
+      return { 
+        startDate: start, 
+        endDate: end, 
+        totalDays: diffDays, 
+        monthHeaders: [{ month: monthName, days: diffDays, startDay: 0 }] 
+      }
+    }
+
+    const dates = tasksWithDates.flatMap((t) => [t.startDate!, t.endDate!])
     const minDate = new Date(Math.min(...dates.map((d) => d.getTime())))
     const maxDate = new Date(Math.max(...dates.map((d) => d.getTime())))
 
@@ -69,6 +87,8 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
   }, [tasks])
 
   const getTaskPosition = (task: GanttTask) => {
+    if (!task.startDate || !task.endDate) return null
+    
     const taskStart = task.startDate.getTime()
     const chartStart = startDate.getTime()
 
@@ -81,7 +101,8 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
     }
   }
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date | null) => {
+    if (!date) return "Not set"
     return date.toLocaleDateString("en-US", { month: "short", day: "numeric" })
   }
 
@@ -106,8 +127,8 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
 
   const handleEditTask = (task: GanttTask) => {
     setEditingTaskId(task.id)
-    setEditStartDate(format(task.startDate, "yyyy-MM-dd"))
-    setEditEndDate(format(task.endDate, "yyyy-MM-dd"))
+    setEditStartDate(task.startDate ? format(task.startDate, "yyyy-MM-dd") : "")
+    setEditEndDate(task.endDate ? format(task.endDate, "yyyy-MM-dd") : "")
   }
 
   const handleStartDateChange = (value: string) => {
@@ -196,7 +217,9 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
                     >
                       <p className="text-sm font-medium truncate">{task.name}</p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {formatDate(task.startDate)} - {formatDate(task.endDate)}
+                        {task.startDate && task.endDate 
+                          ? `${formatDate(task.startDate)} - ${formatDate(task.endDate)}`
+                          : "No dates set"}
                       </p>
                     </div>
                   ))}
@@ -249,6 +272,8 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
                     {categoryTasks.map((task) => {
                       const position = getTaskPosition(task)
                       const duration = task.duration + 1
+                      const hasTimeline = task.startDate && task.endDate  // Check if task has dates
+                      
                       return (
                         <div
                           key={task.id}
@@ -277,114 +302,188 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
                             ))}
                           </div>
 
-                          {/* Task bar */}
-                          <div className="absolute inset-0 flex items-center">
-                            <div
-                              className={cn(
-                                "h-10 rounded transition-all group relative",
-                                categoryColors[category] || "bg-gray-500",
-                                hoveredTaskId === task.id ? "opacity-100 shadow-lg" : "opacity-80"
-                              )}
-                              style={{
-                                position: "absolute",
-                                left: `${position.left}px`,
-                                width: `${position.width}px`,
-                                minWidth: "60px"
-                              }}
-                              title={`${task.name}\n${formatDate(task.startDate)} - ${formatDate(task.endDate)}\n${duration} day${duration > 1 ? 's' : ''}`}
-                            >
-                              <div className="relative h-full flex items-center justify-between px-2 text-white">
-                                <span className="text-xs font-semibold truncate flex-1">
-                                  {duration}d
-                                </span>
-                                {position.width >= 120 && (
-                                  <span className="text-[10px] opacity-90 ml-1">
-                                    {format(task.startDate, "MMM d")} - {format(task.endDate, "MMM d")}
+                          {hasTimeline && position ? (
+                            <div className="absolute inset-0 flex items-center">
+                              <div
+                                className={cn(
+                                  "h-10 rounded transition-all group relative",
+                                  categoryColors[category] || "bg-gray-500",
+                                  hoveredTaskId === task.id ? "opacity-100 shadow-lg" : "opacity-80"
+                                )}
+                                style={{
+                                  position: "absolute",
+                                  left: `${position.left}px`,
+                                  width: `${position.width}px`,
+                                  minWidth: "60px"
+                                }}
+                                title={`${task.name}\n${formatDate(task.startDate)} - ${formatDate(task.endDate)}\n${duration} day${duration > 1 ? 's' : ''}`}
+                              >
+                                <div className="relative h-full flex items-center justify-between px-2 text-white">
+                                  <span className="text-xs font-semibold truncate flex-1">
+                                    {duration}d
                                   </span>
-                                )}
-                                {onUpdateTask && (
-                                  <Popover
-                                    open={editingTaskId === task.id}
-                                    onOpenChange={(open) => {
-                                      if (open) {
-                                        handleEditTask(task)
-                                      } else {
-                                        setEditingTaskId(null)
-                                      }
-                                    }}
-                                  >
-                                    <PopoverTrigger asChild>
-                                      <Button
-                                        size="icon"
-                                        variant="ghost"
-                                        className="h-6 w-6 ml-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 hover:bg-white shrink-0"
-                                        onClick={(e) => {
-                                          e.stopPropagation()
+                                  {position.width >= 120 && task.startDate && task.endDate && (
+                                    <span className="text-[10px] opacity-90 ml-1">
+                                      {format(task.startDate, "MMM d")} - {format(task.endDate, "MMM d")}
+                                    </span>
+                                  )}
+                                  {onUpdateTask && (
+                                    <Popover
+                                      open={editingTaskId === task.id}
+                                      onOpenChange={(open) => {
+                                        if (open) {
                                           handleEditTask(task)
-                                        }}
-                                      >
-                                        <Pencil className="h-3 w-3 text-gray-700" />
-                                      </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-80" align="start">
-                                      <div className="space-y-4">
-                                        <div className="space-y-2">
-                                          <h4 className="font-semibold text-sm">{task.name}</h4>
-                                          <p className="text-xs text-muted-foreground">{category}</p>
-                                        </div>
-                                        <div className="space-y-3">
+                                        } else {
+                                          setEditingTaskId(null)
+                                        }
+                                      }}
+                                    >
+                                      <PopoverTrigger asChild>
+                                        <Button
+                                          size="icon"
+                                          variant="ghost"
+                                          className="h-6 w-6 ml-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 hover:bg-white shrink-0"
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            handleEditTask(task)
+                                          }}
+                                        >
+                                          <Pencil className="h-3 w-3 text-gray-700" />
+                                        </Button>
+                                      </PopoverTrigger>
+                                      <PopoverContent className="w-80" align="start">
+                                        <div className="space-y-4">
                                           <div className="space-y-2">
-                                            <Label>Start Date</Label>
-                                            <Input
-                                              type="date"
-                                              value={editStartDate}
-                                              onChange={(e) => handleStartDateChange(e.target.value)}
-                                              max={editEndDate || undefined}
-                                            />
+                                            <h4 className="font-semibold text-sm">{task.name}</h4>
+                                            <p className="text-xs text-muted-foreground">{category}</p>
                                           </div>
-                                          <div className="space-y-2">
-                                            <Label>End Date</Label>
-                                            <Input
-                                              type="date"
-                                              value={editEndDate}
-                                              onChange={(e) => handleEndDateChange(e.target.value)}
-                                              min={editStartDate || undefined}
-                                            />
+                                          <div className="space-y-3">
+                                            <div className="space-y-2">
+                                              <Label>Start Date</Label>
+                                              <Input
+                                                type="date"
+                                                value={editStartDate}
+                                                onChange={(e) => handleStartDateChange(e.target.value)}
+                                                max={editEndDate || undefined}
+                                              />
+                                            </div>
+                                            <div className="space-y-2">
+                                              <Label>End Date</Label>
+                                              <Input
+                                                type="date"
+                                                value={editEndDate}
+                                                onChange={(e) => handleEndDateChange(e.target.value)}
+                                                min={editStartDate || undefined}
+                                              />
+                                            </div>
+                                          </div>
+                                          <div className="flex gap-2">
+                                            <Button
+                                              size="sm"
+                                              onClick={handleSaveEdit}
+                                              disabled={!editStartDate || !editEndDate || saving}
+                                              className="flex-1"
+                                            >
+                                              {saving ? "Saving..." : "Save"}
+                                            </Button>
+                                            <Button
+                                              size="sm"
+                                              variant="destructive"
+                                              onClick={handleDeleteDates}
+                                              disabled={saving}
+                                            >
+                                              Delete
+                                            </Button>
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              onClick={() => setEditingTaskId(null)}
+                                              disabled={saving}
+                                            >
+                                              Cancel
+                                            </Button>
                                           </div>
                                         </div>
-                                        <div className="flex gap-2">
-                                          <Button
-                                            size="sm"
-                                            onClick={handleSaveEdit}
-                                            disabled={!editStartDate || !editEndDate || saving}
-                                            className="flex-1"
-                                          >
-                                            {saving ? "Saving..." : "Save"}
-                                          </Button>
-                                          <Button
-                                            size="sm"
-                                            variant="destructive"
-                                            onClick={handleDeleteDates}
-                                            disabled={saving}
-                                          >
-                                            Delete
-                                          </Button>
-                                          <Button
-                                            size="sm"
-                                            variant="outline"
-                                            onClick={() => setEditingTaskId(null)}
-                                            disabled={saving}
-                                          >
-                                            Cancel
-                                          </Button>
-                                        </div>
-                                      </div>
-                                    </PopoverContent>
-                                  </Popover>
-                                )}
+                                      </PopoverContent>
+                                    </Popover>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          </div>
+                          ) : (
+                            onUpdateTask && (
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <Popover
+                                  open={editingTaskId === task.id}
+                                  onOpenChange={(open) => {
+                                    if (open) {
+                                      handleEditTask(task)
+                                    } else {
+                                      setEditingTaskId(null)
+                                    }
+                                  }}
+                                >
+                                  <PopoverTrigger asChild>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="opacity-50 hover:opacity-100 transition-opacity"
+                                      onClick={() => handleEditTask(task)}
+                                    >
+                                      <Plus className="h-4 w-4 mr-2" />
+                                      Add Timeline
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-80" align="center">
+                                    <div className="space-y-4">
+                                      <div className="space-y-2">
+                                        <h4 className="font-semibold text-sm">{task.name}</h4>
+                                        <p className="text-xs text-muted-foreground">{category}</p>
+                                      </div>
+                                      <div className="space-y-3">
+                                        <div className="space-y-2">
+                                          <Label>Start Date</Label>
+                                          <Input
+                                            type="date"
+                                            value={editStartDate}
+                                            onChange={(e) => handleStartDateChange(e.target.value)}
+                                            max={editEndDate || undefined}
+                                          />
+                                        </div>
+                                        <div className="space-y-2">
+                                          <Label>End Date</Label>
+                                          <Input
+                                            type="date"
+                                            value={editEndDate}
+                                            onChange={(e) => handleEndDateChange(e.target.value)}
+                                            min={editStartDate || undefined}
+                                          />
+                                        </div>
+                                      </div>
+                                      <div className="flex gap-2">
+                                        <Button
+                                          size="sm"
+                                          onClick={handleSaveEdit}
+                                          disabled={!editStartDate || !editEndDate || saving}
+                                          className="flex-1"
+                                        >
+                                          {saving ? "Saving..." : "Add Timeline"}
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => setEditingTaskId(null)}
+                                          disabled={saving}
+                                        >
+                                          Cancel
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  </PopoverContent>
+                                </Popover>
+                              </div>
+                            )
+                          )}
                         </div>
                       )
                     })}

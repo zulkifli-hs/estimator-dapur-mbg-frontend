@@ -278,7 +278,7 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
                           </div>
 
                           {/* Task bar */}
-                          <div className="relative h-full flex items-center px-3">
+                          <div className="absolute inset-0 flex items-center">
                             <div
                               className={cn(
                                 "h-10 rounded transition-all group relative",
@@ -286,7 +286,8 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
                                 hoveredTaskId === task.id ? "opacity-100 shadow-lg" : "opacity-80"
                               )}
                               style={{
-                                marginLeft: `${position.left}px`,
+                                position: "absolute",
+                                left: `${position.left}px`,
                                 width: `${position.width}px`,
                                 minWidth: "60px"
                               }}

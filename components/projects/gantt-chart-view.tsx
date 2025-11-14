@@ -72,7 +72,7 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
     const dayWidth = 100 / totalDays
 
     const startOffset = Math.floor((taskStart - chartStart) / (1000 * 60 * 60 * 24))
-    const duration = Math.max(task.duration, 1)
+    const duration = task.duration + 1
 
     return {
       left: `${startOffset * dayWidth}%`,
@@ -279,7 +279,7 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
                               }}
                             >
                               <div className="relative h-full flex items-center justify-between px-2">
-                                <div className="text-xs text-white font-medium truncate flex-1">{task.duration}d</div>
+                                <div className="text-xs text-white font-medium truncate flex-1">{task.duration + 1}d</div>
                                 {onUpdateTask && (
                                   <Popover
                                     open={editingTaskId === task.id}

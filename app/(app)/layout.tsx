@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter } from 'next/navigation'
 import { AppHeader } from "@/components/layout/app-header"
 import { AppSidebar } from "@/components/layout/app-sidebar"
 import { getProfile } from "@/lib/api/auth"
@@ -33,7 +33,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         throw new Error("Failed to get profile")
       }
     } catch (error) {
-      console.error("Auth check failed:", error)
+      console.log("Auth check failed:", error instanceof Error ? error.message : "Unknown error")
       localStorage.removeItem("auth_token")
       localStorage.removeItem("user")
       router.push("/login")

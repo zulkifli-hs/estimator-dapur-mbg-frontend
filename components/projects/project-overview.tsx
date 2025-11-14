@@ -392,7 +392,7 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
                           </div>
                         )}
 
-                        {/* Add Comment */}
+                        {/* Add Comment hint */}
                         <div 
                           className="text-xs text-center text-muted-foreground py-2 hover:text-foreground transition-colors"
                           onClick={(e) => {

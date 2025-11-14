@@ -1,11 +1,11 @@
 "use client"
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Loader2, Send, X } from 'lucide-react'
+import { Loader2, Send } from 'lucide-react'
 import { useState, useEffect } from "react"
 import { discussionsApi, type Post } from "@/lib/api/discussions"
 import { useToast } from "@/hooks/use-toast"
@@ -81,10 +81,10 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate }:
     } catch (error) {
       console.error("Failed to add comment:", error)
       toast({
-        title: "Error",
-        description: "Failed to add comment",
-        variant: "destructive",
-      })
+          title: "Error",
+          description: "Failed to add comment",
+          variant: "destructive",
+        })
     } finally {
       setSubmitting(false)
     }
@@ -115,15 +115,9 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate }:
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col p-0">
-        <DialogHeader className="p-6 pb-4 border-b">
-          <DialogTitle className="flex items-center justify-between">
-            <span>Post Details</span>
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              <X className="h-4 w-4" />
-            </Button>
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-0 bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 border-4 border-yellow-200 dark:border-yellow-700 shadow-2xl">
+        {/* Pin at top */}
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-yellow-400 dark:bg-yellow-600 h-5 w-5 rounded-full shadow-md border-2 border-white dark:border-gray-800" />
 
         {loading ? (
           <div className="flex justify-center items-center py-12">
@@ -131,13 +125,13 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate }:
           </div>
         ) : post ? (
           <div className="flex-1 flex flex-col overflow-hidden">
-            <ScrollArea className="flex-1 px-6">
+            <ScrollArea className="flex-1 px-6 pt-8">
               {/* Post Content */}
-              <div className="py-4 space-y-4">
+              <div className="pb-4 space-y-4">
                 <div className="flex gap-3 items-start">
-                  <Avatar className="h-10 w-10 border-2 border-border">
+                  <Avatar className="h-12 w-12 border-2 border-white dark:border-gray-700 shadow-md">
                     <AvatarImage src={getUserAvatar(post.createdBy) || "/placeholder.svg"} />
-                    <AvatarFallback>
+                    <AvatarFallback className="font-semibold">
                       {getUserName(post.createdBy)
                         .split(" ")
                         .map((n) => n[0])
@@ -147,28 +141,33 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate }:
                   </Avatar>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="font-semibold">{getUserName(post.createdBy)}</p>
+                      <p className="font-bold text-lg">{getUserName(post.createdBy)}</p>
                       <span className="text-xs text-muted-foreground">•</span>
                       <p className="text-sm text-muted-foreground">{formatRelativeTime(post.createdAt)}</p>
                     </div>
-                    <p className="text-base mt-2 whitespace-pre-wrap leading-relaxed">{post.content}</p>
+                    <p className="text-base mt-3 whitespace-pre-wrap leading-relaxed">{post.content}</p>
                   </div>
                 </div>
 
                 {/* Comments */}
-                <div className="pt-4 border-t space-y-4">
-                  <h3 className="font-semibold text-sm text-muted-foreground">
-                    Comments ({post.comments.length})
-                  </h3>
+                <div className="pt-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-px bg-yellow-300 dark:bg-yellow-600 flex-1" />
+                    <h3 className="font-semibold text-sm text-muted-foreground px-2">
+                      {post.comments.length} {post.comments.length === 1 ? 'Comment' : 'Comments'}
+                    </h3>
+                    <div className="h-px bg-yellow-300 dark:bg-yellow-600 flex-1" />
+                  </div>
+                  
                   {post.comments.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-6">No comments yet. Be the first to comment!</p>
+                    <p className="text-sm text-muted-foreground text-center py-8 italic">No comments yet. Be the first to comment!</p>
                   ) : (
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       {post.comments.map((comment) => (
-                        <div key={comment._id} className="flex gap-3 items-start">
-                          <Avatar className="h-8 w-8 border-2 border-border">
+                        <div key={comment._id} className="flex gap-3 items-start bg-white/60 dark:bg-black/30 rounded-lg p-3 shadow-sm">
+                          <Avatar className="h-9 w-9 border-2 border-white dark:border-gray-700 shadow-sm">
                             <AvatarImage src={getUserAvatar(comment.createdBy) || "/placeholder.svg"} />
-                            <AvatarFallback className="text-xs">
+                            <AvatarFallback className="text-xs font-semibold">
                               {getUserName(comment.createdBy)
                                 .split(" ")
                                 .map((n) => n[0])
@@ -176,13 +175,13 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate }:
                                 .toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
-                          <div className="flex-1 bg-muted/50 rounded-lg p-3">
+                          <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
-                              <p className="font-medium text-sm">{getUserName(comment.createdBy)}</p>
+                              <p className="font-semibold text-sm">{getUserName(comment.createdBy)}</p>
                               <span className="text-xs text-muted-foreground">•</span>
                               <p className="text-xs text-muted-foreground">{formatRelativeTime(comment.createdAt)}</p>
                             </div>
-                            <p className="text-sm whitespace-pre-wrap">{comment.content}</p>
+                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{comment.content}</p>
                           </div>
                         </div>
                       ))}
@@ -193,19 +192,19 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate }:
             </ScrollArea>
 
             {/* Add Comment Section */}
-            <div className="p-6 pt-4 border-t bg-muted/30">
+            <div className="p-4 border-t-2 border-yellow-300 dark:border-yellow-600 bg-yellow-100/50 dark:bg-yellow-900/30">
               <div className="flex gap-2">
                 <Textarea
-                  placeholder="Write a comment..."
+                  placeholder="Add a comment to this note..."
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
-                  className="min-h-[80px] resize-none"
+                  className="min-h-[80px] resize-none bg-white/80 dark:bg-black/40 border-yellow-200 dark:border-yellow-700 focus-visible:ring-yellow-400"
                   disabled={submitting}
                 />
                 <Button
                   onClick={handleAddComment}
                   disabled={!newComment.trim() || submitting}
-                  className="h-[80px] px-4"
+                  className="h-[80px] px-4 bg-yellow-500 hover:bg-yellow-600 text-white shadow-md"
                 >
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 </Button>

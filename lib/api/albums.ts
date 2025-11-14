@@ -85,7 +85,7 @@ export const albumsApi = {
   },
   create: async (data: { projectId: string; name: string }) => {
     const response = await createAlbum(data.projectId, data.name)
-    return { success: response.code === 200, data: response.data }
+    return { success: response.code === 200 || response.code === 201, data: response.data }
   },
   delete: async (albumId: string, projectId?: string) => {
     if (projectId) {

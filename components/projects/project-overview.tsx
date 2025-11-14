@@ -10,6 +10,7 @@ import { useState, useEffect } from "react"
 import { discussionsApi, type Post } from "@/lib/api/discussions"
 import { useToast } from "@/hooks/use-toast"
 import { API_BASE_URL } from "@/lib/api/config"
+import { PostDetailDialog } from "./post-detail-dialog"
 
 interface ProjectOverviewProps {
   project: any
@@ -23,6 +24,7 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
   const [newComments, setNewComments] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
   const [commentingPostId, setCommentingPostId] = useState<string | null>(null)
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -96,10 +98,10 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
     } catch (error) {
       console.error("Failed to create post:", error)
       toast({
-        title: "Error",
-        description: "Failed to create post",
-        variant: "destructive",
-      })
+          title: "Error",
+          description: "Failed to create post",
+          variant: "destructive",
+        })
     } finally {
       setSubmitting(false)
     }
@@ -129,10 +131,10 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
     } catch (error) {
       console.error("Failed to add comment:", error)
       toast({
-        title: "Error",
-        description: "Failed to add comment",
-        variant: "destructive",
-      })
+          title: "Error",
+          description: "Failed to add comment",
+          variant: "destructive",
+        })
     } finally {
       setCommentingPostId(null)
     }
@@ -332,7 +334,8 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
                   return (
                     <div
                       key={post._id}
-                      className={`bg-gradient-to-br ${color.bg} p-4 rounded-lg shadow-lg border-2 ${color.border} relative transform hover:scale-105 transition-transform duration-200 hover:shadow-xl`}
+                      onClick={() => setSelectedPostId(post._id)}
+                      className={`bg-gradient-to-br ${color.bg} p-4 rounded-lg shadow-lg border-2 ${color.border} relative transform hover:scale-105 transition-transform duration-200 hover:shadow-xl cursor-pointer`}
                       style={{ transform: `rotate(${(index % 3 - 1) * 1}deg)` }}
                     >
                       {/* Pin */}
@@ -363,7 +366,7 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
                       <div className="space-y-2">
                         {post.comments.length > 0 && (
                           <div className="bg-white/50 dark:bg-black/20 rounded-md p-2 space-y-2 max-h-40 overflow-y-auto">
-                            {post.comments.map((comment) => (
+                            {post.comments.slice(0, 2).map((comment) => (
                               <div key={comment._id} className="flex gap-2 text-xs">
                                 <Avatar className="h-6 w-6 border border-white dark:border-gray-700">
                                   <AvatarImage src={getUserAvatar(comment.createdBy) || "/placeholder.svg"} />
@@ -381,30 +384,27 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
                                 </div>
                               </div>
                             ))}
+                            {post.comments.length > 2 && (
+                              <p className="text-xs text-center text-muted-foreground font-medium">
+                                +{post.comments.length - 2} more comments
+                              </p>
+                            )}
                           </div>
                         )}
 
                         {/* Add Comment */}
-                        <div className="flex gap-2">
-                          <Textarea
-                            placeholder="Add comment..."
-                            value={newComments[post._id] || ""}
-                            onChange={(e) => setNewComments({ ...newComments, [post._id]: e.target.value })}
-                            className="min-h-[50px] text-xs bg-white/70 dark:bg-black/30 border-white/50 dark:border-gray-700 resize-none"
-                            disabled={commentingPostId === post._id}
-                          />
-                          <Button
-                            size="sm"
-                            onClick={() => handleAddComment(post._id)}
-                            disabled={!newComments[post._id]?.trim() || commentingPostId === post._id}
-                            className="h-[50px] w-[50px] p-0"
-                          >
-                            {commentingPostId === post._id ? (
-                              <Loader2 className="h-3 w-3 animate-spin" />
-                            ) : (
-                              <Send className="h-3 w-3" />
-                            )}
-                          </Button>
+                        <div 
+                          className="text-xs text-center text-muted-foreground py-2 hover:text-foreground transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setSelectedPostId(post._id)
+                          }}
+                        >
+                          {post.comments.length === 0 ? (
+                            <span className="font-medium">Click to add comment</span>
+                          ) : (
+                            <span className="font-medium">View all {post.comments.length} comments</span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -415,6 +415,17 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Post Detail Dialog */}
+      {selectedPostId && (
+        <PostDetailDialog
+          open={!!selectedPostId}
+          onClose={() => setSelectedPostId(null)}
+          projectId={project._id}
+          postId={selectedPostId}
+          onUpdate={loadPosts}
+        />
+      )}
     </div>
   )
 }

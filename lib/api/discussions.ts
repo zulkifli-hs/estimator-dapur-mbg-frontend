@@ -67,6 +67,10 @@ const createComment = async (projectId: string, postId: string, content: string)
   })
 }
 
+const getPostDetail = async (projectId: string, postId: string): Promise<ApiResponse<Post>> => {
+  return apiRequest<Post>(`/projects/${projectId}/post/${postId}`, { method: "GET" })
+}
+
 export const discussionsApi = {
   getPosts: async (projectId: string, limit?: number) => {
     const response = await getPosts(projectId, limit)
@@ -89,6 +93,13 @@ export const discussionsApi = {
     const response = await createComment(projectId, postId, content)
     return {
       success: response.code === 200 || response.code === 201,
+      data: response.data,
+    }
+  },
+  getPostDetail: async (projectId: string, postId: string) => {
+    const response = await getPostDetail(projectId, postId)
+    return {
+      success: response.code === 200,
       data: response.data,
     }
   },

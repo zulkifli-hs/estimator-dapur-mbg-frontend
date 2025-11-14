@@ -28,11 +28,11 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate }:
   const { toast } = useToast()
 
   const colors = [
-    { bg: "from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20", border: "border-blue-200 dark:border-blue-700", pin: "bg-blue-400 dark:bg-blue-600", accent: "bg-blue-300 dark:bg-blue-600" },
-    { bg: "from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20", border: "border-green-200 dark:border-green-700", pin: "bg-green-400 dark:bg-green-600", accent: "bg-green-300 dark:bg-green-600" },
-    { bg: "from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-800/20", border: "border-pink-200 dark:border-pink-700", pin: "bg-pink-400 dark:bg-pink-600", accent: "bg-pink-300 dark:bg-pink-600" },
-    { bg: "from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20", border: "border-purple-200 dark:border-purple-700", pin: "bg-purple-400 dark:bg-purple-600", accent: "bg-purple-300 dark:bg-purple-600" },
-    { bg: "from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20", border: "border-orange-200 dark:border-orange-700", pin: "bg-orange-400 dark:bg-orange-600", accent: "bg-orange-300 dark:bg-orange-600" },
+    { bg: "from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20", border: "border-blue-200 dark:border-blue-700", pin: "bg-blue-400 dark:bg-blue-600", accent: "bg-blue-300 dark:bg-blue-600", button: "bg-blue-500 hover:bg-blue-600 text-white border-blue-600" },
+    { bg: "from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20", border: "border-green-200 dark:border-green-700", pin: "bg-green-400 dark:bg-green-600", accent: "bg-green-300 dark:bg-green-600", button: "bg-green-500 hover:bg-green-600 text-white border-green-600" },
+    { bg: "from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-800/20", border: "border-pink-200 dark:border-pink-700", pin: "bg-pink-400 dark:bg-pink-600", accent: "bg-pink-300 dark:bg-pink-600", button: "bg-pink-500 hover:bg-pink-600 text-white border-pink-600" },
+    { bg: "from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20", border: "border-purple-200 dark:border-purple-700", pin: "bg-purple-400 dark:bg-purple-600", accent: "bg-purple-300 dark:bg-purple-600", button: "bg-purple-500 hover:bg-purple-600 text-white border-purple-600" },
+    { bg: "from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20", border: "border-orange-200 dark:border-orange-700", pin: "bg-orange-400 dark:bg-orange-600", accent: "bg-orange-300 dark:bg-orange-600", button: "bg-orange-500 hover:bg-orange-600 text-white border-orange-600" },
   ]
   
   const getColorForPost = (id: string) => {
@@ -134,7 +134,7 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate }:
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className={`max-w-2xl max-h-[90vh] flex flex-col p-0 bg-gradient-to-br ${color.bg} border-4 ${color.border} shadow-2xl`}>
+      <DialogContent className={`max-w-2xl h-[90vh] flex flex-col p-0 bg-gradient-to-br ${color.bg} border-4 ${color.border} shadow-2xl`}>
         {/* Pin at top */}
         <div className={`absolute -top-3 left-1/2 -translate-x-1/2 ${color.pin} h-5 w-5 rounded-full shadow-md border-2 border-white dark:border-gray-800`} />
 
@@ -143,8 +143,8 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate }:
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : post ? (
-          <div className="flex-1 flex flex-col min-h-0">
-            <ScrollArea className="flex-1 px-6 pt-8 pb-4">
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <ScrollArea className="flex-1 h-0 px-6 pt-8 pb-4">
               {/* Post Content */}
               <div className="space-y-4">
                 <div className="flex gap-3 items-start">
@@ -217,13 +217,13 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate }:
                   placeholder="Add a comment to this note..."
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
-                  className={`min-h-[80px] resize-none bg-white/80 dark:bg-black/40 ${color.border} focus-visible:ring-primary`}
+                  className={`min-h-[80px] resize-none bg-white/80 dark:bg-black/40 border-2 ${color.border} focus-visible:ring-offset-0 focus-visible:ring-2 focus-visible:${color.border.replace('border-', 'ring-')}`}
                   disabled={submitting}
                 />
                 <Button
                   onClick={handleAddComment}
                   disabled={!newComment.trim() || submitting}
-                  className="h-[80px] px-4 shadow-md"
+                  className={`h-[80px] px-4 shadow-md ${color.button}`}
                 >
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 </Button>

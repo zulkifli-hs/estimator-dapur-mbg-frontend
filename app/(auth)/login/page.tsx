@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter } from 'next/navigation'
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -29,18 +29,27 @@ export default function LoginPage() {
     try {
       const response = await login({ usernameOrEmail: email, password })
 
-      // Store token and user data
-      setAuthToken(response.token)
-      localStorage.setItem("user", JSON.stringify(response.user))
-
-      if (response.data.accessToken) {
+      if (response.data?.accessToken) {
         setAuthToken(response.data.accessToken)
         localStorage.setItem("auth_token", response.data.accessToken)
+        localStorage.setItem("user", JSON.stringify(response.data))
+        router.push("/dashboard")
+      } else {
+        setError("Login successful but no access token received")
       }
-
-      router.push("/dashboard")
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred. Please try again.")
+      if (err instanceof Error) {
+        const errorMessage = err.message.toLowerCase()
+        if (errorMessage.includes("unauthorized")) {
+          setError("Invalid email or password. Please check your credentials and try again.")
+        } else if (errorMessage.includes("network")) {
+          setError("Network error. Please check your internet connection.")
+        } else {
+          setError(err.message)
+        }
+      } else {
+        setError("An unexpected error occurred. Please try again.")
+      }
     } finally {
       setLoading(false)
     }

@@ -151,6 +151,14 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
     return undefined
   }
 
+  const getColorForPost = (id: string) => {
+    let hash = 0
+    for (let i = 0; i < id.length; i++) {
+      hash = id.charCodeAt(i) + ((hash << 5) - hash)
+    }
+    return Math.abs(hash) % 5 // 5 colors available
+  }
+
   return (
     <div className="space-y-6">
       <div className="grid gap-6 md:grid-cols-2">
@@ -329,7 +337,7 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
                     { bg: "from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20", border: "border-purple-200 dark:border-purple-700", pin: "bg-purple-400 dark:bg-purple-600" },
                     { bg: "from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20", border: "border-orange-200 dark:border-orange-700", pin: "bg-orange-400 dark:bg-orange-600" },
                   ]
-                  const color = colors[index % colors.length]
+                  const color = colors[getColorForPost(post._id)]
                   
                   return (
                     <div

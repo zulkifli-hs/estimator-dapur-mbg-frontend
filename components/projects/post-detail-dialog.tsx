@@ -134,7 +134,7 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate }:
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className={`max-w-2xl max-h-[85vh] flex flex-col p-0 bg-gradient-to-br ${color.bg} border-4 ${color.border} shadow-2xl`}>
+      <DialogContent className={`max-w-2xl max-h-[90vh] flex flex-col p-0 bg-gradient-to-br ${color.bg} border-4 ${color.border} shadow-2xl`}>
         {/* Pin at top */}
         <div className={`absolute -top-3 left-1/2 -translate-x-1/2 ${color.pin} h-5 w-5 rounded-full shadow-md border-2 border-white dark:border-gray-800`} />
 
@@ -143,10 +143,10 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate }:
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : post ? (
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <ScrollArea className="flex-1 px-6 pt-8">
+          <div className="flex-1 flex flex-col min-h-0">
+            <ScrollArea className="flex-1 px-6 pt-8 pb-4">
               {/* Post Content */}
-              <div className="pb-4 space-y-4">
+              <div className="space-y-4">
                 <div className="flex gap-3 items-start">
                   <Avatar className="h-12 w-12 border-2 border-white dark:border-gray-700 shadow-md">
                     <AvatarImage src={getUserAvatar(post.createdBy) || "/placeholder.svg"} />
@@ -211,7 +211,7 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate }:
             </ScrollArea>
 
             {/* Add Comment Section */}
-            <div className={`p-4 border-t-2 ${color.border} bg-white/40 dark:bg-black/20`}>
+            <div className={`p-4 border-t-2 ${color.border} bg-white/40 dark:bg-black/20 flex-shrink-0`}>
               <div className="flex gap-2">
                 <Textarea
                   placeholder="Add a comment to this note..."

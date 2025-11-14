@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Building2, Calendar, User, Ruler, Layers, MessageSquare, Send, Loader2 } from "lucide-react"
+import { Building2, Calendar, User, Ruler, Layers, MessageSquare, Send, Loader2 } from 'lucide-react'
 import { useState, useEffect } from "react"
 import { discussionsApi, type Post } from "@/lib/api/discussions"
 import { useToast } from "@/hooks/use-toast"
@@ -267,123 +267,150 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5" />
-            Discussion
+            Discussion Board
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* New Post Input */}
-          <div className="space-y-3">
+          {/* New Post Input - Sticky Note Style */}
+          <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 p-4 rounded-lg shadow-md border-2 border-yellow-200 dark:border-yellow-700 relative">
+            <div className="absolute -top-3 left-4 bg-yellow-300 dark:bg-yellow-600 px-3 py-1 rounded-full text-xs font-medium shadow-sm">
+              New Post
+            </div>
             <Textarea
-              placeholder="Tulis update atau diskusi dengan tim..."
+              placeholder="Write a note for the team..."
               value={newPost}
               onChange={(e) => setNewPost(e.target.value)}
-              className="min-h-[100px]"
+              className="min-h-[100px] bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-yellow-600/60 dark:placeholder:text-yellow-400/60 resize-none"
               disabled={submitting}
             />
-            <div className="flex justify-end">
-              <Button onClick={handleAddPost} disabled={!newPost.trim() || submitting}>
+            <div className="flex justify-end mt-2">
+              <Button 
+                onClick={handleAddPost} 
+                disabled={!newPost.trim() || submitting}
+                size="sm"
+                className="bg-yellow-500 hover:bg-yellow-600 text-white shadow-md"
+              >
                 {submitting ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Loader2 className="h-3 w-3 mr-2 animate-spin" />
                     Posting...
                   </>
                 ) : (
                   <>
-                    <Send className="h-4 w-4 mr-2" />
-                    Post
+                    <Send className="h-3 w-3 mr-2" />
+                    Pin Note
                   </>
                 )}
               </Button>
             </div>
           </div>
 
-          {/* Posts List */}
-          <div className="space-y-6 pt-4 border-t">
+          {/* Posts Grid - Sticky Notes */}
+          <div className="pt-4 border-t">
             {loading ? (
               <div className="flex justify-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
             ) : posts.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                <p>Belum ada diskusi. Mulai diskusi pertama!</p>
+              <div className="text-center py-12 text-muted-foreground">
+                <MessageSquare className="h-16 w-16 mx-auto mb-3 opacity-30" />
+                <p className="text-lg font-medium">No notes yet</p>
+                <p className="text-sm">Pin your first note to the board!</p>
               </div>
             ) : (
-              posts.map((post) => (
-                <div key={post._id} className="space-y-4">
-                  {/* Post Header */}
-                  <div className="flex gap-3">
-                    <Avatar>
-                      <AvatarImage src={getUserAvatar(post.createdBy) || "/placeholder.svg"} />
-                      <AvatarFallback>
-                        {getUserName(post.createdBy)
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")
-                          .toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-sm">{getUserName(post.createdBy)}</span>
-                        <span className="text-xs text-muted-foreground">{formatRelativeTime(post.createdAt)}</span>
-                      </div>
-                      <p className="text-sm mt-2 text-foreground whitespace-pre-wrap">{post.content}</p>
-                    </div>
-                  </div>
-
-                  {/* Comments */}
-                  {post.comments.length > 0 && (
-                    <div className="ml-12 space-y-3 pl-4 border-l-2">
-                      {post.comments.map((comment) => (
-                        <div key={comment._id} className="flex gap-3">
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={getUserAvatar(comment.createdBy) || "/placeholder.svg"} />
-                            <AvatarFallback className="text-xs">
-                              {getUserName(comment.createdBy)
-                                .split(" ")
-                                .map((n) => n[0])
-                                .join("")
-                                .toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-sm">{getUserName(comment.createdBy)}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {formatRelativeTime(comment.createdAt)}
-                              </span>
-                            </div>
-                            <p className="text-sm mt-1 text-muted-foreground whitespace-pre-wrap">{comment.content}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Add Comment Input */}
-                  <div className="ml-12 flex gap-2">
-                    <Textarea
-                      placeholder="Tulis komentar..."
-                      value={newComments[post._id] || ""}
-                      onChange={(e) => setNewComments({ ...newComments, [post._id]: e.target.value })}
-                      className="min-h-[60px] text-sm"
-                      disabled={commentingPostId === post._id}
-                    />
-                    <Button
-                      size="sm"
-                      onClick={() => handleAddComment(post._id)}
-                      disabled={!newComments[post._id]?.trim() || commentingPostId === post._id}
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {posts.map((post, index) => {
+                  const colors = [
+                    { bg: "from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20", border: "border-blue-200 dark:border-blue-700", pin: "bg-blue-400 dark:bg-blue-600" },
+                    { bg: "from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20", border: "border-green-200 dark:border-green-700", pin: "bg-green-400 dark:bg-green-600" },
+                    { bg: "from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-800/20", border: "border-pink-200 dark:border-pink-700", pin: "bg-pink-400 dark:bg-pink-600" },
+                    { bg: "from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20", border: "border-purple-200 dark:border-purple-700", pin: "bg-purple-400 dark:bg-purple-600" },
+                    { bg: "from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20", border: "border-orange-200 dark:border-orange-700", pin: "bg-orange-400 dark:bg-orange-600" },
+                  ]
+                  const color = colors[index % colors.length]
+                  
+                  return (
+                    <div
+                      key={post._id}
+                      className={`bg-gradient-to-br ${color.bg} p-4 rounded-lg shadow-lg border-2 ${color.border} relative transform hover:scale-105 transition-transform duration-200 hover:shadow-xl`}
+                      style={{ transform: `rotate(${(index % 3 - 1) * 1}deg)` }}
                     >
-                      {commentingPostId === post._id ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : (
-                        <Send className="h-3 w-3" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              ))
+                      {/* Pin */}
+                      <div className={`absolute -top-2 left-1/2 -translate-x-1/2 ${color.pin} h-4 w-4 rounded-full shadow-md border-2 border-white dark:border-gray-800`} />
+                      
+                      {/* Post Header */}
+                      <div className="flex gap-2 items-start mb-3">
+                        <Avatar className="h-8 w-8 border-2 border-white dark:border-gray-700 shadow-sm">
+                          <AvatarImage src={getUserAvatar(post.createdBy) || "/placeholder.svg"} />
+                          <AvatarFallback className="text-xs font-semibold">
+                            {getUserName(post.createdBy)
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                              .toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm truncate">{getUserName(post.createdBy)}</p>
+                          <p className="text-xs text-muted-foreground">{formatRelativeTime(post.createdAt)}</p>
+                        </div>
+                      </div>
+
+                      {/* Post Content */}
+                      <p className="text-sm mb-4 whitespace-pre-wrap line-clamp-6 leading-relaxed">{post.content}</p>
+
+                      {/* Comments Section */}
+                      <div className="space-y-2">
+                        {post.comments.length > 0 && (
+                          <div className="bg-white/50 dark:bg-black/20 rounded-md p-2 space-y-2 max-h-40 overflow-y-auto">
+                            {post.comments.map((comment) => (
+                              <div key={comment._id} className="flex gap-2 text-xs">
+                                <Avatar className="h-6 w-6 border border-white dark:border-gray-700">
+                                  <AvatarImage src={getUserAvatar(comment.createdBy) || "/placeholder.svg"} />
+                                  <AvatarFallback className="text-[10px]">
+                                    {getUserName(comment.createdBy)
+                                      .split(" ")
+                                      .map((n) => n[0])
+                                      .join("")
+                                      .toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium truncate">{getUserName(comment.createdBy)}</p>
+                                  <p className="text-muted-foreground line-clamp-2">{comment.content}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Add Comment */}
+                        <div className="flex gap-2">
+                          <Textarea
+                            placeholder="Add comment..."
+                            value={newComments[post._id] || ""}
+                            onChange={(e) => setNewComments({ ...newComments, [post._id]: e.target.value })}
+                            className="min-h-[50px] text-xs bg-white/70 dark:bg-black/30 border-white/50 dark:border-gray-700 resize-none"
+                            disabled={commentingPostId === post._id}
+                          />
+                          <Button
+                            size="sm"
+                            onClick={() => handleAddComment(post._id)}
+                            disabled={!newComments[post._id]?.trim() || commentingPostId === post._id}
+                            className="h-[50px] w-[50px] p-0"
+                          >
+                            {commentingPostId === post._id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Send className="h-3 w-3" />
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
             )}
           </div>
         </CardContent>

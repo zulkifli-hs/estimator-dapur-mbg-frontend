@@ -237,31 +237,38 @@ export default function DashboardPage() {
     updateLayout(DEFAULT_LAYOUT)
   }
 
+  const safeCalculate = (value: number, fallback: number = 0): number => {
+    if (typeof value !== 'number' || isNaN(value) || !isFinite(value)) {
+      return fallback
+    }
+    return value
+  }
+
   const statCards = [
     {
       title: "Total Projects",
-      value: stats.totalProjects,
+      value: safeCalculate(stats.totalProjects),
       description: "All time projects",
       icon: FolderKanban,
       trend: "+12% from last month",
     },
     {
       title: "Active Projects",
-      value: stats.activeProjects,
+      value: safeCalculate(stats.activeProjects),
       description: "Currently in progress",
       icon: Building2,
       trend: "+3 new this month",
     },
     {
       title: "Completed",
-      value: stats.completedProjects,
+      value: safeCalculate(stats.completedProjects),
       description: "Successfully finished",
       icon: TrendingUp,
       trend: "+8% completion rate",
     },
     {
       title: "Total Clients",
-      value: stats.totalClients,
+      value: safeCalculate(stats.totalClients),
       description: "Active clients",
       icon: Users,
       trend: "+2 new clients",
@@ -601,24 +608,24 @@ export default function DashboardPage() {
                 </div>
                 <span className="text-sm font-medium">Total Team Members</span>
               </div>
-              <span className="text-lg font-bold">{stats.teamMembers}</span>
+              <span className="text-lg font-bold">{safeCalculate(stats.teamMembers)}</span>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="p-3 border rounded-lg">
                 <p className="text-xs text-muted-foreground mb-1">Estimators</p>
-                <p className="text-2xl font-bold">{Math.floor(stats.teamMembers * 0.3)}</p>
+                <p className="text-2xl font-bold">{safeCalculate(Math.floor(stats.teamMembers * 0.3))}</p>
               </div>
               <div className="p-3 border rounded-lg">
                 <p className="text-xs text-muted-foreground mb-1">Project Managers</p>
-                <p className="text-2xl font-bold">{Math.floor(stats.teamMembers * 0.25)}</p>
+                <p className="text-2xl font-bold">{safeCalculate(Math.floor(stats.teamMembers * 0.25))}</p>
               </div>
               <div className="p-3 border rounded-lg">
                 <p className="text-xs text-muted-foreground mb-1">Designers</p>
-                <p className="text-2xl font-bold">{Math.floor(stats.teamMembers * 0.25)}</p>
+                <p className="text-2xl font-bold">{safeCalculate(Math.floor(stats.teamMembers * 0.25))}</p>
               </div>
               <div className="p-3 border rounded-lg">
                 <p className="text-xs text-muted-foreground mb-1">Finance</p>
-                <p className="text-2xl font-bold">{Math.floor(stats.teamMembers * 0.2)}</p>
+                <p className="text-2xl font-bold">{safeCalculate(Math.floor(stats.teamMembers * 0.2))}</p>
               </div>
             </div>
           </div>

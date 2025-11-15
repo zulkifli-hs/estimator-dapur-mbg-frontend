@@ -616,19 +616,27 @@ export default function DashboardPage() {
             <div className="grid grid-cols-2 gap-3">
               <div className="p-3 border rounded-lg">
                 <p className="text-xs text-muted-foreground mb-1">Estimators</p>
-                <p className="text-2xl font-bold">{safeCalculate(Math.floor(stats.teamMembers * 0.3))}</p>
+                <p className="text-2xl font-bold">
+                  {safeCalculate(Math.floor(safeCalculate(stats.teamMembers, 0) * 0.3))}
+                </p>
               </div>
               <div className="p-3 border rounded-lg">
                 <p className="text-xs text-muted-foreground mb-1">Project Managers</p>
-                <p className="text-2xl font-bold">{safeCalculate(Math.floor(stats.teamMembers * 0.25))}</p>
+                <p className="text-2xl font-bold">
+                  {safeCalculate(Math.floor(safeCalculate(stats.teamMembers, 0) * 0.25))}
+                </p>
               </div>
               <div className="p-3 border rounded-lg">
                 <p className="text-xs text-muted-foreground mb-1">Designers</p>
-                <p className="text-2xl font-bold">{safeCalculate(Math.floor(stats.teamMembers * 0.25))}</p>
+                <p className="text-2xl font-bold">
+                  {safeCalculate(Math.floor(safeCalculate(stats.teamMembers, 0) * 0.25))}
+                </p>
               </div>
               <div className="p-3 border rounded-lg">
                 <p className="text-xs text-muted-foreground mb-1">Finance</p>
-                <p className="text-2xl font-bold">{safeCalculate(Math.floor(stats.teamMembers * 0.2))}</p>
+                <p className="text-2xl font-bold">
+                  {safeCalculate(Math.floor(safeCalculate(stats.teamMembers, 0) * 0.2))}
+                </p>
               </div>
             </div>
           </div>

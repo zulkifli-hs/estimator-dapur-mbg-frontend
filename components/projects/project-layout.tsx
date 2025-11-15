@@ -19,6 +19,14 @@ interface ProjectLayoutProps {
   onUpdate?: () => void
 }
 
+const getUserName = (createdBy: any) => {
+  if (!createdBy) return "Unknown"
+  if (typeof createdBy === "string") return createdBy
+  if (createdBy.profile?.name) return createdBy.profile.name
+  if (createdBy.email) return createdBy.email
+  return "Unknown"
+}
+
 export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutProps) {
   const projectDetail = project?.detail || {}
   const layoutFiles = projectDetail.layout || []
@@ -166,7 +174,7 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
                             <Badge variant="default">v{layout.version || 1}.0</Badge>
                           </div>
                           <p className="text-sm text-muted-foreground">
-                            Uploaded by {layout.createdBy || "Unknown"} •{" "}
+                            Uploaded by {getUserName(layout.createdBy)} •{" "}
                             {layout.createdAt ? new Date(layout.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit" }) : "N/A"}
                           </p>
                         </div>
@@ -241,7 +249,7 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
                         <div>
                           <p className="font-medium">{file.name}</p>
                           <p className="text-sm text-muted-foreground">
-                            Uploaded by {file.createdBy || "Unknown"} •{" "}
+                            Uploaded by {getUserName(file.createdBy)} •{" "}
                             {file.createdAt ? new Date(file.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit" }) : "N/A"}
                           </p>
                         </div>

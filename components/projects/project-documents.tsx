@@ -78,7 +78,11 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
     try {
       const response = await foldersApi.getFolder(projectId, folder._id)
       if (response.success && response.data) {
-        setSelectedFolder(response.data)
+        const folderData = {
+          ...response.data,
+          files: response.data.list || response.data.files || []
+        }
+        setSelectedFolder(folderData)
         setFolderDetailOpen(true)
       }
     } catch (error) {
@@ -108,7 +112,11 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
         })
         const refreshedFolder = await foldersApi.getFolder(projectId, selectedFolder._id)
         if (refreshedFolder.success && refreshedFolder.data) {
-          setSelectedFolder(refreshedFolder.data)
+          const folderData = {
+            ...refreshedFolder.data,
+            files: refreshedFolder.data.list || refreshedFolder.data.files || []
+          }
+          setSelectedFolder(folderData)
         }
         loadFolders()
       }
@@ -133,7 +141,11 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
       if (response.success) {
         const refreshedFolder = await foldersApi.getFolder(projectId, selectedFolder._id)
         if (refreshedFolder.success && refreshedFolder.data) {
-          setSelectedFolder(refreshedFolder.data)
+          const folderData = {
+            ...refreshedFolder.data,
+            files: refreshedFolder.data.list || refreshedFolder.data.files || []
+          }
+          setSelectedFolder(folderData)
         }
         loadFolders()
       }
@@ -208,7 +220,7 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">{folder.name}</p>
                         <p className="text-sm text-muted-foreground">
-                          {folder.files?.length || 0} file{folder.files?.length !== 1 ? 's' : ''}
+                          {(folder.list || folder.files || []).length} file{(folder.list || folder.files || []).length !== 1 ? 's' : ''}
                         </p>
                       </div>
                       <Button 

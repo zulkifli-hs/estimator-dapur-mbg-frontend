@@ -3,9 +3,19 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus, FolderIcon, Trash2, Upload, FileText, Download, ChevronRight, Home, MoreVertical, File, FolderOpen, Edit2 } from 'lucide-react'
+import { Plus, FolderIcon, Trash2, Upload, FileText, Download, ChevronRight, Home, MoreVertical, File, FolderOpen, Edit2, Loader2 } from 'lucide-react'
 import { foldersApi } from "@/lib/api/folders"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { uploadApi } from "@/lib/api/upload"
@@ -41,6 +51,9 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
   const [renameDialogOpen, setRenameDialogOpen] = useState(false)
   const [renamingFolder, setRenamingFolder] = useState<Folder | null>(null)
   const [renameValue, setRenameValue] = useState("")
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [itemToDelete, setItemToDelete] = useState<{ type: 'folder' | 'file', item: any, index?: number } | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -87,19 +100,19 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
     }
   }
 
-  const handleDeleteFolder = async (folderId: string, e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (!confirm("Are you sure you want to delete this folder and all its files?")) return
+  const handleDeleteFolder = async () => {
+    if (!itemToDelete || itemToDelete.type !== 'folder') return
 
+    setDeleting(true)
     try {
-      const response = await foldersApi.delete(folderId, projectId)
+      const response = await foldersApi.delete(itemToDelete.item._id, projectId)
       if (response.success) {
         toast({
           title: "Success",
           description: "Folder deleted successfully",
         })
         loadFolders()
-        if (currentFolder?._id === folderId) {
+        if (currentFolder?._id === itemToDelete.item._id) {
           navigateToRoot()
         }
       }
@@ -110,6 +123,10 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
         description: "Failed to delete folder",
         variant: "destructive",
       })
+    } finally {
+      setDeleting(false)
+      setDeleteConfirmOpen(false)
+      setItemToDelete(null)
     }
   }
 
@@ -184,12 +201,12 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
     }
   }
 
-  const handleDeleteFile = async (fileIndex: number, e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (!currentFolder || !confirm("Are you sure you want to delete this file?")) return
+  const handleDeleteFile = async () => {
+    if (!itemToDelete || itemToDelete.type !== 'file' || itemToDelete.index === undefined || !currentFolder) return
 
+    setDeleting(true)
     try {
-      const response = await foldersApi.deleteFile(projectId, currentFolder._id, [fileIndex])
+      const response = await foldersApi.deleteFile(projectId, currentFolder._id, [itemToDelete.index])
       if (response.success) {
         toast({
           title: "Success",
@@ -213,6 +230,10 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
         description: "Failed to delete file",
         variant: "destructive",
       })
+    } finally {
+      setDeleting(false)
+      setDeleteConfirmOpen(false)
+      setItemToDelete(null)
     }
   }
 
@@ -253,6 +274,20 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
     setRenamingFolder(folder)
     setRenameValue(folder.name)
     setRenameDialogOpen(true)
+  }
+
+  const openDeleteDialog = (type: 'folder' | 'file', item: any, index?: number, e?: React.MouseEvent) => {
+    e?.stopPropagation()
+    setItemToDelete({ type, item, index })
+    setDeleteConfirmOpen(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (itemToDelete?.type === 'folder') {
+      await handleDeleteFolder()
+    } else if (itemToDelete?.type === 'file') {
+      await handleDeleteFile()
+    }
   }
 
   const displayItems = currentFolder ? currentFolder.files || [] : folders
@@ -410,9 +445,9 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
                               className="text-destructive"
                               onClick={(e) => {
                                 if (isFolder) {
-                                  handleDeleteFolder(item._id, e)
+                                  openDeleteDialog('folder', item, undefined, e)
                                 } else {
-                                  handleDeleteFile(index, e)
+                                  openDeleteDialog('file', item, index, e)
                                 }
                               }}
                             >
@@ -490,6 +525,39 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Delete {itemToDelete?.type === 'folder' ? 'Folder' : 'File'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {itemToDelete?.type === 'folder' 
+                ? `Are you sure you want to delete "${itemToDelete.item.name}" and all its contents? This action cannot be undone.`
+                : 'Are you sure you want to delete this file? This action cannot be undone.'
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

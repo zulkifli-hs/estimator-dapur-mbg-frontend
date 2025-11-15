@@ -2,7 +2,16 @@
 
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Building2, FolderKanban, TrendingUp, Users } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Building2, FolderKanban, TrendingUp, Users, Settings2, GripVertical } from 'lucide-react'
 import { Bar, BarChart, Line, LineChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Legend } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { projectsApi } from "@/lib/api/projects"
@@ -33,6 +42,18 @@ interface DashboardStats {
   totalClients: number
 }
 
+type DashboardCardId = "stats" | "projectProgress" | "budgetOverview" | "recentProjects"
+
+interface DashboardLayout {
+  cardOrder: DashboardCardId[]
+  hiddenCards: DashboardCardId[]
+}
+
+const DEFAULT_LAYOUT: DashboardLayout = {
+  cardOrder: ["stats", "projectProgress", "budgetOverview", "recentProjects"],
+  hiddenCards: [],
+}
+
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats>({
     totalProjects: 0,
@@ -42,9 +63,19 @@ export default function DashboardPage() {
   })
   const [recentProjects, setRecentProjects] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [layout, setLayout] = useState<DashboardLayout>(DEFAULT_LAYOUT)
+  const [draggedCard, setDraggedCard] = useState<DashboardCardId | null>(null)
 
   useEffect(() => {
     loadDashboardData()
+    const savedLayout = localStorage.getItem("dashboard-layout")
+    if (savedLayout) {
+      try {
+        setLayout(JSON.parse(savedLayout))
+      } catch (error) {
+        console.error("Failed to parse saved layout:", error)
+      }
+    }
   }, [])
 
   const loadDashboardData = async () => {
@@ -65,6 +96,48 @@ export default function DashboardPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const updateLayout = (newLayout: DashboardLayout) => {
+    setLayout(newLayout)
+    localStorage.setItem("dashboard-layout", JSON.stringify(newLayout))
+  }
+
+  const toggleCardVisibility = (cardId: DashboardCardId) => {
+    const newHiddenCards = layout.hiddenCards.includes(cardId)
+      ? layout.hiddenCards.filter((id) => id !== cardId)
+      : [...layout.hiddenCards, cardId]
+    updateLayout({ ...layout, hiddenCards: newHiddenCards })
+  }
+
+  const handleDragStart = (cardId: DashboardCardId) => {
+    setDraggedCard(cardId)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+  }
+
+  const handleDrop = (targetCardId: DashboardCardId) => {
+    if (!draggedCard || draggedCard === targetCardId) return
+
+    const newOrder = [...layout.cardOrder]
+    const draggedIndex = newOrder.indexOf(draggedCard)
+    const targetIndex = newOrder.indexOf(targetCardId)
+
+    newOrder.splice(draggedIndex, 1)
+    newOrder.splice(targetIndex, 0, draggedCard)
+
+    updateLayout({ ...layout, cardOrder: newOrder })
+    setDraggedCard(null)
+  }
+
+  const handleDragEnd = () => {
+    setDraggedCard(null)
+  }
+
+  const resetLayout = () => {
+    updateLayout(DEFAULT_LAYOUT)
   }
 
   const statCards = [
@@ -98,14 +171,8 @@ export default function DashboardPage() {
     },
   ]
 
-  return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">Welcome back! Here's an overview of your projects.</p>
-      </div>
-
-      {/* Stats Cards */}
+  const cardComponents: Record<DashboardCardId, JSX.Element> = {
+    stats: (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {statCards.map((stat) => {
           const Icon = stat.icon
@@ -124,93 +191,92 @@ export default function DashboardPage() {
           )
         })}
       </div>
-
-      {/* Charts */}
-      <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Project Progress</CardTitle>
-            <CardDescription>Completed vs Ongoing projects over time</CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 sm:p-6">
-            <ChartContainer
-              config={{
-                completed: {
-                  label: "Completed",
-                  color: "hsl(142, 76%, 36%)",
-                },
-                ongoing: {
-                  label: "Ongoing",
-                  color: "hsl(221, 83%, 53%)",
-                },
-              }}
-              className="h-[250px] sm:h-[300px] w-full"
-            >
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={projectProgressData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="month" className="text-xs" tick={{ fontSize: 12 }} />
-                  <YAxis className="text-xs" tick={{ fontSize: 12 }} />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Legend wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }} iconType="circle" />
-                  <Bar dataKey="completed" fill="hsl(142, 76%, 36%)" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="ongoing" fill="hsl(221, 83%, 53%)" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Budget Overview</CardTitle>
-            <CardDescription>Budget allocation vs actual spending</CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 sm:p-6">
-            <ChartContainer
-              config={{
-                budget: {
-                  label: "Budget",
-                  color: "hsl(262, 83%, 58%)",
-                },
-                spent: {
-                  label: "Spent",
-                  color: "hsl(346, 77%, 50%)",
-                },
-              }}
-              className="h-[250px] sm:h-[300px] w-full"
-            >
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={budgetData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="month" className="text-xs" tick={{ fontSize: 12 }} />
-                  <YAxis className="text-xs" tick={{ fontSize: 12 }} />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Legend wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }} iconType="circle" />
-                  <Line
-                    type="monotone"
-                    dataKey="budget"
-                    stroke="hsl(262, 83%, 58%)"
-                    strokeWidth={3}
-                    dot={{ fill: "hsl(262, 83%, 58%)", r: 4 }}
-                    activeDot={{ r: 6 }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="spent"
-                    stroke="hsl(346, 77%, 50%)"
-                    strokeWidth={3}
-                    dot={{ fill: "hsl(346, 77%, 50%)", r: 4 }}
-                    activeDot={{ r: 6 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Recent Projects */}
+    ),
+    projectProgress: (
+      <Card>
+        <CardHeader>
+          <CardTitle>Project Progress</CardTitle>
+          <CardDescription>Completed vs Ongoing projects over time</CardDescription>
+        </CardHeader>
+        <CardContent className="p-4 sm:p-6">
+          <ChartContainer
+            config={{
+              completed: {
+                label: "Completed",
+                color: "hsl(142, 76%, 36%)",
+              },
+              ongoing: {
+                label: "Ongoing",
+                color: "hsl(221, 83%, 53%)",
+              },
+            }}
+            className="h-[250px] sm:h-[300px] w-full"
+          >
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={projectProgressData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis dataKey="month" className="text-xs" tick={{ fontSize: 12 }} />
+                <YAxis className="text-xs" tick={{ fontSize: 12 }} />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Legend wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }} iconType="circle" />
+                <Bar dataKey="completed" fill="hsl(142, 76%, 36%)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="ongoing" fill="hsl(221, 83%, 53%)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartContainer>
+        </CardContent>
+      </Card>
+    ),
+    budgetOverview: (
+      <Card>
+        <CardHeader>
+          <CardTitle>Budget Overview</CardTitle>
+          <CardDescription>Budget allocation vs actual spending</CardDescription>
+        </CardHeader>
+        <CardContent className="p-4 sm:p-6">
+          <ChartContainer
+            config={{
+              budget: {
+                label: "Budget",
+                color: "hsl(262, 83%, 58%)",
+              },
+              spent: {
+                label: "Spent",
+                color: "hsl(346, 77%, 50%)",
+              },
+            }}
+            className="h-[250px] sm:h-[300px] w-full"
+          >
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={budgetData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis dataKey="month" className="text-xs" tick={{ fontSize: 12 }} />
+                <YAxis className="text-xs" tick={{ fontSize: 12 }} />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Legend wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }} iconType="circle" />
+                <Line
+                  type="monotone"
+                  dataKey="budget"
+                  stroke="hsl(262, 83%, 58%)"
+                  strokeWidth={3}
+                  dot={{ fill: "hsl(262, 83%, 58%)", r: 4 }}
+                  activeDot={{ r: 6 }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="spent"
+                  stroke="hsl(346, 77%, 50%)"
+                  strokeWidth={3}
+                  dot={{ fill: "hsl(346, 77%, 50%)", r: 4 }}
+                  activeDot={{ r: 6 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartContainer>
+        </CardContent>
+      </Card>
+    ),
+    recentProjects: (
       <Card>
         <CardHeader>
           <CardTitle>Recent Projects</CardTitle>
@@ -252,6 +318,102 @@ export default function DashboardPage() {
           )}
         </CardContent>
       </Card>
+    ),
+  }
+
+  const cardLabels: Record<DashboardCardId, string> = {
+    stats: "Statistics Cards",
+    projectProgress: "Project Progress Chart",
+    budgetOverview: "Budget Overview Chart",
+    recentProjects: "Recent Projects List",
+  }
+
+  return (
+    <div className="space-y-8">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground">Welcome back! Here's an overview of your projects.</p>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm">
+              <Settings2 className="h-4 w-4 mr-2" />
+              Customize
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>Dashboard Layout</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {layout.cardOrder.map((cardId) => (
+              <DropdownMenuCheckboxItem
+                key={cardId}
+                checked={!layout.hiddenCards.includes(cardId)}
+                onCheckedChange={() => toggleCardVisibility(cardId)}
+              >
+                {cardLabels[cardId]}
+              </DropdownMenuCheckboxItem>
+            ))}
+            <DropdownMenuSeparator />
+            <div className="px-2 py-1.5">
+              <Button variant="ghost" size="sm" onClick={resetLayout} className="w-full justify-start">
+                Reset to Default
+              </Button>
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      <div className="space-y-4">
+        {layout.cardOrder
+          .filter((cardId) => !layout.hiddenCards.includes(cardId))
+          .map((cardId, index) => {
+            const isChartsRow = (cardId === "projectProgress" || cardId === "budgetOverview") && 
+                                !layout.hiddenCards.includes("projectProgress") && 
+                                !layout.hiddenCards.includes("budgetOverview")
+            
+            if (cardId === "projectProgress" && isChartsRow) {
+              return (
+                <div
+                  key="charts-row"
+                  className="grid gap-4 grid-cols-1 lg:grid-cols-2 relative group"
+                  draggable
+                  onDragStart={() => handleDragStart("projectProgress")}
+                  onDragOver={handleDragOver}
+                  onDrop={() => handleDrop("projectProgress")}
+                  onDragEnd={handleDragEnd}
+                >
+                  <div className="absolute -left-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing">
+                    <GripVertical className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  {cardComponents.projectProgress}
+                  {cardComponents.budgetOverview}
+                </div>
+              )
+            }
+            
+            if (cardId === "budgetOverview" && isChartsRow) {
+              return null
+            }
+
+            return (
+              <div
+                key={cardId}
+                className="relative group"
+                draggable
+                onDragStart={() => handleDragStart(cardId)}
+                onDragOver={handleDragOver}
+                onDrop={() => handleDrop(cardId)}
+                onDragEnd={handleDragEnd}
+              >
+                <div className="absolute -left-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing z-10">
+                  <GripVertical className="h-5 w-5 text-muted-foreground" />
+                </div>
+                {cardComponents[cardId]}
+              </div>
+            )
+          })}
+      </div>
     </div>
   )
 }

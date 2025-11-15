@@ -69,6 +69,17 @@ export const deleteFileFromFolder = async (
   })
 }
 
+export const renameFolder = async (
+  projectId: string,
+  folderId: string,
+  name: string,
+): Promise<ApiResponse<Folder>> => {
+  return apiRequest<Folder>(`/projects/${projectId}/folder/${folderId}`, {
+    method: "PUT",
+    body: JSON.stringify({ name }),
+  })
+}
+
 export const foldersApi = {
   getByProject: async (projectId: string, params?: { page?: number; limit?: number }) => {
     try {
@@ -103,5 +114,9 @@ export const foldersApi = {
   deleteFile: async (projectId: string, folderId: string, indexes: number[]) => {
     const response = await deleteFileFromFolder(projectId, folderId, indexes)
     return { success: response.code === 200 }
+  },
+  rename: async (projectId: string, folderId: string, name: string) => {
+    const response = await renameFolder(projectId, folderId, name)
+    return { success: response.code === 200, data: response.data }
   },
 }

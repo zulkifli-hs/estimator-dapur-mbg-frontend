@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus, FolderIcon, Trash2, Upload, FileText, Download, ChevronRight, Home, MoreVertical, File, FolderOpen } from 'lucide-react'
+import { Plus, FolderIcon, Trash2, Upload, FileText, Download, ChevronRight, Home, MoreVertical, File, FolderOpen, Edit2 } from 'lucide-react'
 import { foldersApi } from "@/lib/api/folders"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -38,6 +38,9 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [newFolderName, setNewFolderName] = useState("")
   const [uploading, setUploading] = useState(false)
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false)
+  const [renamingFolder, setRenamingFolder] = useState<Folder | null>(null)
+  const [renameValue, setRenameValue] = useState("")
   const { toast } = useToast()
 
   useEffect(() => {
@@ -213,6 +216,45 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
     }
   }
 
+  const handleRenameFolder = async () => {
+    if (!renameValue.trim() || !renamingFolder) return
+
+    try {
+      const response = await foldersApi.rename(projectId, renamingFolder._id, renameValue)
+      if (response.success) {
+        toast({
+          title: "Success",
+          description: "Folder renamed successfully",
+        })
+        setRenameValue("")
+        setRenameDialogOpen(false)
+        setRenamingFolder(null)
+        loadFolders()
+        
+        if (currentFolder?._id === renamingFolder._id) {
+          setCurrentFolder({ ...currentFolder, name: renameValue })
+          setBreadcrumbs(breadcrumbs.map((crumb, index) => 
+            index === breadcrumbs.length - 1 ? { ...crumb, name: renameValue } : crumb
+          ))
+        }
+      }
+    } catch (error) {
+      console.error("Failed to rename folder:", error)
+      toast({
+        title: "Error",
+        description: "Failed to rename folder",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const openRenameDialog = (folder: Folder, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setRenamingFolder(folder)
+    setRenameValue(folder.name)
+    setRenameDialogOpen(true)
+  }
+
   const displayItems = currentFolder ? currentFolder.files || [] : folders
 
   return (
@@ -220,7 +262,6 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
       <Card className="mb-4">
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
-            {/* Breadcrumb Navigation */}
             <div className="flex items-center gap-2 text-sm flex-1">
               {breadcrumbs.map((crumb, index) => (
                 <div key={index} className="flex items-center gap-2">
@@ -251,7 +292,6 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
               ))}
             </div>
 
-            {/* Action Buttons */}
             <div className="flex items-center gap-2">
               {currentFolder && (
                 <>
@@ -300,7 +340,6 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
             </div>
           ) : (
             <div className="overflow-y-auto h-full">
-              {/* Table Header */}
               <div className="sticky top-0 bg-muted/50 border-b px-4 py-3 grid grid-cols-12 gap-4 text-sm font-medium">
                 <div className="col-span-6">Name</div>
                 <div className="col-span-2">Type</div>
@@ -308,7 +347,6 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
                 <div className="col-span-1 text-right">Actions</div>
               </div>
 
-              {/* File/Folder List */}
               <div className="divide-y">
                 {displayItems.map((item: any, index: number) => {
                   const isFolder = !currentFolder
@@ -320,7 +358,6 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
                       className="px-4 py-3 grid grid-cols-12 gap-4 items-center hover:bg-muted/50 cursor-pointer transition-colors"
                       onClick={() => isFolder && handleFolderClick(item)}
                     >
-                      {/* Name */}
                       <div className="col-span-6 flex items-center gap-3 min-w-0">
                         {isFolder ? (
                           <FolderIcon className="h-5 w-5 text-primary flex-shrink-0" />
@@ -332,12 +369,10 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
                         </span>
                       </div>
 
-                      {/* Type */}
                       <div className="col-span-2 text-sm text-muted-foreground">
                         {isFolder ? `${fileCount} file${fileCount !== 1 ? 's' : ''}` : item.provider || 'File'}
                       </div>
 
-                      {/* Modified Date */}
                       <div className="col-span-3 text-sm text-muted-foreground">
                         {item.createdAt 
                           ? new Date(item.createdAt).toLocaleDateString('en-US', {
@@ -349,7 +384,6 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
                         }
                       </div>
 
-                      {/* Actions */}
                       <div className="col-span-1 flex items-center justify-end">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
@@ -358,6 +392,12 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            {isFolder && (
+                              <DropdownMenuItem onClick={(e) => openRenameDialog(item, e)}>
+                                <Edit2 className="h-4 w-4 mr-2" />
+                                Rename
+                              </DropdownMenuItem>
+                            )}
                             {!isFolder && (
                               <DropdownMenuItem asChild>
                                 <a href={item.url} target="_blank" rel="noopener noreferrer">
@@ -391,7 +431,6 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
         </CardContent>
       </Card>
 
-      {/* Create Folder Dialog */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -417,6 +456,36 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
                 Cancel
               </Button>
               <Button onClick={handleCreateFolder}>Create Folder</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Rename Folder</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label htmlFor="rename-folder">Folder Name</Label>
+              <Input
+                id="rename-folder"
+                value={renameValue}
+                onChange={(e) => setRenameValue(e.target.value)}
+                placeholder="Enter new folder name"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleRenameFolder()
+                  }
+                }}
+              />
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setRenameDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleRenameFolder}>Rename</Button>
             </div>
           </div>
         </DialogContent>

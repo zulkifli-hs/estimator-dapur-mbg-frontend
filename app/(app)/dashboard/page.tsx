@@ -238,14 +238,17 @@ export default function DashboardPage() {
   }
 
   const safeCalculate = (value: number, fallback: number = 0): number => {
-    console.log('[v0] safeCalculate input:', value, 'type:', typeof value, 'isNaN:', isNaN(value))
     if (typeof value !== 'number' || isNaN(value) || !isFinite(value)) {
-      console.log('[v0] safeCalculate returning fallback:', fallback)
       return fallback
     }
-    console.log('[v0] safeCalculate returning value:', value)
     return value
   }
+
+  const teamMembersCount = typeof stats.teamMembers === 'number' && !isNaN(stats.teamMembers) ? stats.teamMembers : 0
+  const estimatorsCount = Math.floor(teamMembersCount * 0.3)
+  const pmsCount = Math.floor(teamMembersCount * 0.25)
+  const designersCount = Math.floor(teamMembersCount * 0.25)
+  const financeCount = Math.floor(teamMembersCount * 0.2)
 
   const statCards = [
     {
@@ -578,7 +581,7 @@ export default function DashboardPage() {
                 <Users className="h-6 w-6 text-blue-600" />
               </div>
               <div>
-                <p className="text-3xl font-bold">{safeCalculate(stats.teamMembers)}</p>
+                <p className="text-3xl font-bold">{teamMembersCount}</p>
                 <p className="text-sm text-muted-foreground">Active Members</p>
               </div>
             </div>
@@ -611,32 +614,24 @@ export default function DashboardPage() {
                 </div>
                 <span className="text-sm font-medium">Total Team Members</span>
               </div>
-              <span className="text-lg font-bold">{safeCalculate(stats.teamMembers)}</span>
+              <span className="text-lg font-bold">{teamMembersCount}</span>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="p-3 border rounded-lg">
                 <p className="text-xs text-muted-foreground mb-1">Estimators</p>
-                <p className="text-2xl font-bold">
-                  {safeCalculate(Math.floor(safeCalculate(stats.teamMembers, 0) * 0.3))}
-                </p>
+                <p className="text-2xl font-bold">{estimatorsCount}</p>
               </div>
               <div className="p-3 border rounded-lg">
                 <p className="text-xs text-muted-foreground mb-1">Project Managers</p>
-                <p className="text-2xl font-bold">
-                  {safeCalculate(Math.floor(safeCalculate(stats.teamMembers, 0) * 0.25))}
-                </p>
+                <p className="text-2xl font-bold">{pmsCount}</p>
               </div>
               <div className="p-3 border rounded-lg">
                 <p className="text-xs text-muted-foreground mb-1">Designers</p>
-                <p className="text-2xl font-bold">
-                  {safeCalculate(Math.floor(safeCalculate(stats.teamMembers, 0) * 0.25))}
-                </p>
+                <p className="text-2xl font-bold">{designersCount}</p>
               </div>
               <div className="p-3 border rounded-lg">
                 <p className="text-xs text-muted-foreground mb-1">Finance</p>
-                <p className="text-2xl font-bold">
-                  {safeCalculate(Math.floor(safeCalculate(stats.teamMembers, 0) * 0.2))}
-                </p>
+                <p className="text-2xl font-bold">{financeCount}</p>
               </div>
             </div>
           </div>
@@ -783,12 +778,6 @@ export default function DashboardPage() {
     documentStats: "Media & Documents",
     projectTimeline: "Project Timeline",
   }
-
-  console.log('[v0] Team Members:', stats.teamMembers)
-  console.log('[v0] Estimators calc:', Math.floor(stats.teamMembers * 0.3))
-  console.log('[v0] PMs calc:', Math.floor(stats.teamMembers * 0.25))
-  console.log('[v0] Designers calc:', Math.floor(stats.teamMembers * 0.25))
-  console.log('[v0] Finance calc:', Math.floor(stats.teamMembers * 0.2))
 
   return (
     <div className="space-y-8">

@@ -238,9 +238,12 @@ export default function DashboardPage() {
   }
 
   const safeCalculate = (value: number, fallback: number = 0): number => {
+    console.log('[v0] safeCalculate input:', value, 'type:', typeof value, 'isNaN:', isNaN(value))
     if (typeof value !== 'number' || isNaN(value) || !isFinite(value)) {
+      console.log('[v0] safeCalculate returning fallback:', fallback)
       return fallback
     }
+    console.log('[v0] safeCalculate returning value:', value)
     return value
   }
 
@@ -575,7 +578,7 @@ export default function DashboardPage() {
                 <Users className="h-6 w-6 text-blue-600" />
               </div>
               <div>
-                <p className="text-3xl font-bold">{stats.teamMembers}</p>
+                <p className="text-3xl font-bold">{safeCalculate(stats.teamMembers)}</p>
                 <p className="text-sm text-muted-foreground">Active Members</p>
               </div>
             </div>
@@ -772,6 +775,12 @@ export default function DashboardPage() {
     documentStats: "Media & Documents",
     projectTimeline: "Project Timeline",
   }
+
+  console.log('[v0] Team Members:', stats.teamMembers)
+  console.log('[v0] Estimators calc:', Math.floor(stats.teamMembers * 0.3))
+  console.log('[v0] PMs calc:', Math.floor(stats.teamMembers * 0.25))
+  console.log('[v0] Designers calc:', Math.floor(stats.teamMembers * 0.25))
+  console.log('[v0] Finance calc:', Math.floor(stats.teamMembers * 0.2))
 
   return (
     <div className="space-y-8">

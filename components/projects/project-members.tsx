@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { UserPlus, Phone, X, Plus, Search, Check, Trash2 } from 'lucide-react'
+import { UserPlus, Phone, X, Plus, Search, Check, Trash2, Users, Building2, Crown } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import {
   AlertDialog,
@@ -39,35 +39,45 @@ export function ProjectMembers({ project, onUpdate }: ProjectMembersProps) {
 
   const renderMemberList = (members: any[], role: string) => {
     if (!members || members.length === 0) {
-      return <p className="text-sm text-muted-foreground py-4">No {role.toLowerCase()} assigned</p>
+      return (
+        <div className="text-center py-8">
+          <Users className="h-12 w-12 mx-auto text-muted-foreground/50 mb-2" />
+          <p className="text-sm text-muted-foreground">No {role.toLowerCase()} assigned yet</p>
+        </div>
+      )
     }
 
     const isClientRole = role === "clients"
 
     return (
-      <div className="space-y-3">
+      <div className="space-y-2">
         {members.map((member) => (
           <div
             key={member._id}
-            className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+            className="group flex items-center justify-between p-3 border rounded-lg hover:shadow-sm hover:border-primary/20 transition-all"
           >
-            <div className="flex items-center gap-3">
-              <Avatar>
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <Avatar className="h-10 w-10 ring-2 ring-background">
                 <AvatarImage src={member.user?.profile?.photo || "/placeholder.svg"} />
-                <AvatarFallback>{getInitials(member.user?.profile?.name || "U")}</AvatarFallback>
+                <AvatarFallback className="text-xs">{getInitials(member.user?.profile?.name || "U")}</AvatarFallback>
               </Avatar>
-              <div>
-                <p className="font-medium">{member.user?.profile?.name || "Unknown"}</p>
-                <p className="text-sm text-muted-foreground">{member.user?.email}</p>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm truncate">{member.user?.profile?.name || "Unknown"}</p>
+                <p className="text-xs text-muted-foreground truncate">{member.user?.email}</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Badge variant={member.status === "Accepted" ? "default" : "secondary"}>{member.status}</Badge>
+            <div className="flex items-center gap-2 ml-2">
+              <Badge 
+                variant={member.status === "Accepted" ? "default" : "secondary"}
+                className="text-xs"
+              >
+                {member.status}
+              </Badge>
               {!isClientRole && (
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                  className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10"
                   onClick={() => {
                     setRemoveMemberDialog({
                       open: true,
@@ -77,7 +87,7 @@ export function ProjectMembers({ project, onUpdate }: ProjectMembersProps) {
                     })
                   }}
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               )}
             </div>
@@ -147,113 +157,189 @@ export function ProjectMembers({ project, onUpdate }: ProjectMembersProps) {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Project Owner</CardTitle>
-              <CardDescription>Project creator and main owner</CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {project.owner && (
-            <div className="flex items-center gap-4 p-4 border rounded-lg">
-              <Avatar className="h-12 w-12">
-                <AvatarImage src={project.owner.profile?.photo || "/placeholder.svg"} />
-                <AvatarFallback>{getInitials(project.owner.profile?.name || "O")}</AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <p className="font-semibold">{project.owner.profile?.name}</p>
-                <p className="text-sm text-muted-foreground">{project.owner.email}</p>
-                {project.owner.profile?.phone && (
-                  <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                    <Phone className="h-3 w-3" />
-                    {project.owner.profile.phone}
-                  </p>
-                )}
-              </div>
-              <Badge>Owner</Badge>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
       <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Estimators</CardTitle>
-              <Button size="sm" variant="outline" onClick={() => handleOpenInvite("estimators")}>
-                <UserPlus className="h-4 w-4 mr-2" />
-                Add
-              </Button>
+        <Card className="border-2">
+          <CardHeader className="bg-gradient-to-br from-primary/5 to-primary/10">
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Crown className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Project Owner</CardTitle>
+                <CardDescription className="text-xs">Project creator and main owner</CardDescription>
+              </div>
             </div>
           </CardHeader>
-          <CardContent>{renderMemberList(project.estimators, "estimators")}</CardContent>
+          <CardContent className="pt-6">
+            {project.owner && (
+              <div className="flex items-center gap-4 p-4 border-2 border-primary/20 rounded-lg bg-gradient-to-br from-primary/5 to-background">
+                <Avatar className="h-14 w-14 ring-2 ring-primary/20">
+                  <AvatarImage src={project.owner.profile?.photo || "/placeholder.svg"} />
+                  <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                    {getInitials(project.owner.profile?.name || "O")}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold truncate">{project.owner.profile?.name}</p>
+                  <p className="text-sm text-muted-foreground truncate">{project.owner.email}</p>
+                  {project.owner.profile?.phone && (
+                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                      <Phone className="h-3 w-3" />
+                      {project.owner.profile.phone}
+                    </p>
+                  )}
+                </div>
+                <Badge className="bg-primary">Owner</Badge>
+              </div>
+            )}
+          </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Project Managers</CardTitle>
-              <Button size="sm" variant="outline" onClick={() => handleOpenInvite("projectManagers")}>
-                <UserPlus className="h-4 w-4 mr-2" />
-                Add
-              </Button>
+        <Card className="border-2">
+          <CardHeader className="bg-gradient-to-br from-blue-500/5 to-blue-500/10">
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-blue-500/10 rounded-lg">
+                <Building2 className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Client</CardTitle>
+                <CardDescription className="text-xs">Set during project creation</CardDescription>
+              </div>
             </div>
           </CardHeader>
-          <CardContent>{renderMemberList(project.projectManagers, "projectManagers")}</CardContent>
+          <CardContent className="pt-6">
+            {project.clients && project.clients.length > 0 ? (
+              <div className="flex items-center gap-4 p-4 border-2 border-blue-500/20 rounded-lg bg-gradient-to-br from-blue-500/5 to-background">
+                <Avatar className="h-14 w-14 ring-2 ring-blue-500/20">
+                  <AvatarImage src={project.clients[0].user?.profile?.photo || "/placeholder.svg"} />
+                  <AvatarFallback className="bg-blue-500/10 text-blue-600 font-semibold">
+                    {getInitials(project.clients[0].user?.profile?.name || "C")}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold truncate">{project.clients[0].user?.profile?.name || "Unknown"}</p>
+                  <p className="text-sm text-muted-foreground truncate">{project.clients[0].user?.email}</p>
+                  {project.clients[0].user?.profile?.phone && (
+                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                      <Phone className="h-3 w-3" />
+                      {project.clients[0].user.profile.phone}
+                    </p>
+                  )}
+                </div>
+                <Badge className="bg-blue-600">Client</Badge>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Building2 className="h-12 w-12 mx-auto text-muted-foreground/50 mb-2" />
+                <p className="text-sm text-muted-foreground">No client assigned</p>
+              </div>
+            )}
+          </CardContent>
         </Card>
+      </div>
 
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Finance Team</CardTitle>
-              <Button size="sm" variant="outline" onClick={() => handleOpenInvite("finances")}>
-                <UserPlus className="h-4 w-4 mr-2" />
-                Add
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>{renderMemberList(project.finances, "finances")}</CardContent>
-        </Card>
+      <div>
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold">Team Members</h3>
+          <p className="text-sm text-muted-foreground">Manage project team roles and permissions</p>
+        </div>
+        
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <Card className="hover:shadow-md transition-shadow">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-orange-500/10 rounded">
+                    <Users className="h-4 w-4 text-orange-600" />
+                  </div>
+                  <CardTitle className="text-base">Estimators</CardTitle>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => handleOpenInvite("estimators")} className="h-8">
+                  <Plus className="h-3.5 w-3.5 mr-1" />
+                  Add
+                </Button>
+              </div>
+              <CardDescription className="text-xs">Cost estimation team</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">{renderMemberList(project.estimators, "estimators")}</CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Designers</CardTitle>
-              <Button size="sm" variant="outline" onClick={() => handleOpenInvite("designers")}>
-                <UserPlus className="h-4 w-4 mr-2" />
-                Add
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>{renderMemberList(project.designers, "designers")}</CardContent>
-        </Card>
+          <Card className="hover:shadow-md transition-shadow">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-purple-500/10 rounded">
+                    <Users className="h-4 w-4 text-purple-600" />
+                  </div>
+                  <CardTitle className="text-base">Project Managers</CardTitle>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => handleOpenInvite("projectManagers")} className="h-8">
+                  <Plus className="h-3.5 w-3.5 mr-1" />
+                  Add
+                </Button>
+              </div>
+              <CardDescription className="text-xs">Project oversight team</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">{renderMemberList(project.projectManagers, "projectManagers")}</CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Clients</CardTitle>
-              <CardDescription>Client is set during project creation</CardDescription>
-            </div>
-          </CardHeader>
-          <CardContent>{renderMemberList(project.clients, "clients")}</CardContent>
-        </Card>
+          <Card className="hover:shadow-md transition-shadow">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-green-500/10 rounded">
+                    <Users className="h-4 w-4 text-green-600" />
+                  </div>
+                  <CardTitle className="text-base">Finance Team</CardTitle>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => handleOpenInvite("finances")} className="h-8">
+                  <Plus className="h-3.5 w-3.5 mr-1" />
+                  Add
+                </Button>
+              </div>
+              <CardDescription className="text-xs">Financial management</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">{renderMemberList(project.finances, "finances")}</CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Admins</CardTitle>
-              <Button size="sm" variant="outline" onClick={() => handleOpenInvite("admins")}>
-                <UserPlus className="h-4 w-4 mr-2" />
-                Add
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>{renderMemberList(project.admins, "admins")}</CardContent>
-        </Card>
+          <Card className="hover:shadow-md transition-shadow">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-pink-500/10 rounded">
+                    <Users className="h-4 w-4 text-pink-600" />
+                  </div>
+                  <CardTitle className="text-base">Designers</CardTitle>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => handleOpenInvite("designers")} className="h-8">
+                  <Plus className="h-3.5 w-3.5 mr-1" />
+                  Add
+                </Button>
+              </div>
+              <CardDescription className="text-xs">Design and creative team</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">{renderMemberList(project.designers, "designers")}</CardContent>
+          </Card>
+
+          <Card className="hover:shadow-md transition-shadow">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-red-500/10 rounded">
+                    <Users className="h-4 w-4 text-red-600" />
+                  </div>
+                  <CardTitle className="text-base">Admins</CardTitle>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => handleOpenInvite("admins")} className="h-8">
+                  <Plus className="h-3.5 w-3.5 mr-1" />
+                  Add
+                </Button>
+              </div>
+              <CardDescription className="text-xs">System administrators</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">{renderMemberList(project.admins, "admins")}</CardContent>
+          </Card>
+        </div>
       </div>
 
       <InviteMemberDialog

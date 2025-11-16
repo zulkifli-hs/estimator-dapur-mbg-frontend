@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Plus, Search, Filter, MapPin, Calendar, User } from "lucide-react"
+import { Plus, Search, Filter, MapPin, Calendar, User } from 'lucide-react'
 import { projectsApi } from "@/lib/api/projects"
 import Link from "next/link"
 import { CreateProjectDialog } from "@/components/projects/create-project-dialog"
@@ -116,9 +116,9 @@ export default function ProjectsPage() {
             <Link key={project._id} href={`/projects/${project._id}`}>
               <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
                 <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <CardTitle className="text-lg line-clamp-1">{project.name}</CardTitle>
-                    <Badge className="bg-primary/10 text-primary">{project.type || "Project"}</Badge>
+                  <div className="flex items-start gap-2">
+                    <CardTitle className="text-lg line-clamp-2 flex-1">{project.name}</CardTitle>
+                    <Badge className="bg-primary/10 text-primary shrink-0">{project.type || "Project"}</Badge>
                   </div>
                   <CardDescription className="line-clamp-1">
                     {project.building} - Floor {project.floor}

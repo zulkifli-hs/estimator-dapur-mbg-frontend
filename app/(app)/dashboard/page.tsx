@@ -244,6 +244,14 @@ export default function DashboardPage() {
     return value
   }
 
+  const formatNumber = (value: any): string => {
+    const num = Number(value)
+    if (isNaN(num) || !isFinite(num)) {
+      return "0"
+    }
+    return String(num)
+  }
+
   const teamMembersCount = typeof stats.teamMembers === 'number' && !isNaN(stats.teamMembers) ? stats.teamMembers : 0
   const estimatorsCount = Math.floor(teamMembersCount * 0.3)
   const pmsCount = Math.floor(teamMembersCount * 0.25)
@@ -253,28 +261,28 @@ export default function DashboardPage() {
   const statCards = [
     {
       title: "Total Projects",
-      value: safeCalculate(stats.totalProjects),
+      value: formatNumber(stats.totalProjects),
       description: "All time projects",
       icon: FolderKanban,
       trend: "+12% from last month",
     },
     {
       title: "Active Projects",
-      value: safeCalculate(stats.activeProjects),
+      value: formatNumber(stats.activeProjects),
       description: "Currently in progress",
       icon: Building2,
       trend: "+3 new this month",
     },
     {
       title: "Completed",
-      value: safeCalculate(stats.completedProjects),
+      value: formatNumber(stats.completedProjects),
       description: "Successfully finished",
       icon: TrendingUp,
       trend: "+8% completion rate",
     },
     {
       title: "Total Clients",
-      value: safeCalculate(stats.totalClients),
+      value: formatNumber(stats.totalClients),
       description: "Active clients",
       icon: Users,
       trend: "+2 new clients",
@@ -445,7 +453,7 @@ export default function DashboardPage() {
                 <FileText className="h-5 w-5 text-blue-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{stats.totalBOQs}</p>
+                <p className="text-2xl font-bold">{formatNumber(stats.totalBOQs)}</p>
                 <p className="text-xs text-muted-foreground">Total BOQs</p>
               </div>
             </div>
@@ -454,7 +462,7 @@ export default function DashboardPage() {
                 <Clock className="h-5 w-5 text-yellow-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{boqData.filter((b) => b.status === "pending").length}</p>
+                <p className="text-2xl font-bold">{formatNumber(boqData.filter((b) => b.status === "pending").length)}</p>
                 <p className="text-xs text-muted-foreground">Pending</p>
               </div>
             </div>
@@ -463,7 +471,7 @@ export default function DashboardPage() {
                 <CheckCircle2 className="h-5 w-5 text-green-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{boqData.filter((b) => b.status === "approved").length}</p>
+                <p className="text-2xl font-bold">{formatNumber(boqData.filter((b) => b.status === "approved").length)}</p>
                 <p className="text-xs text-muted-foreground">Approved</p>
               </div>
             </div>
@@ -472,7 +480,7 @@ export default function DashboardPage() {
                 <AlertCircle className="h-5 w-5 text-red-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{boqData.filter((b) => b.status === "rejected").length}</p>
+                <p className="text-2xl font-bold">{formatNumber(boqData.filter((b) => b.status === "rejected").length)}</p>
                 <p className="text-xs text-muted-foreground">Rejected</p>
               </div>
             </div>
@@ -516,7 +524,7 @@ export default function DashboardPage() {
                 <CreditCard className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{stats.totalTermins}</p>
+                <p className="text-2xl font-bold">{formatNumber(stats.totalTermins)}</p>
                 <p className="text-xs text-muted-foreground">Total Terms</p>
               </div>
             </div>
@@ -528,7 +536,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{item.count}</p>
+                  <p className="text-2xl font-bold">{formatNumber(item.count)}</p>
                   <p className="text-xs text-muted-foreground">{item.status}</p>
                 </div>
               </div>
@@ -572,7 +580,7 @@ export default function DashboardPage() {
                 <MessageSquare className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <p className="text-3xl font-bold">{stats.totalDiscussions}</p>
+                <p className="text-3xl font-bold">{formatNumber(stats.totalDiscussions)}</p>
                 <p className="text-sm text-muted-foreground">Total Posts</p>
               </div>
             </div>
@@ -581,7 +589,7 @@ export default function DashboardPage() {
                 <Users className="h-6 w-6 text-blue-600" />
               </div>
               <div>
-                <p className="text-3xl font-bold">{teamMembersCount}</p>
+                <p className="text-3xl font-bold">{formatNumber(teamMembersCount)}</p>
                 <p className="text-sm text-muted-foreground">Active Members</p>
               </div>
             </div>
@@ -614,24 +622,24 @@ export default function DashboardPage() {
                 </div>
                 <span className="text-sm font-medium">Total Team Members</span>
               </div>
-              <span className="text-lg font-bold">{teamMembersCount}</span>
+              <span className="text-lg font-bold">{formatNumber(teamMembersCount)}</span>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="p-3 border rounded-lg">
                 <p className="text-xs text-muted-foreground mb-1">Estimators</p>
-                <p className="text-2xl font-bold">{estimatorsCount}</p>
+                <p className="text-2xl font-bold">{formatNumber(estimatorsCount)}</p>
               </div>
               <div className="p-3 border rounded-lg">
                 <p className="text-xs text-muted-foreground mb-1">Project Managers</p>
-                <p className="text-2xl font-bold">{pmsCount}</p>
+                <p className="text-2xl font-bold">{formatNumber(pmsCount)}</p>
               </div>
               <div className="p-3 border rounded-lg">
                 <p className="text-xs text-muted-foreground mb-1">Designers</p>
-                <p className="text-2xl font-bold">{designersCount}</p>
+                <p className="text-2xl font-bold">{formatNumber(designersCount)}</p>
               </div>
               <div className="p-3 border rounded-lg">
                 <p className="text-xs text-muted-foreground mb-1">Finance</p>
-                <p className="text-2xl font-bold">{financeCount}</p>
+                <p className="text-2xl font-bold">{formatNumber(financeCount)}</p>
               </div>
             </div>
           </div>
@@ -651,7 +659,7 @@ export default function DashboardPage() {
                 <Image className="h-6 w-6 text-purple-600" />
               </div>
               <div>
-                <p className="text-3xl font-bold">{stats.totalAlbums}</p>
+                <p className="text-3xl font-bold">{formatNumber(stats.totalAlbums)}</p>
                 <p className="text-sm text-muted-foreground">Photo Albums</p>
               </div>
             </div>
@@ -660,7 +668,7 @@ export default function DashboardPage() {
                 <FileText className="h-6 w-6 text-green-600" />
               </div>
               <div>
-                <p className="text-3xl font-bold">{stats.totalBOQs}</p>
+                <p className="text-3xl font-bold">{formatNumber(stats.totalBOQs)}</p>
                 <p className="text-sm text-muted-foreground">BOQ Documents</p>
               </div>
             </div>

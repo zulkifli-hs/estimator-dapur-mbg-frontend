@@ -9,9 +9,13 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { projectsApi } from "@/lib/api/projects"
+import { usersApi, type User } from "@/lib/api/users"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { X, Plus } from "lucide-react"
+import { X, Plus, Search, Check } from 'lucide-react'
 import { Badge } from "@/components/ui/badge"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 interface CreateProjectDialogProps {
   open: boolean
@@ -35,8 +39,49 @@ interface TeamMemberInputProps {
 function TeamMemberInput({ label, emails, onAdd, onRemove, disabled }: TeamMemberInputProps) {
   const [inputValue, setInputValue] = useState("")
   const [error, setError] = useState("")
+  const [open, setOpen] = useState(false)
+  const [users, setUsers] = useState<User[]>([])
+  const [loading, setLoading] = useState(false)
+  const searchTimeoutRef = useRef<NodeJS.Timeout>()
 
-  const handleAdd = () => {
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current)
+    }
+
+    if (inputValue.trim()) {
+      searchTimeoutRef.current = setTimeout(async () => {
+        setLoading(true)
+        const results = await usersApi.search(inputValue.trim())
+        setUsers(results)
+        setLoading(false)
+      }, 300)
+    } else {
+      setUsers([])
+    }
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current)
+      }
+    }
+  }, [inputValue])
+
+  const handleSelectUser = (user: User) => {
+    const email = user.email
+    
+    if (emails.includes(email)) {
+      setError("This email has already been added")
+      return
+    }
+
+    onAdd(email)
+    setInputValue("")
+    setError("")
+    setOpen(false)
+  }
+
+  const handleAddManual = () => {
     const trimmedEmail = inputValue.trim()
 
     if (!trimmedEmail) {
@@ -57,31 +102,99 @@ function TeamMemberInput({ label, emails, onAdd, onRemove, disabled }: TeamMembe
     onAdd(trimmedEmail)
     setInputValue("")
     setError("")
+    setOpen(false)
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       e.preventDefault()
-      handleAdd()
+      handleAddManual()
     }
+  }
+
+  const getImageUrl = (url: string) => {
+    if (url.startsWith("http")) return url
+    if (url.startsWith("images/")) {
+      return `${process.env.NEXT_PUBLIC_API_BASE_URL}/${url}`
+    }
+    return url
   }
 
   return (
     <div className="space-y-2">
       <Label>{label}</Label>
       <div className="flex gap-2">
-        <Input
-          value={inputValue}
-          onChange={(e) => {
-            setInputValue(e.target.value)
-            setError("")
-          }}
-          onKeyPress={handleKeyPress}
-          placeholder="email@company.com"
-          disabled={disabled}
-          className={error ? "border-destructive" : ""}
-        />
-        <Button type="button" onClick={handleAdd} disabled={disabled} size="icon" variant="outline">
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <div className="flex-1 relative">
+              <Input
+                value={inputValue}
+                onChange={(e) => {
+                  setInputValue(e.target.value)
+                  setError("")
+                  setOpen(true)
+                }}
+                onKeyPress={handleKeyPress}
+                placeholder="Search by name or email..."
+                disabled={disabled}
+                className={error ? "border-destructive" : ""}
+              />
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            </div>
+          </PopoverTrigger>
+          <PopoverContent className="w-[400px] p-0" align="start">
+            <Command>
+              <CommandList>
+                {loading ? (
+                  <div className="p-4 text-sm text-muted-foreground text-center">Searching...</div>
+                ) : users.length > 0 ? (
+                  <CommandGroup>
+                    {users.map((user) => (
+                      <CommandItem
+                        key={user._id}
+                        onSelect={() => handleSelectUser(user)}
+                        className="flex items-center gap-3 cursor-pointer"
+                      >
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={getImageUrl(user.profile.photo.url) || "/placeholder.svg"} alt={user.profile.name} />
+                          <AvatarFallback>{user.profile.name.charAt(0).toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{user.profile.name}</p>
+                          <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                        </div>
+                        {emails.includes(user.email) && (
+                          <Check className="h-4 w-4 text-primary" />
+                        )}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                ) : inputValue.trim() ? (
+                  <div className="p-4 space-y-3">
+                    <p className="text-sm text-muted-foreground text-center">No users found</p>
+                    {isValidEmail(inputValue.trim()) && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={handleAddManual}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add "{inputValue.trim()}"
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-4 text-sm text-muted-foreground text-center">
+                    Type to search users or enter an email
+                  </div>
+                )}
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+        <Button type="button" onClick={handleAddManual} disabled={disabled} size="icon" variant="outline">
           <Plus className="h-4 w-4" />
         </Button>
       </div>

@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Building2, Calendar, User, Ruler, Layers, MessageSquare, Send, Loader2 } from 'lucide-react'
+import { Building2, Calendar, User, Ruler, Layers, MessageSquare, Send, Loader2, Users, UserCheck, AlertTriangle, Crown, Briefcase, PenTool, DollarSign, Shield, TrendingUp, FileText, FolderOpen } from 'lucide-react'
 import { useState, useEffect } from "react"
 import { discussionsApi, type Post } from "@/lib/api/discussions"
 import { useToast } from "@/hooks/use-toast"
@@ -68,6 +68,16 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
     (project.finances?.length || 0) +
     (project.designers?.length || 0) +
     (project.admins?.length || 0)
+
+  const emptyRoles = [
+    { name: 'Estimators', count: project.estimators?.length || 0 },
+    { name: 'Project Managers', count: project.projectManagers?.length || 0 },
+    { name: 'Finances', count: project.finances?.length || 0 },
+    { name: 'Designers', count: project.designers?.length || 0 },
+    { name: 'Admins', count: project.admins?.length || 0 },
+  ].filter(role => role.count === 0)
+
+  const hasEmptyRoles = emptyRoles.length > 0
 
   const formatRelativeTime = (date: string | Date) => {
     const timestamp = typeof date === "string" ? new Date(date) : date
@@ -180,113 +190,206 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Project Information</CardTitle>
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {/* Owner & Client Card */}
+        <Card className="border-2 bg-gradient-to-br from-blue-50/50 to-indigo-50/50 dark:from-blue-950/20 dark:to-indigo-950/20">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Crown className="h-5 w-5 text-yellow-600 dark:text-yellow-500" />
+              Project Core
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Type</span>
-              <Badge variant="secondary">{project.type}</Badge>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <User className="h-5 w-5 text-muted-foreground mt-0.5" />
-              <div className="flex-1">
-                <p className="text-sm font-medium">Client Company</p>
-                <p className="text-sm text-muted-foreground">{project.companyClient?.name || "N/A"}</p>
+            <div className="flex items-start gap-3 p-3 bg-white/50 dark:bg-black/20 rounded-lg">
+              <div className="bg-yellow-500/10 p-2 rounded-full">
+                <Crown className="h-5 w-5 text-yellow-600 dark:text-yellow-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-muted-foreground mb-1">Owner</p>
+                <p className="text-sm font-semibold truncate">{project.companyOwner?.name || "N/A"}</p>
+                {project.owner && (
+                  <p className="text-xs text-muted-foreground truncate">
+                    {project.owner.profile?.name || project.owner.email}
+                  </p>
+                )}
               </div>
             </div>
 
-            <div className="flex items-start gap-3">
-              <Building2 className="h-5 w-5 text-muted-foreground mt-0.5" />
-              <div className="flex-1">
-                <p className="text-sm font-medium">Building</p>
-                <p className="text-sm text-muted-foreground">{project.building || "N/A"}</p>
+            <div className="flex items-start gap-3 p-3 bg-white/50 dark:bg-black/20 rounded-lg">
+              <div className="bg-blue-500/10 p-2 rounded-full">
+                <Briefcase className="h-5 w-5 text-blue-600 dark:text-blue-500" />
               </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <Ruler className="h-5 w-5 text-muted-foreground mt-0.5" />
-              <div className="flex-1">
-                <p className="text-sm font-medium">Area & Floor</p>
-                <p className="text-sm text-muted-foreground">
-                  {project.area} m² • Floor {project.floor}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <Layers className="h-5 w-5 text-muted-foreground mt-0.5" />
-              <div className="flex-1">
-                <p className="text-sm font-medium">Owner Company</p>
-                <p className="text-sm text-muted-foreground">{project.companyOwner?.name || "N/A"}</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
-              <div className="flex-1">
-                <p className="text-sm font-medium">Created</p>
-                <p className="text-sm text-muted-foreground">
-                  {new Date(project.createdAt).toLocaleDateString("id-ID", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </p>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-muted-foreground mb-1">Client</p>
+                <p className="text-sm font-semibold truncate">{project.companyClient?.name || "N/A"}</p>
+                {project.clients && project.clients.length > 0 && (
+                  <p className="text-xs text-muted-foreground truncate">
+                    {project.clients[0].user?.profile?.name || project.clients[0].user?.email}
+                  </p>
+                )}
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Team & Statistics</CardTitle>
+        {/* Project Details Card */}
+        <Card className="border-2">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-primary" />
+              Project Details
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between py-2 border-b">
+              <span className="text-sm text-muted-foreground">Type</span>
+              <Badge variant="secondary" className="font-medium">{project.type}</Badge>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <Ruler className="h-4 w-4 text-muted-foreground mt-0.5" />
+              <div className="flex-1">
+                <p className="text-xs text-muted-foreground">Area & Floor</p>
+                <p className="text-sm font-medium">
+                  {project.area} m² • {project.floor} {project.floor > 1 ? 'Floors' : 'Floor'}
+                </p>
+              </div>
+            </div>
+
+            {project.building && (
+              <div className="flex items-start gap-3">
+                <Building2 className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-xs text-muted-foreground">Building</p>
+                  <p className="text-sm font-medium">{project.building}</p>
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-start gap-3">
+              <Calendar className="h-4 w-4 text-muted-foreground mt-0.5" />
+              <div className="flex-1">
+                <p className="text-xs text-muted-foreground">Created</p>
+                <p className="text-sm font-medium">
+                  {new Date(project.createdAt).toLocaleDateString("id-ID", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 pt-2 border-t">
+              <div className="flex-1 text-center py-2 bg-muted/50 rounded-md">
+                <p className="text-xs text-muted-foreground">Layout</p>
+                <p className="text-lg font-bold">{project.detail?.layout ? "✓" : "—"}</p>
+              </div>
+              <div className="flex-1 text-center py-2 bg-muted/50 rounded-md">
+                <p className="text-xs text-muted-foreground">Contract</p>
+                <p className="text-lg font-bold">{project.detail?.contract ? "✓" : "—"}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Team Statistics Card */}
+        <Card className={`border-2 ${hasEmptyRoles ? 'border-orange-300 dark:border-orange-700 bg-orange-50/30 dark:bg-orange-950/20' : 'border-green-300 dark:border-green-700 bg-green-50/30 dark:bg-green-950/20'}`}>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Users className="h-5 w-5 text-primary" />
+              Team Members
+              {hasEmptyRoles && (
+                <Badge variant="outline" className="ml-auto border-orange-500 text-orange-700 dark:text-orange-400 bg-orange-50 dark:bg-orange-950">
+                  <AlertTriangle className="h-3 w-3 mr-1" />
+                  {emptyRoles.length} empty
+                </Badge>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between p-3 bg-white/70 dark:bg-black/30 rounded-lg border-2 border-primary/20">
+              <div className="flex items-center gap-2">
+                <UserCheck className="h-5 w-5 text-primary" />
+                <span className="text-sm font-medium">Total Members</span>
+              </div>
+              <span className="text-2xl font-bold text-primary">{totalTeamMembers}</span>
+            </div>
+
+            <div className="space-y-2">
+              {[
+                { name: 'Estimators', count: project.estimators?.length || 0, icon: Users, color: 'text-blue-600 dark:text-blue-400' },
+                { name: 'Project Managers', count: project.projectManagers?.length || 0, icon: TrendingUp, color: 'text-green-600 dark:text-green-400' },
+                { name: 'Finances', count: project.finances?.length || 0, icon: DollarSign, color: 'text-yellow-600 dark:text-yellow-400' },
+                { name: 'Designers', count: project.designers?.length || 0, icon: PenTool, color: 'text-purple-600 dark:text-purple-400' },
+                { name: 'Admins', count: project.admins?.length || 0, icon: Shield, color: 'text-red-600 dark:text-red-400' },
+              ].map((role) => {
+                const Icon = role.icon
+                return (
+                  <div 
+                    key={role.name} 
+                    className={`flex items-center justify-between text-sm px-3 py-2 rounded-md ${
+                      role.count === 0 
+                        ? 'bg-orange-100/50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800' 
+                        : 'bg-white/50 dark:bg-black/20'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Icon className={`h-4 w-4 ${role.color}`} />
+                      <span className="text-muted-foreground">{role.name}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {role.count === 0 && (
+                        <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                      )}
+                      <span className={`font-semibold ${role.count === 0 ? 'text-orange-700 dark:text-orange-400' : ''}`}>
+                        {role.count}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card className="border-2 border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50">
+          <CardContent className="pt-6">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Total Team Members</span>
-              <span className="text-2xl font-bold">{totalTeamMembers}</span>
+              <div>
+                <p className="text-sm font-medium text-blue-700 dark:text-blue-300">BOQ Items</p>
+                <p className="text-3xl font-bold text-blue-900 dark:text-blue-100">—</p>
+                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">Check BOQ tab</p>
+              </div>
+              <FileText className="h-12 w-12 text-blue-400 dark:text-blue-600" />
             </div>
+          </CardContent>
+        </Card>
 
-            <div className="space-y-2 pt-2 border-t">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Estimators</span>
-                <span className="font-medium">{project.estimators?.length || 0}</span>
+        <Card className="border-2 border-green-200 dark:border-green-800 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/50 dark:to-green-900/50">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-green-700 dark:text-green-300">Documents</p>
+                <p className="text-3xl font-bold text-green-900 dark:text-green-100">—</p>
+                <p className="text-xs text-green-600 dark:text-green-400 mt-1">Files & Folders</p>
               </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Project Managers</span>
-                <span className="font-medium">{project.projectManagers?.length || 0}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Finances</span>
-                <span className="font-medium">{project.finances?.length || 0}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Designers</span>
-                <span className="font-medium">{project.designers?.length || 0}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Clients</span>
-                <span className="font-medium">{project.clients?.length || 0}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Admins</span>
-                <span className="font-medium">{project.admins?.length || 0}</span>
-              </div>
+              <FolderOpen className="h-12 w-12 text-green-400 dark:text-green-600" />
             </div>
+          </CardContent>
+        </Card>
 
-            <div className="space-y-2 pt-2 border-t">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Layout Document</span>
-                <span className="font-medium">{project.detail?.layout ? "✓" : "—"}</span>
+        <Card className="border-2 border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/50 dark:to-purple-900/50">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-purple-700 dark:text-purple-300">Discussions</p>
+                <p className="text-3xl font-bold text-purple-900 dark:text-purple-100">{totalPosts}</p>
+                <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">{totalPosts === 1 ? 'Post' : 'Posts'}</p>
               </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Contract Document</span>
-                <span className="font-medium">{project.detail?.contract ? "✓" : "—"}</span>
-              </div>
+              <MessageSquare className="h-12 w-12 text-purple-400 dark:text-purple-600" />
             </div>
           </CardContent>
         </Card>

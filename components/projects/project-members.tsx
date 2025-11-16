@@ -42,6 +42,8 @@ export function ProjectMembers({ project, onUpdate }: ProjectMembersProps) {
       return <p className="text-sm text-muted-foreground py-4">No {role.toLowerCase()} assigned</p>
     }
 
+    const isClientRole = role === "clients"
+
     return (
       <div className="space-y-3">
         {members.map((member) => (
@@ -61,21 +63,23 @@ export function ProjectMembers({ project, onUpdate }: ProjectMembersProps) {
             </div>
             <div className="flex items-center gap-2">
               <Badge variant={member.status === "Accepted" ? "default" : "secondary"}>{member.status}</Badge>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                onClick={() => {
-                  setRemoveMemberDialog({
-                    open: true,
-                    memberId: member._id,
-                    memberName: member.user?.profile?.name || member.user?.email || "Unknown",
-                    role: role,
-                  })
-                }}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              {!isClientRole && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={() => {
+                    setRemoveMemberDialog({
+                      open: true,
+                      memberId: member._id,
+                      memberName: member.user?.profile?.name || member.user?.email || "Unknown",
+                      role: role,
+                    })
+                  }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           </div>
         ))}
@@ -232,10 +236,7 @@ export function ProjectMembers({ project, onUpdate }: ProjectMembersProps) {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Clients</CardTitle>
-              <Button size="sm" variant="outline" onClick={() => handleOpenInvite("clients")}>
-                <UserPlus className="h-4 w-4 mr-2" />
-                Add
-              </Button>
+              <CardDescription>Client is set during project creation</CardDescription>
             </div>
           </CardHeader>
           <CardContent>{renderMemberList(project.clients, "clients")}</CardContent>

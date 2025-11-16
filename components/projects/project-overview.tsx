@@ -11,6 +11,7 @@ import { discussionsApi, type Post } from "@/lib/api/discussions"
 import { boqApi } from "@/lib/api/boq"
 import { terminApi } from "@/lib/api/termin"
 import { foldersApi } from "@/lib/api/folders"
+import { albumsApi } from "@/lib/api/albums"
 import { useToast } from "@/hooks/use-toast"
 import { API_BASE_URL } from "@/lib/api/config"
 import { PostDetailDialog } from "./post-detail-dialog"
@@ -37,6 +38,7 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
   const [boqData, setBoqData] = useState<any[]>([])
   const [terminData, setTerminData] = useState<any[]>([])
   const [foldersData, setFoldersData] = useState<any[]>([])
+  const [albumsData, setAlbumsData] = useState<any[]>([])
   const [dataLoading, setDataLoading] = useState(true)
 
   useEffect(() => {
@@ -47,15 +49,20 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
   const loadProjectData = async () => {
     try {
       setDataLoading(true)
-      const [boqResult, terminResult, foldersResult] = await Promise.all([
+      const [boqResult, terminResult, foldersResult, albumsResult] = await Promise.all([
         boqApi.getByProject(project._id),
         terminApi.getByProject(project._id),
         foldersApi.getByProject(project._id),
+        albumsApi.getByProject(project._id, { limit: 100 }),
       ])
 
       if (boqResult.success) setBoqData(boqResult.data || [])
       if (terminResult.success) setTerminData(terminResult.data || [])
       if (foldersResult.success) setFoldersData(foldersResult.data || [])
+      if (albumsResult.success) {
+        const albumsList = Array.isArray(albumsResult.data) ? albumsResult.data : albumsResult.data?.list || []
+        setAlbumsData(albumsList)
+      }
     } catch (error) {
       console.error("Failed to load project data:", error)
     } finally {
@@ -80,43 +87,62 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
   }
 
   const hasLayoutFiles = !!(project.detail?.layout && project.detail.layout.length > 0)
-  const hasContractFiles = !!(project.detail?.contract)
+  const hasContractFiles = !!(project.detail?.contract && Array.isArray(project.detail.contract) && project.detail.contract.length > 0)
   const hasMainBOQ = boqData.some((boq: any) => boq.number === 1)
   const hasAdditionalBOQ = boqData.some((boq: any) => boq.number > 1)
   const hasTermins = terminData.length > 0
   const hasFolders = foldersData.length > 0
   const totalFolderFiles = foldersData.reduce((sum: number, folder: any) => sum + (folder.files?.length || 0), 0)
 
+  const mainBOQ = boqData.find((boq: any) => boq.number === 1)
+  const hasGanttChart = !!mainBOQ && (
+    (Array.isArray(mainBOQ.preliminary) && mainBOQ.preliminary.some((item: any) => item.startDate && item.endDate)) ||
+    (Array.isArray(mainBOQ.fittingOut) && mainBOQ.fittingOut.some((cat: any) => 
+      Array.isArray(cat.products) && cat.products.some((p: any) => p.startDate && p.endDate)
+    )) ||
+    (Array.isArray(mainBOQ.furnitureWork) && mainBOQ.furnitureWork.some((cat: any) => 
+      Array.isArray(cat.products) && cat.products.some((p: any) => p.startDate && p.endDate)
+    ))
+  )
+
+  const totalAlbums = albumsData.length
+  const totalPhotos = albumsData.reduce((sum: number, album: any) => sum + (album.list?.length || 0), 0)
+
   const completenessChecks = [
     {
       label: "Layout Files",
       completed: hasLayoutFiles,
       detail: hasLayoutFiles ? `${project.detail.layout.length} file(s)` : "Not uploaded",
-      link: "Layout menu"
     },
     {
       label: "Contract Files",
       completed: hasContractFiles,
-      detail: hasContractFiles ? "Uploaded" : "Not uploaded",
-      link: "Project menu"
+      detail: hasContractFiles ? `${project.detail.contract.length} file(s)` : "Not uploaded",
     },
     {
       label: "Main BOQ",
       completed: hasMainBOQ,
       detail: hasMainBOQ ? "Created" : "Not created",
-      link: "BOQ menu"
+    },
+    {
+      label: "Gantt Chart",
+      completed: hasGanttChart,
+      detail: hasGanttChart ? "Timeline set" : "No timeline",
     },
     {
       label: "Payment Terms",
       completed: hasTermins,
       detail: hasTermins ? `${terminData.length} termin(s)` : "Not set",
-      link: "Invoice menu"
     },
     {
       label: "Documents",
       completed: hasFolders && totalFolderFiles > 0,
       detail: hasFolders ? `${foldersData.length} folder(s), ${totalFolderFiles} file(s)` : "No documents",
-      link: "Documents menu"
+    },
+    {
+      label: "Albums & Photos",
+      completed: totalAlbums > 0 && totalPhotos > 0,
+      detail: totalAlbums > 0 ? `${totalAlbums} album(s), ${totalPhotos} photo(s)` : "No photos",
     },
   ]
 
@@ -251,135 +277,132 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5 text-primary" />
-            Project Information
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-3 md:grid-cols-2">
-            <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-              <Crown className="h-5 w-5 text-yellow-600" />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-muted-foreground">Owner</p>
-                <p className="text-sm font-semibold truncate">{project.owner?.profile?.name || project.owner?.email || "N/A"}</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-              <Briefcase className="h-5 w-5 text-blue-600" />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-muted-foreground">Client</p>
-                <p className="text-sm font-semibold truncate">{project.companyClient?.name || "N/A"}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid gap-3 md:grid-cols-3 text-sm">
-            <div>
-              <p className="text-muted-foreground text-xs">Type</p>
-              <p className="font-medium mt-1">{project.type}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground text-xs">Area</p>
-              <p className="font-medium mt-1">{project.area} m²</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground text-xs">Location</p>
-              <p className="font-medium mt-1">{project.building}, Floor {project.floor}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Project Completeness</CardTitle>
-            <Badge variant={completionPercentage === 100 ? "default" : "secondary"}>
-              {completionPercentage}%
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="h-2 bg-muted rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-primary transition-all duration-500"
-              style={{ width: `${completionPercentage}%` }}
-            />
-          </div>
-
-          {dataLoading ? (
-            <div className="flex justify-center py-4">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : (
+      <div className="grid gap-6 md:grid-cols-3">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Building2 className="h-5 w-5 text-primary" />
+              Project Info
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
             <div className="space-y-2">
-              {completenessChecks.map((check, index) => (
-                <div 
-                  key={index}
-                  className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex items-center gap-2">
-                    {check.completed ? (
-                      <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    ) : (
-                      <XCircle className="h-4 w-4 text-muted-foreground" />
-                    )}
-                    <div>
-                      <p className="text-sm font-medium">{check.label}</p>
-                      <p className="text-xs text-muted-foreground">{check.detail}</p>
+              <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg">
+                <Crown className="h-4 w-4 text-yellow-600" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-muted-foreground">Owner</p>
+                  <p className="text-sm font-semibold truncate">{project.owner?.profile?.name || project.owner?.email || "N/A"}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg">
+                <Briefcase className="h-4 w-4 text-blue-600" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-muted-foreground">Client</p>
+                  <p className="text-sm font-semibold truncate">{project.companyClient?.name || "N/A"}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-1.5 text-xs pt-2 border-t">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Type</span>
+                <span className="font-medium">{project.type}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Area</span>
+                <span className="font-medium">{project.area} m²</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Location</span>
+                <span className="font-medium">{project.building}, Floor {project.floor}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">Completeness</CardTitle>
+              <Badge variant={completionPercentage === 100 ? "default" : "secondary"} className="text-xs">
+                {completionPercentage}%
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {dataLoading ? (
+              <div className="flex justify-center py-4">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                {completenessChecks.map((check, index) => (
+                  <div 
+                    key={index}
+                    className="flex items-center justify-between p-1.5 rounded hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      {check.completed ? (
+                        <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0" />
+                      ) : (
+                        <XCircle className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium truncate">{check.label}</p>
+                        <p className="text-[10px] text-muted-foreground truncate">{check.detail}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Team Members</CardTitle>
-            <Badge variant={hasEmptyRoles ? "outline" : "secondary"}>
-              {totalTeamMembers} member{totalTeamMembers !== 1 ? 's' : ''}
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {[
-            { name: 'Estimators', count: project.estimators?.length || 0, icon: Users },
-            { name: 'Project Managers', count: project.projectManagers?.length || 0, icon: TrendingUp },
-            { name: 'Finances', count: project.finances?.length || 0, icon: DollarSign },
-            { name: 'Designers', count: project.designers?.length || 0, icon: PenTool },
-            { name: 'Admins', count: project.admins?.length || 0, icon: Shield },
-          ].map((role) => {
-            const Icon = role.icon
-            return (
-              <div 
-                key={role.name} 
-                className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <Icon className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">{role.name}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {role.count === 0 && (
-                    <AlertTriangle className="h-4 w-4 text-orange-500" />
-                  )}
-                  <span className={`text-sm font-semibold ${role.count === 0 ? 'text-orange-500' : ''}`}>
-                    {role.count}
-                  </span>
-                </div>
+                ))}
               </div>
-            )
-          })}
-        </CardContent>
-      </Card>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">Team</CardTitle>
+              <Badge variant={hasEmptyRoles ? "outline" : "secondary"} className="text-xs">
+                {totalTeamMembers}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-1.5">
+              {[
+                { name: 'Estimators', count: project.estimators?.length || 0, icon: Users },
+                { name: 'Project Managers', count: project.projectManagers?.length || 0, icon: TrendingUp },
+                { name: 'Finances', count: project.finances?.length || 0, icon: DollarSign },
+                { name: 'Designers', count: project.designers?.length || 0, icon: PenTool },
+                { name: 'Admins', count: project.admins?.length || 0, icon: Shield },
+              ].map((role) => {
+                const Icon = role.icon
+                return (
+                  <div 
+                    key={role.name} 
+                    className="flex items-center justify-between p-1.5 rounded hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      <span className="text-xs truncate">{role.name}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      {role.count === 0 && (
+                        <AlertTriangle className="h-3.5 w-3.5 text-orange-500" />
+                      )}
+                      <span className={`text-xs font-semibold ${role.count === 0 ? 'text-orange-500' : ''}`}>
+                        {role.count}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       <Card>
         <CardHeader>

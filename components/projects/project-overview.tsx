@@ -5,9 +5,12 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Building2, Calendar, User, Ruler, Layers, MessageSquare, Send, Loader2, Users, UserCheck, AlertTriangle, Crown, Briefcase, PenTool, DollarSign, Shield, TrendingUp, FileText, FolderOpen } from 'lucide-react'
+import { Building2, MessageSquare, Send, Loader2, Users, UserCheck, AlertTriangle, Crown, Briefcase, PenTool, DollarSign, Shield, TrendingUp, CheckCircle2, XCircle } from 'lucide-react'
 import { useState, useEffect } from "react"
 import { discussionsApi, type Post } from "@/lib/api/discussions"
+import { boqApi } from "@/lib/api/boq"
+import { terminApi } from "@/lib/api/termin"
+import { foldersApi } from "@/lib/api/folders"
 import { useToast } from "@/hooks/use-toast"
 import { API_BASE_URL } from "@/lib/api/config"
 import { PostDetailDialog } from "./post-detail-dialog"
@@ -31,9 +34,34 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
   const postsPerPage = 12
   const { toast } = useToast()
 
+  const [boqData, setBoqData] = useState<any[]>([])
+  const [terminData, setTerminData] = useState<any[]>([])
+  const [foldersData, setFoldersData] = useState<any[]>([])
+  const [dataLoading, setDataLoading] = useState(true)
+
   useEffect(() => {
     loadPosts()
+    loadProjectData()
   }, [project._id, currentPage])
+
+  const loadProjectData = async () => {
+    try {
+      setDataLoading(true)
+      const [boqResult, terminResult, foldersResult] = await Promise.all([
+        boqApi.getByProject(project._id),
+        terminApi.getByProject(project._id),
+        foldersApi.getByProject(project._id),
+      ])
+
+      if (boqResult.success) setBoqData(boqResult.data || [])
+      if (terminResult.success) setTerminData(terminResult.data || [])
+      if (foldersResult.success) setFoldersData(foldersResult.data || [])
+    } catch (error) {
+      console.error("Failed to load project data:", error)
+    } finally {
+      setDataLoading(false)
+    }
+  }
 
   const loadPosts = async () => {
     try {
@@ -43,55 +71,52 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
         setPosts(result.data)
         setTotalPages(result.totalPage)
         setTotalPosts(result.totalData)
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to load discussions",
-          variant: "destructive",
-        })
       }
     } catch (error) {
       console.error("Failed to load posts:", error)
-      toast({
-        title: "Error",
-        description: "Failed to load discussions",
-        variant: "destructive",
-      })
     } finally {
       setLoading(false)
     }
   }
 
+  const hasLayoutFiles = !!(project.detail?.layout && project.detail.layout.length > 0)
+  const hasContractFiles = !!(project.detail?.contract)
+  const hasMainBOQ = boqData.some((boq: any) => boq.number === 1)
+  const hasAdditionalBOQ = boqData.some((boq: any) => boq.number > 1)
+  const hasTermins = terminData.length > 0
+  const hasFolders = foldersData.length > 0
+  const totalFolderFiles = foldersData.reduce((sum: number, folder: any) => sum + (folder.files?.length || 0), 0)
+
   const completenessChecks = [
     {
-      label: "Layout Files Uploaded",
-      completed: project.detail?.layout,
-      description: "Check Layout menu"
+      label: "Layout Files",
+      completed: hasLayoutFiles,
+      detail: hasLayoutFiles ? `${project.detail.layout.length} file(s)` : "Not uploaded",
+      link: "Layout menu"
     },
     {
-      label: "Contract Files Uploaded",
-      completed: project.detail?.contract,
-      description: "Check Project menu"
+      label: "Contract Files",
+      completed: hasContractFiles,
+      detail: hasContractFiles ? "Uploaded" : "Not uploaded",
+      link: "Project menu"
     },
     {
-      label: "Main BOQ Created",
-      completed: false, // Will be checked via API in future
-      description: "Check BOQ menu"
+      label: "Main BOQ",
+      completed: hasMainBOQ,
+      detail: hasMainBOQ ? "Created" : "Not created",
+      link: "BOQ menu"
     },
     {
-      label: "Additional BOQ Created",
-      completed: false, // Will be checked via API in future
-      description: "Check BOQ menu"
+      label: "Payment Terms",
+      completed: hasTermins,
+      detail: hasTermins ? `${terminData.length} termin(s)` : "Not set",
+      link: "Invoice menu"
     },
     {
-      label: "Invoice/Payment Terms Set",
-      completed: false, // Will be checked via API in future
-      description: "Check Invoice menu"
-    },
-    {
-      label: "Documents Uploaded",
-      completed: false, // Will be checked via API in future
-      description: "Check Documents menu"
+      label: "Documents",
+      completed: hasFolders && totalFolderFiles > 0,
+      detail: hasFolders ? `${foldersData.length} folder(s), ${totalFolderFiles} file(s)` : "No documents",
+      link: "Documents menu"
     },
   ]
 
@@ -226,217 +251,158 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
 
   return (
     <div className="space-y-6">
-      <Card className="border-2">
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Building2 className="h-5 w-5 text-primary" />
             Project Information
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Owner and Client Section */}
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="flex items-start gap-3 p-3 bg-gradient-to-br from-yellow-50/50 to-yellow-100/50 dark:from-yellow-900/20 dark:to-yellow-800/20 rounded-lg border border-yellow-200 dark:border-yellow-700">
-              <div className="bg-yellow-500/10 p-2 rounded-full">
-                <Crown className="h-5 w-5 text-yellow-600 dark:text-yellow-500" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-muted-foreground mb-1">Project Owner</p>
-                <p className="text-sm font-semibold truncate">{project.companyOwner?.name || "N/A"}</p>
-                {project.owner && (
-                  <p className="text-xs text-muted-foreground truncate">
-                    {project.owner.profile?.name || project.owner.email}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3 p-3 bg-gradient-to-br from-blue-50/50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg border border-blue-200 dark:border-blue-700">
-              <div className="bg-blue-500/10 p-2 rounded-full">
-                <Briefcase className="h-5 w-5 text-blue-600 dark:text-blue-500" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-muted-foreground mb-1">Client</p>
-                <p className="text-sm font-semibold truncate">{project.companyClient?.name || "N/A"}</p>
-                {project.clients && project.clients.length > 0 && (
-                  <p className="text-xs text-muted-foreground truncate">
-                    {project.clients[0].user?.profile?.name || project.clients[0].user?.email}
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="border-t pt-4 space-y-3">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <span className="text-sm text-muted-foreground">Project Type</span>
-                <p className="text-base font-medium mt-1">
-                  <Badge variant="secondary">{project.type}</Badge>
-                </p>
-              </div>
-
-              <div>
-                <span className="text-sm text-muted-foreground">Area & Floor</span>
-                <p className="text-base font-medium mt-1">
-                  {project.area} m² • {project.floor} {project.floor > 1 ? 'Floors' : 'Floor'}
-                </p>
-              </div>
-
-              {project.building && (
-                <div>
-                  <span className="text-sm text-muted-foreground">Building</span>
-                  <p className="text-base font-medium mt-1">{project.building}</p>
-                </div>
-              )}
-
-              <div>
-                <span className="text-sm text-muted-foreground">Created</span>
-                <p className="text-base font-medium mt-1">
-                  {new Date(project.createdAt).toLocaleDateString("id-ID", {
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })}
-                </p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="border-2">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-primary" />
-              Project Data Completeness
-            </CardTitle>
-            <Badge variant={completionPercentage === 100 ? "default" : "secondary"} className="text-lg px-3">
-              {completionPercentage}%
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="mb-4">
-            <div className="h-3 bg-muted rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-gradient-to-r from-blue-500 to-green-500 transition-all duration-500"
-                style={{ width: `${completionPercentage}%` }}
-              />
-            </div>
-          </div>
-
-          {completenessChecks.map((check, index) => (
-            <div 
-              key={index}
-              className={`flex items-start gap-3 p-3 rounded-lg border ${
-                check.completed 
-                  ? 'bg-green-50/50 dark:bg-green-900/20 border-green-200 dark:border-green-700' 
-                  : 'bg-orange-50/50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-700'
-              }`}
-            >
-              <div className={`mt-0.5 ${check.completed ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>
-                {check.completed ? (
-                  <UserCheck className="h-5 w-5" />
-                ) : (
-                  <AlertTriangle className="h-5 w-5" />
-                )}
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium">{check.label}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{check.description}</p>
-              </div>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      <Card className={`border-2 ${hasEmptyRoles ? 'border-orange-200 dark:border-orange-700' : 'border-green-200 dark:border-green-700'}`}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-primary" />
-            Team Members
-            {hasEmptyRoles && (
-              <Badge variant="outline" className="ml-auto border-orange-500 text-orange-700 dark:text-orange-400">
-                <AlertTriangle className="h-3 w-3 mr-1" />
-                {emptyRoles.length} role{emptyRoles.length > 1 ? 's' : ''} empty
-              </Badge>
-            )}
-          </CardTitle>
-        </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border-2 border-blue-200 dark:border-blue-700">
-            <div className="flex items-center gap-3">
-              <UserCheck className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-              <span className="text-base font-medium">Total Team Members</span>
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+              <Crown className="h-5 w-5 text-yellow-600" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-muted-foreground">Owner</p>
+                <p className="text-sm font-semibold truncate">{project.owner?.profile?.name || project.owner?.email || "N/A"}</p>
+              </div>
             </div>
-            <span className="text-3xl font-bold text-blue-600 dark:text-blue-400">{totalTeamMembers}</span>
+
+            <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+              <Briefcase className="h-5 w-5 text-blue-600" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-muted-foreground">Client</p>
+                <p className="text-sm font-semibold truncate">{project.companyClient?.name || "N/A"}</p>
+              </div>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            {[
-              { name: 'Estimators', count: project.estimators?.length || 0, icon: Users, color: 'text-blue-600 dark:text-blue-400', bgColor: 'bg-blue-50 dark:bg-blue-900/20' },
-              { name: 'Project Managers', count: project.projectManagers?.length || 0, icon: TrendingUp, color: 'text-green-600 dark:text-green-400', bgColor: 'bg-green-50 dark:bg-green-900/20' },
-              { name: 'Finances', count: project.finances?.length || 0, icon: DollarSign, color: 'text-yellow-600 dark:text-yellow-400', bgColor: 'bg-yellow-50 dark:bg-yellow-900/20' },
-              { name: 'Designers', count: project.designers?.length || 0, icon: PenTool, color: 'text-purple-600 dark:text-purple-400', bgColor: 'bg-purple-50 dark:bg-purple-900/20' },
-              { name: 'Admins', count: project.admins?.length || 0, icon: Shield, color: 'text-red-600 dark:text-red-400', bgColor: 'bg-red-50 dark:bg-red-900/20' },
-            ].map((role) => {
-              const Icon = role.icon
-              return (
-                <div 
-                  key={role.name} 
-                  className={`flex items-center justify-between p-3 rounded-lg border-2 ${
-                    role.count === 0 
-                      ? 'bg-orange-50/50 dark:bg-orange-900/20 border-orange-300 dark:border-orange-700' 
-                      : `${role.bgColor} border-transparent`
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Icon className={`h-5 w-5 ${role.color}`} />
-                    <span className="text-sm font-medium">{role.name}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {role.count === 0 && (
-                      <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-                    )}
-                    <span className={`text-lg font-bold ${role.count === 0 ? 'text-orange-600 dark:text-orange-400' : role.color}`}>
-                      {role.count}
-                    </span>
-                  </div>
-                </div>
-              )
-            })}
+          <div className="grid gap-3 md:grid-cols-3 text-sm">
+            <div>
+              <p className="text-muted-foreground text-xs">Type</p>
+              <p className="font-medium mt-1">{project.type}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">Area</p>
+              <p className="font-medium mt-1">{project.area} m²</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">Location</p>
+              <p className="font-medium mt-1">{project.building}, Floor {project.floor}</p>
+            </div>
           </div>
-
-          <p className="text-xs text-muted-foreground text-center pt-2 border-t">
-            Note: Owner and Client are not included in team member counts
-          </p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">Project Completeness</CardTitle>
+            <Badge variant={completionPercentage === 100 ? "default" : "secondary"}>
+              {completionPercentage}%
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="h-2 bg-muted rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-primary transition-all duration-500"
+              style={{ width: `${completionPercentage}%` }}
+            />
+          </div>
+
+          {dataLoading ? (
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {completenessChecks.map((check, index) => (
+                <div 
+                  key={index}
+                  className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    {check.completed ? (
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <XCircle className="h-4 w-4 text-muted-foreground" />
+                    )}
+                    <div>
+                      <p className="text-sm font-medium">{check.label}</p>
+                      <p className="text-xs text-muted-foreground">{check.detail}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">Team Members</CardTitle>
+            <Badge variant={hasEmptyRoles ? "outline" : "secondary"}>
+              {totalTeamMembers} member{totalTeamMembers !== 1 ? 's' : ''}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {[
+            { name: 'Estimators', count: project.estimators?.length || 0, icon: Users },
+            { name: 'Project Managers', count: project.projectManagers?.length || 0, icon: TrendingUp },
+            { name: 'Finances', count: project.finances?.length || 0, icon: DollarSign },
+            { name: 'Designers', count: project.designers?.length || 0, icon: PenTool },
+            { name: 'Admins', count: project.admins?.length || 0, icon: Shield },
+          ].map((role) => {
+            const Icon = role.icon
+            return (
+              <div 
+                key={role.name} 
+                className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <Icon className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">{role.name}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {role.count === 0 && (
+                    <AlertTriangle className="h-4 w-4 text-orange-500" />
+                  )}
+                  <span className={`text-sm font-semibold ${role.count === 0 ? 'text-orange-500' : ''}`}>
+                    {role.count}
+                  </span>
+                </div>
+              </div>
+            )
+          })}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
             <MessageSquare className="h-5 w-5" />
             Discussion Board
             {totalPosts > 0 && (
               <Badge variant="secondary" className="ml-auto">
-                {totalPosts} {totalPosts === 1 ? "note" : "notes"}
+                {totalPosts}
               </Badge>
             )}
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 p-4 rounded-lg shadow-md border-2 border-green-200 dark:border-green-700 relative">
-            <div className="absolute -top-3 left-4 bg-green-500 dark:bg-green-600 px-3 py-1 rounded-full text-xs font-medium shadow-sm text-white">
-              New Post
+        <CardContent className="space-y-4">
+          <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 p-3 rounded-lg shadow border-2 border-green-200 dark:border-green-700 relative">
+            <div className="absolute -top-2 left-4 bg-green-500 px-2 py-0.5 rounded-full text-xs font-medium text-white">
+              New
             </div>
             <Textarea
-              placeholder="Write a note for the team..."
+              placeholder="Write a note..."
               value={newPost}
               onChange={(e) => setNewPost(e.target.value)}
-              className="min-h-[100px] bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-green-600/60 dark:placeholder:text-green-400/60 resize-none"
+              className="min-h-[80px] bg-transparent border-none focus-visible:ring-0 resize-none text-sm"
               disabled={submitting}
             />
             <div className="flex justify-end mt-2">
@@ -444,202 +410,144 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
                 onClick={handleAddPost} 
                 disabled={!newPost.trim() || submitting}
                 size="sm"
-                className="bg-green-600 hover:bg-green-700 text-white shadow-md"
+                className="bg-green-600 hover:bg-green-700 text-white"
               >
                 {submitting ? (
                   <>
-                    <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                     Posting...
                   </>
                 ) : (
                   <>
-                    <Send className="h-3 w-3 mr-2" />
-                    Pin Note
+                    <Send className="h-3 w-3 mr-1" />
+                    Post
                   </>
                 )}
               </Button>
             </div>
           </div>
 
-          <div className="pt-4 border-t">
-            {loading ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : posts.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <MessageSquare className="h-16 w-16 mx-auto mb-3 opacity-30" />
-                <p className="text-lg font-medium">No notes yet</p>
-                <p className="text-sm">Pin your first note to the board!</p>
-              </div>
-            ) : (
-              <>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {posts.map((post, index) => {
-                    const colors = [
-                      { bg: "from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20", border: "border-blue-200 dark:border-blue-700", pin: "bg-blue-400 dark:bg-blue-600" },
-                      { bg: "from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20", border: "border-green-200 dark:border-green-700", pin: "bg-green-400 dark:bg-green-600" },
-                      { bg: "from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-800/20", border: "border-pink-200 dark:border-pink-700", pin: "bg-pink-400 dark:bg-pink-600" },
-                      { bg: "from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20", border: "border-purple-200 dark:border-purple-700", pin: "bg-purple-400 dark:bg-purple-600" },
-                      { bg: "from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20", border: "border-orange-200 dark:border-orange-700", pin: "bg-orange-400 dark:bg-orange-600" },
-                    ]
-                    const color = colors[getColorForPost(post._id)]
-                    const rotation = getRotationForPost(post._id)
-                    
-                    return (
-                      <div
-                        key={post._id}
-                        onClick={() => setSelectedPostId(post._id)}
-                        className={`bg-gradient-to-br ${color.bg} p-4 rounded-lg shadow-lg border-2 ${color.border} relative transform hover:scale-105 transition-transform duration-200 hover:shadow-xl cursor-pointer`}
-                        style={{ transform: `rotate(${rotation}deg)` }}
-                      >
-                        <div className={`absolute -top-2 left-1/2 -translate-x-1/2 ${color.pin} h-4 w-4 rounded-full shadow-md border-2 border-white dark:border-gray-800`} />
-                        
-                        <div 
-                          onClick={() => setSelectedPostId(post._id)}
-                          className="cursor-pointer"
-                        >
-                          <div className="flex gap-2 items-start mb-3">
-                            <Avatar className="h-8 w-8 border-2 border-white dark:border-gray-700 shadow-sm">
-                              <AvatarImage src={getUserAvatar(post.createdBy) || "/placeholder.svg"} />
-                              <AvatarFallback className="text-xs font-semibold">
-                                {getUserName(post.createdBy)
-                                  .split(" ")
-                                  .map((n) => n[0])
-                                  .join("")
-                                  .toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-semibold text-sm truncate">{getUserName(post.createdBy)}</p>
-                              <p className="text-xs text-muted-foreground">{formatRelativeTime(post.createdAt)}</p>
-                            </div>
-                          </div>
-
-                          <p className="text-sm mb-4 whitespace-pre-wrap line-clamp-6 leading-relaxed">{post.content}</p>
-
-                          {post.comments.length > 0 && (
-                            <div className="bg-white/50 dark:bg-black/20 rounded-md p-2 space-y-2 max-h-40 overflow-y-auto mb-3">
-                              {post.comments.slice(0, 2).map((comment) => (
-                                <div key={comment._id} className="flex gap-2 text-xs">
-                                  <Avatar className="h-6 w-6 border border-white dark:border-gray-700">
-                                    <AvatarImage src={getUserAvatar(comment.createdBy) || "/placeholder.svg"} />
-                                    <AvatarFallback className="text-[10px]">
-                                      {getUserName(comment.createdBy)
-                                        .split(" ")
-                                        .map((n) => n[0])
-                                        .join("")
-                                        .toUpperCase()}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="font-medium truncate">{getUserName(comment.createdBy)}</p>
-                                    <p className="text-muted-foreground line-clamp-2">{comment.content}</p>
-                                  </div>
-                                </div>
-                              ))}
-                              {post.comments.length > 2 && (
-                                <p className="text-xs text-center text-muted-foreground font-medium">
-                                  +{post.comments.length - 2} more comments
-                                </p>
-                              )}
-                            </div>
-                          )}
-                        </div>
-
-                        <div 
-                          className="space-y-2 border-t pt-3 mt-2"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <div className="flex gap-2">
-                            <Textarea
-                              placeholder="Add a comment..."
-                              value={newComments[post._id] || ""}
-                              onChange={(e) => setNewComments({ ...newComments, [post._id]: e.target.value })}
-                              className={`min-h-[60px] text-xs resize-none bg-white/70 dark:bg-black/30 border ${color.border} focus-visible:ring-1 ${
-                                getColorForPost(post._id) === 0 ? 'focus-visible:ring-blue-200 dark:focus-visible:ring-blue-700' :
-                                getColorForPost(post._id) === 1 ? 'focus-visible:ring-green-200 dark:focus-visible:ring-green-700' :
-                                getColorForPost(post._id) === 2 ? 'focus-visible:ring-pink-200 dark:focus-visible:ring-pink-700' :
-                                getColorForPost(post._id) === 3 ? 'focus-visible:ring-purple-200 dark:focus-visible:ring-purple-700' :
-                                'focus-visible:ring-orange-200 dark:focus-visible:ring-orange-700'
-                              }`}
-                              disabled={commentingPostId === post._id}
-                            />
-                            <Button
-                              onClick={() => handleAddComment(post._id)}
-                              disabled={!newComments[post._id]?.trim() || commentingPostId === post._id}
-                              size="sm"
-                              className={`h-[60px] px-3 shadow-md text-white ${
-                                getColorForPost(post._id) === 0 ? 'bg-blue-500 hover:bg-blue-600' :
-                                getColorForPost(post._id) === 1 ? 'bg-green-500 hover:bg-green-600' :
-                                getColorForPost(post._id) === 2 ? 'bg-pink-500 hover:bg-pink-600' :
-                                getColorForPost(post._id) === 3 ? 'bg-purple-500 hover:bg-purple-600' :
-                                'bg-orange-500 hover:bg-orange-600'
-                              }`}
-                            >
-                              {commentingPostId === post._id ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                              ) : (
-                                <Send className="h-3 w-3" />
-                              )}
-                            </Button>
-                          </div>
+          {loading ? (
+            <div className="flex justify-center py-6">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : posts.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p className="text-sm">No notes yet</p>
+            </div>
+          ) : (
+            <>
+              <div className="grid gap-3 md:grid-cols-3">
+                {posts.map((post) => {
+                  const colors = [
+                    { bg: "from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20", border: "border-blue-200 dark:border-blue-700", pin: "bg-blue-400", button: "bg-blue-500 hover:bg-blue-600", ring: "focus-visible:ring-blue-200 dark:focus-visible:ring-blue-700" },
+                    { bg: "from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20", border: "border-green-200 dark:border-green-700", pin: "bg-green-400", button: "bg-green-500 hover:bg-green-600", ring: "focus-visible:ring-green-200 dark:focus-visible:ring-green-700" },
+                    { bg: "from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-800/20", border: "border-pink-200 dark:border-pink-700", pin: "bg-pink-400", button: "bg-pink-500 hover:bg-pink-600", ring: "focus-visible:ring-pink-200 dark:focus-visible:ring-pink-700" },
+                    { bg: "from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20", border: "border-purple-200 dark:border-purple-700", pin: "bg-purple-400", button: "bg-purple-500 hover:bg-purple-600", ring: "focus-visible:ring-purple-200 dark:focus-visible:ring-purple-700" },
+                    { bg: "from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20", border: "border-orange-200 dark:border-orange-700", pin: "bg-orange-400", button: "bg-orange-500 hover:bg-orange-600", ring: "focus-visible:ring-orange-200 dark:focus-visible:ring-orange-700" },
+                  ]
+                  const color = colors[getColorForPost(post._id)]
+                  const rotation = getRotationForPost(post._id)
+                  
+                  return (
+                    <div
+                      key={post._id}
+                      className={`bg-gradient-to-br ${color.bg} p-3 rounded-lg shadow-lg border-2 ${color.border} relative transform hover:scale-105 transition-transform cursor-pointer`}
+                      style={{ transform: `rotate(${rotation}deg)` }}
+                      onClick={() => setSelectedPostId(post._id)}
+                    >
+                      <div className={`absolute -top-1.5 left-1/2 -translate-x-1/2 ${color.pin} h-3 w-3 rounded-full shadow border-2 border-white dark:border-gray-800`} />
+                      
+                      <div className="flex gap-2 items-start mb-2">
+                        <Avatar className="h-7 w-7 border-2 border-white dark:border-gray-700">
+                          <AvatarImage src={getUserAvatar(post.createdBy) || "/placeholder.svg"} />
+                          <AvatarFallback className="text-xs">
+                            {getUserName(post.createdBy).split(" ").map((n) => n[0]).join("").toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-xs truncate">{getUserName(post.createdBy)}</p>
+                          <p className="text-[10px] text-muted-foreground">{formatRelativeTime(post.createdAt)}</p>
                         </div>
                       </div>
-                    )
-                  })}
-                </div>
-                
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-center gap-2 mt-8 pt-6 border-t">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                      disabled={currentPage === 1 || loading}
-                    >
-                      Previous
-                    </Button>
-                    <div className="flex items-center gap-1">
-                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                        let pageNum
-                        if (totalPages <= 5) {
-                          pageNum = i + 1
-                        } else if (currentPage <= 3) {
-                          pageNum = i + 1
-                        } else if (currentPage >= totalPages - 2) {
-                          pageNum = totalPages - 4 + i
-                        } else {
-                          pageNum = currentPage - 2 + i
-                        }
-                        
-                        return (
+
+                      <p className="text-xs mb-2 line-clamp-4">{post.content}</p>
+
+                      {post.comments.length > 0 && (
+                        <div className="bg-white/50 dark:bg-black/20 rounded p-2 space-y-1 mb-2 max-h-24 overflow-y-auto">
+                          {post.comments.slice(0, 2).map((comment) => (
+                            <div key={comment._id} className="flex gap-1.5 text-[10px]">
+                              <Avatar className="h-5 w-5">
+                                <AvatarImage src={getUserAvatar(comment.createdBy) || "/placeholder.svg"} />
+                                <AvatarFallback className="text-[8px]">
+                                  {getUserName(comment.createdBy).split(" ").map((n) => n[0]).join("").toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium truncate">{getUserName(comment.createdBy)}</p>
+                                <p className="text-muted-foreground line-clamp-1">{comment.content}</p>
+                              </div>
+                            </div>
+                          ))}
+                          {post.comments.length > 2 && (
+                            <p className="text-[10px] text-center text-muted-foreground">+{post.comments.length - 2} more</p>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="space-y-1 border-t pt-2" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex gap-1.5">
+                          <Textarea
+                            placeholder="Comment..."
+                            value={newComments[post._id] || ""}
+                            onChange={(e) => setNewComments({ ...newComments, [post._id]: e.target.value })}
+                            className={`min-h-[50px] text-xs resize-none bg-white/70 dark:bg-black/30 border ${color.border} ${color.ring}`}
+                            disabled={commentingPostId === post._id}
+                          />
                           <Button
-                            key={pageNum}
-                            variant={currentPage === pageNum ? "default" : "outline"}
+                            onClick={() => handleAddComment(post._id)}
+                            disabled={!newComments[post._id]?.trim() || commentingPostId === post._id}
                             size="sm"
-                            onClick={() => setCurrentPage(pageNum)}
-                            disabled={loading}
-                            className="w-10"
+                            className={`h-[50px] px-2 text-white ${color.button}`}
                           >
-                            {pageNum}
+                            {commentingPostId === post._id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Send className="h-3 w-3" />
+                            )}
                           </Button>
-                        )
-                      })}
+                        </div>
+                      </div>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                      disabled={currentPage === totalPages || loading}
-                    >
-                      Next
-                    </Button>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
+                  )
+                })}
+              </div>
+              
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 pt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1 || loading}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages || loading}
+                  >
+                    Next
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
         </CardContent>
       </Card>
 

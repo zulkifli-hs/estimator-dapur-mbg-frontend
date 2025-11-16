@@ -116,9 +116,9 @@ export default function ProjectsPage() {
             <Link key={project._id} href={`/projects/${project._id}`}>
               <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
                 <CardHeader>
-                  <div className="flex items-start gap-2">
-                    <CardTitle className="text-lg line-clamp-2 flex-1">{project.name}</CardTitle>
-                    <Badge className="bg-primary/10 text-primary shrink-0">{project.type || "Project"}</Badge>
+                  <div className="space-y-2">
+                    <CardTitle className="text-lg line-clamp-2">{project.name}</CardTitle>
+                    <Badge className="bg-primary/10 text-primary w-fit">{project.type || "Project"}</Badge>
                   </div>
                   <CardDescription className="line-clamp-1">
                     {project.building} - Floor {project.floor}

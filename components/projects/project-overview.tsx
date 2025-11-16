@@ -62,6 +62,42 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
     }
   }
 
+  const completenessChecks = [
+    {
+      label: "Layout Files Uploaded",
+      completed: project.detail?.layout,
+      description: "Check Layout menu"
+    },
+    {
+      label: "Contract Files Uploaded",
+      completed: project.detail?.contract,
+      description: "Check Project menu"
+    },
+    {
+      label: "Main BOQ Created",
+      completed: false, // Will be checked via API in future
+      description: "Check BOQ menu"
+    },
+    {
+      label: "Additional BOQ Created",
+      completed: false, // Will be checked via API in future
+      description: "Check BOQ menu"
+    },
+    {
+      label: "Invoice/Payment Terms Set",
+      completed: false, // Will be checked via API in future
+      description: "Check Invoice menu"
+    },
+    {
+      label: "Documents Uploaded",
+      completed: false, // Will be checked via API in future
+      description: "Check Documents menu"
+    },
+  ]
+
+  const completedCount = completenessChecks.filter(check => check.completed).length
+  const completionPercentage = Math.round((completedCount / completenessChecks.length) * 100)
+
   const totalTeamMembers =
     (project.estimators?.length || 0) +
     (project.projectManagers?.length || 0) +
@@ -190,22 +226,22 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {/* Owner & Client Card */}
-        <Card className="border-2 bg-gradient-to-br from-blue-50/50 to-indigo-50/50 dark:from-blue-950/20 dark:to-indigo-950/20">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Crown className="h-5 w-5 text-yellow-600 dark:text-yellow-500" />
-              Project Core
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-start gap-3 p-3 bg-white/50 dark:bg-black/20 rounded-lg">
+      <Card className="border-2">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Building2 className="h-5 w-5 text-primary" />
+            Project Information
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Owner and Client Section */}
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="flex items-start gap-3 p-3 bg-gradient-to-br from-yellow-50/50 to-yellow-100/50 dark:from-yellow-900/20 dark:to-yellow-800/20 rounded-lg border border-yellow-200 dark:border-yellow-700">
               <div className="bg-yellow-500/10 p-2 rounded-full">
                 <Crown className="h-5 w-5 text-yellow-600 dark:text-yellow-500" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-muted-foreground mb-1">Owner</p>
+                <p className="text-xs font-medium text-muted-foreground mb-1">Project Owner</p>
                 <p className="text-sm font-semibold truncate">{project.companyOwner?.name || "N/A"}</p>
                 {project.owner && (
                   <p className="text-xs text-muted-foreground truncate">
@@ -215,7 +251,7 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
               </div>
             </div>
 
-            <div className="flex items-start gap-3 p-3 bg-white/50 dark:bg-black/20 rounded-lg">
+            <div className="flex items-start gap-3 p-3 bg-gradient-to-br from-blue-50/50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg border border-blue-200 dark:border-blue-700">
               <div className="bg-blue-500/10 p-2 rounded-full">
                 <Briefcase className="h-5 w-5 text-blue-600 dark:text-blue-500" />
               </div>
@@ -229,171 +265,155 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
                 )}
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Project Details Card */}
-        <Card className="border-2">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-primary" />
-              Project Details
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center justify-between py-2 border-b">
-              <span className="text-sm text-muted-foreground">Type</span>
-              <Badge variant="secondary" className="font-medium">{project.type}</Badge>
-            </div>
+          <div className="border-t pt-4 space-y-3">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <span className="text-sm text-muted-foreground">Project Type</span>
+                <p className="text-base font-medium mt-1">
+                  <Badge variant="secondary">{project.type}</Badge>
+                </p>
+              </div>
 
-            <div className="flex items-start gap-3">
-              <Ruler className="h-4 w-4 text-muted-foreground mt-0.5" />
-              <div className="flex-1">
-                <p className="text-xs text-muted-foreground">Area & Floor</p>
-                <p className="text-sm font-medium">
+              <div>
+                <span className="text-sm text-muted-foreground">Area & Floor</span>
+                <p className="text-base font-medium mt-1">
                   {project.area} m² • {project.floor} {project.floor > 1 ? 'Floors' : 'Floor'}
                 </p>
               </div>
-            </div>
 
-            {project.building && (
-              <div className="flex items-start gap-3">
-                <Building2 className="h-4 w-4 text-muted-foreground mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-xs text-muted-foreground">Building</p>
-                  <p className="text-sm font-medium">{project.building}</p>
+              {project.building && (
+                <div>
+                  <span className="text-sm text-muted-foreground">Building</span>
+                  <p className="text-base font-medium mt-1">{project.building}</p>
                 </div>
-              </div>
-            )}
+              )}
 
-            <div className="flex items-start gap-3">
-              <Calendar className="h-4 w-4 text-muted-foreground mt-0.5" />
-              <div className="flex-1">
-                <p className="text-xs text-muted-foreground">Created</p>
-                <p className="text-sm font-medium">
+              <div>
+                <span className="text-sm text-muted-foreground">Created</span>
+                <p className="text-base font-medium mt-1">
                   {new Date(project.createdAt).toLocaleDateString("id-ID", {
                     day: "numeric",
-                    month: "short",
+                    month: "long",
                     year: "numeric",
                   })}
                 </p>
               </div>
             </div>
+          </div>
+        </CardContent>
+      </Card>
 
-            <div className="flex items-center gap-2 pt-2 border-t">
-              <div className="flex-1 text-center py-2 bg-muted/50 rounded-md">
-                <p className="text-xs text-muted-foreground">Layout</p>
-                <p className="text-lg font-bold">{project.detail?.layout ? "✓" : "—"}</p>
-              </div>
-              <div className="flex-1 text-center py-2 bg-muted/50 rounded-md">
-                <p className="text-xs text-muted-foreground">Contract</p>
-                <p className="text-lg font-bold">{project.detail?.contract ? "✓" : "—"}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Team Statistics Card */}
-        <Card className={`border-2 ${hasEmptyRoles ? 'border-orange-300 dark:border-orange-700 bg-orange-50/30 dark:bg-orange-950/20' : 'border-green-300 dark:border-green-700 bg-green-50/30 dark:bg-green-950/20'}`}>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Users className="h-5 w-5 text-primary" />
-              Team Members
-              {hasEmptyRoles && (
-                <Badge variant="outline" className="ml-auto border-orange-500 text-orange-700 dark:text-orange-400 bg-orange-50 dark:bg-orange-950">
-                  <AlertTriangle className="h-3 w-3 mr-1" />
-                  {emptyRoles.length} empty
-                </Badge>
-              )}
+      <Card className="border-2">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              Project Data Completeness
             </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-white/70 dark:bg-black/30 rounded-lg border-2 border-primary/20">
-              <div className="flex items-center gap-2">
-                <UserCheck className="h-5 w-5 text-primary" />
-                <span className="text-sm font-medium">Total Members</span>
-              </div>
-              <span className="text-2xl font-bold text-primary">{totalTeamMembers}</span>
+            <Badge variant={completionPercentage === 100 ? "default" : "secondary"} className="text-lg px-3">
+              {completionPercentage}%
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="mb-4">
+            <div className="h-3 bg-muted rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-gradient-to-r from-blue-500 to-green-500 transition-all duration-500"
+                style={{ width: `${completionPercentage}%` }}
+              />
             </div>
+          </div>
 
-            <div className="space-y-2">
-              {[
-                { name: 'Estimators', count: project.estimators?.length || 0, icon: Users, color: 'text-blue-600 dark:text-blue-400' },
-                { name: 'Project Managers', count: project.projectManagers?.length || 0, icon: TrendingUp, color: 'text-green-600 dark:text-green-400' },
-                { name: 'Finances', count: project.finances?.length || 0, icon: DollarSign, color: 'text-yellow-600 dark:text-yellow-400' },
-                { name: 'Designers', count: project.designers?.length || 0, icon: PenTool, color: 'text-purple-600 dark:text-purple-400' },
-                { name: 'Admins', count: project.admins?.length || 0, icon: Shield, color: 'text-red-600 dark:text-red-400' },
-              ].map((role) => {
-                const Icon = role.icon
-                return (
-                  <div 
-                    key={role.name} 
-                    className={`flex items-center justify-between text-sm px-3 py-2 rounded-md ${
-                      role.count === 0 
-                        ? 'bg-orange-100/50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800' 
-                        : 'bg-white/50 dark:bg-black/20'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Icon className={`h-4 w-4 ${role.color}`} />
-                      <span className="text-muted-foreground">{role.name}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {role.count === 0 && (
-                        <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-                      )}
-                      <span className={`font-semibold ${role.count === 0 ? 'text-orange-700 dark:text-orange-400' : ''}`}>
-                        {role.count}
-                      </span>
-                    </div>
+          {completenessChecks.map((check, index) => (
+            <div 
+              key={index}
+              className={`flex items-start gap-3 p-3 rounded-lg border ${
+                check.completed 
+                  ? 'bg-green-50/50 dark:bg-green-900/20 border-green-200 dark:border-green-700' 
+                  : 'bg-orange-50/50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-700'
+              }`}
+            >
+              <div className={`mt-0.5 ${check.completed ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>
+                {check.completed ? (
+                  <UserCheck className="h-5 w-5" />
+                ) : (
+                  <AlertTriangle className="h-5 w-5" />
+                )}
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium">{check.label}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{check.description}</p>
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card className={`border-2 ${hasEmptyRoles ? 'border-orange-200 dark:border-orange-700' : 'border-green-200 dark:border-green-700'}`}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5 text-primary" />
+            Team Members
+            {hasEmptyRoles && (
+              <Badge variant="outline" className="ml-auto border-orange-500 text-orange-700 dark:text-orange-400">
+                <AlertTriangle className="h-3 w-3 mr-1" />
+                {emptyRoles.length} role{emptyRoles.length > 1 ? 's' : ''} empty
+              </Badge>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border-2 border-blue-200 dark:border-blue-700">
+            <div className="flex items-center gap-3">
+              <UserCheck className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+              <span className="text-base font-medium">Total Team Members</span>
+            </div>
+            <span className="text-3xl font-bold text-blue-600 dark:text-blue-400">{totalTeamMembers}</span>
+          </div>
+
+          <div className="space-y-2">
+            {[
+              { name: 'Estimators', count: project.estimators?.length || 0, icon: Users, color: 'text-blue-600 dark:text-blue-400', bgColor: 'bg-blue-50 dark:bg-blue-900/20' },
+              { name: 'Project Managers', count: project.projectManagers?.length || 0, icon: TrendingUp, color: 'text-green-600 dark:text-green-400', bgColor: 'bg-green-50 dark:bg-green-900/20' },
+              { name: 'Finances', count: project.finances?.length || 0, icon: DollarSign, color: 'text-yellow-600 dark:text-yellow-400', bgColor: 'bg-yellow-50 dark:bg-yellow-900/20' },
+              { name: 'Designers', count: project.designers?.length || 0, icon: PenTool, color: 'text-purple-600 dark:text-purple-400', bgColor: 'bg-purple-50 dark:bg-purple-900/20' },
+              { name: 'Admins', count: project.admins?.length || 0, icon: Shield, color: 'text-red-600 dark:text-red-400', bgColor: 'bg-red-50 dark:bg-red-900/20' },
+            ].map((role) => {
+              const Icon = role.icon
+              return (
+                <div 
+                  key={role.name} 
+                  className={`flex items-center justify-between p-3 rounded-lg border-2 ${
+                    role.count === 0 
+                      ? 'bg-orange-50/50 dark:bg-orange-900/20 border-orange-300 dark:border-orange-700' 
+                      : `${role.bgColor} border-transparent`
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Icon className={`h-5 w-5 ${role.color}`} />
+                    <span className="text-sm font-medium">{role.name}</span>
                   </div>
-                )
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                  <div className="flex items-center gap-2">
+                    {role.count === 0 && (
+                      <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                    )}
+                    <span className={`text-lg font-bold ${role.count === 0 ? 'text-orange-600 dark:text-orange-400' : role.color}`}>
+                      {role.count}
+                    </span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="border-2 border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-blue-700 dark:text-blue-300">BOQ Items</p>
-                <p className="text-3xl font-bold text-blue-900 dark:text-blue-100">—</p>
-                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">Check BOQ tab</p>
-              </div>
-              <FileText className="h-12 w-12 text-blue-400 dark:text-blue-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-2 border-green-200 dark:border-green-800 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/50 dark:to-green-900/50">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-green-700 dark:text-green-300">Documents</p>
-                <p className="text-3xl font-bold text-green-900 dark:text-green-100">—</p>
-                <p className="text-xs text-green-600 dark:text-green-400 mt-1">Files & Folders</p>
-              </div>
-              <FolderOpen className="h-12 w-12 text-green-400 dark:text-green-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-2 border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/50 dark:to-purple-900/50">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-purple-700 dark:text-purple-300">Discussions</p>
-                <p className="text-3xl font-bold text-purple-900 dark:text-purple-100">{totalPosts}</p>
-                <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">{totalPosts === 1 ? 'Post' : 'Posts'}</p>
-              </div>
-              <MessageSquare className="h-12 w-12 text-purple-400 dark:text-purple-600" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          <p className="text-xs text-muted-foreground text-center pt-2 border-t">
+            Note: Owner and Client are not included in team member counts
+          </p>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

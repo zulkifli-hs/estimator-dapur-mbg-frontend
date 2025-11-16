@@ -4,8 +4,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { UserPlus, Phone, X, Plus, Search, Check } from 'lucide-react'
+import { UserPlus, Phone, X, Plus, Search, Check, Trash2 } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { projectsApi } from "@/lib/api/projects"
@@ -49,7 +59,24 @@ export function ProjectMembers({ project, onUpdate }: ProjectMembersProps) {
                 <p className="text-sm text-muted-foreground">{member.user?.email}</p>
               </div>
             </div>
-            <Badge variant={member.status === "Accepted" ? "default" : "secondary"}>{member.status}</Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant={member.status === "Accepted" ? "default" : "secondary"}>{member.status}</Badge>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={() => {
+                  setRemoveMemberDialog({
+                    open: true,
+                    memberId: member._id,
+                    memberName: member.user?.profile?.name || member.user?.email || "Unknown",
+                    role: role,
+                  })
+                }}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         ))}
       </div>
@@ -59,6 +86,13 @@ export function ProjectMembers({ project, onUpdate }: ProjectMembersProps) {
   // State for invite dialog
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false)
   const [selectedRole, setSelectedRole] = useState<string>("")
+  const [removeMemberDialog, setRemoveMemberDialog] = useState<{
+    open: boolean
+    memberId: string
+    memberName: string
+    role: string
+  }>({ open: false, memberId: "", memberName: "", role: "" })
+  const [isRemoving, setIsRemoving] = useState(false)
   const { toast } = useToast()
 
   // Handler to open invite dialog with specific role
@@ -71,6 +105,34 @@ export function ProjectMembers({ project, onUpdate }: ProjectMembersProps) {
   const handleInviteSuccess = () => {
     setInviteDialogOpen(false)
     onUpdate()
+  }
+
+  // Handler for remove member
+  const handleRemoveMember = async () => {
+    setIsRemoving(true)
+    try {
+      const result = await projectsApi.removeMember(
+        project._id,
+        [removeMemberDialog.memberId],
+        removeMemberDialog.role
+      )
+      if (result.success) {
+        toast({
+          title: "Member removed",
+          description: `${removeMemberDialog.memberName} has been removed from the project.`,
+        })
+        setRemoveMemberDialog({ open: false, memberId: "", memberName: "", role: "" })
+        onUpdate()
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to remove member",
+        variant: "destructive",
+      })
+    } finally {
+      setIsRemoving(false)
+    }
   }
 
   return (
@@ -194,6 +256,35 @@ export function ProjectMembers({ project, onUpdate }: ProjectMembersProps) {
         role={selectedRole}
         onSuccess={handleInviteSuccess}
       />
+
+      <AlertDialog open={removeMemberDialog.open} onOpenChange={(open) => {
+        if (!isRemoving) {
+          setRemoveMemberDialog({ ...removeMemberDialog, open })
+        }
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Member</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove <span className="font-semibold">{removeMemberDialog.memberName}</span> from this project?
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isRemoving}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault()
+                handleRemoveMember()
+              }}
+              disabled={isRemoving}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isRemoving ? "Removing..." : "Remove"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

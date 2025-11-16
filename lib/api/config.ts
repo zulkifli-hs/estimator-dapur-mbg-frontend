@@ -62,7 +62,6 @@ export async function apiRequest<T>(endpoint: string, options: RequestInit = {})
   console.log("[v0] API Request:", {
     endpoint,
     method: options.method,
-    body: options.body,
   })
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -81,6 +80,15 @@ export async function apiRequest<T>(endpoint: string, options: RequestInit = {})
     ok: response.ok,
     jsonResponse,
   })
+
+  if (response.status === 401 || jsonResponse.code === 401) {
+    console.log("[v0] 401 Unauthorized - clearing auth and redirecting to login")
+    removeAuthToken()
+    if (typeof window !== "undefined") {
+      window.location.href = "/login"
+    }
+    throw new Error("Session expired. Please login again.")
+  }
 
   // Accept both 200 (OK) and 201 (Created) as successful responses
   if (!response.ok || (jsonResponse.code !== 200 && jsonResponse.code !== 201)) {

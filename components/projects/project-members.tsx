@@ -51,48 +51,61 @@ export function ProjectMembers({ project, onUpdate }: ProjectMembersProps) {
 
     return (
       <div className="space-y-2">
-        {members.map((member) => (
-          <div
-            key={member._id}
-            className="group flex items-center justify-between p-3 border rounded-lg hover:shadow-sm hover:border-primary/20 transition-all"
-          >
-            <div className="flex items-center gap-3 flex-1 min-w-0">
-              <Avatar className="h-10 w-10 ring-2 ring-background">
-                <AvatarImage src={member.user?.profile?.photo || "/placeholder.svg"} />
-                <AvatarFallback className="text-xs">{getInitials(member.user?.profile?.name || "U")}</AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm truncate">{member.user?.profile?.name || "Unknown"}</p>
-                <p className="text-xs text-muted-foreground truncate">{member.user?.email}</p>
+        {members.map((member) => {
+          const userName = member.user?.profile?.name || ""
+          const userEmail = member.user?.email || ""
+          const userPhoto = member.user?.profile?.photo?.url || ""
+          const userPhone = member.user?.profile?.phone || ""
+          
+          return (
+            <div
+              key={member._id}
+              className="group flex items-center justify-between p-3 border rounded-lg hover:shadow-sm hover:border-primary/20 transition-all"
+            >
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <Avatar className="h-10 w-10 ring-2 ring-background">
+                  {userPhoto && <AvatarImage src={userPhoto.startsWith('http') ? userPhoto : `${process.env.NEXT_PUBLIC_API_BASE_URL}/${userPhoto}`} />}
+                  <AvatarFallback className="text-xs">{userName ? getInitials(userName) : userEmail.charAt(0).toUpperCase()}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  {userName && <p className="font-medium text-sm truncate">{userName}</p>}
+                  <p className={`text-xs text-muted-foreground truncate ${!userName ? 'font-medium' : ''}`}>{userEmail}</p>
+                  {userPhone && (
+                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                      <Phone className="h-3 w-3" />
+                      {userPhone}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2 ml-2">
+                <Badge 
+                  variant={member.status === "Accepted" ? "default" : "secondary"}
+                  className="text-xs"
+                >
+                  {member.status}
+                </Badge>
+                {!isClientRole && (
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => {
+                      setRemoveMemberDialog({
+                        open: true,
+                        memberId: member._id,
+                        memberName: userName || userEmail,
+                        role: role,
+                      })
+                    }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
               </div>
             </div>
-            <div className="flex items-center gap-2 ml-2">
-              <Badge 
-                variant={member.status === "Accepted" ? "default" : "secondary"}
-                className="text-xs"
-              >
-                {member.status}
-              </Badge>
-              {!isClientRole && (
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10"
-                  onClick={() => {
-                    setRemoveMemberDialog({
-                      open: true,
-                      memberId: member._id,
-                      memberName: member.user?.profile?.name || member.user?.email || "Unknown",
-                      role: role,
-                    })
-                  }}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              )}
-            </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
     )
   }
@@ -244,7 +257,7 @@ export function ProjectMembers({ project, onUpdate }: ProjectMembersProps) {
           <p className="text-sm text-muted-foreground">Manage project team roles and permissions</p>
         </div>
         
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2">
           <Card className="hover:shadow-md transition-shadow">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">

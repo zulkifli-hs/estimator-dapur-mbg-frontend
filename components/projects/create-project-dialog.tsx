@@ -39,25 +39,26 @@ interface TeamMemberInputProps {
 function TeamMemberInput({ label, emails, onAdd, onRemove, disabled }: TeamMemberInputProps) {
   const [inputValue, setInputValue] = useState("")
   const [error, setError] = useState("")
-  const [open, setOpen] = useState(false)
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(false)
   const searchTimeoutRef = useRef<NodeJS.Timeout>()
+  const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current)
     }
 
-    if (inputValue.trim()) {
+    if (inputValue.trim().length > 0) {
+      setLoading(true)
       searchTimeoutRef.current = setTimeout(async () => {
-        setLoading(true)
         const results = await usersApi.search(inputValue.trim())
         setUsers(results)
         setLoading(false)
-      }, 300)
+      }, 500)
     } else {
       setUsers([])
+      setLoading(false)
     }
 
     return () => {
@@ -77,8 +78,9 @@ function TeamMemberInput({ label, emails, onAdd, onRemove, disabled }: TeamMembe
 
     onAdd(email)
     setInputValue("")
+    setUsers([])
     setError("")
-    setOpen(false)
+    setTimeout(() => inputRef.current?.focus(), 0)
   }
 
   const handleAddManual = () => {
@@ -101,8 +103,9 @@ function TeamMemberInput({ label, emails, onAdd, onRemove, disabled }: TeamMembe
 
     onAdd(trimmedEmail)
     setInputValue("")
+    setUsers([])
     setError("")
-    setOpen(false)
+    setTimeout(() => inputRef.current?.focus(), 0)
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -120,80 +123,73 @@ function TeamMemberInput({ label, emails, onAdd, onRemove, disabled }: TeamMembe
     return url
   }
 
+  const showDropdown = inputValue.trim().length > 0 && (loading || users.length > 0 || isValidEmail(inputValue.trim()))
+
   return (
     <div className="space-y-2">
       <Label>{label}</Label>
       <div className="flex gap-2">
-        <Popover open={open} onOpenChange={setOpen}>
-          <PopoverTrigger asChild>
-            <div className="flex-1 relative">
-              <Input
-                value={inputValue}
-                onChange={(e) => {
-                  setInputValue(e.target.value)
-                  setError("")
-                  setOpen(true)
-                }}
-                onKeyPress={handleKeyPress}
-                placeholder="Search by name or email..."
-                disabled={disabled}
-                className={error ? "border-destructive" : ""}
-              />
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+        <div className="flex-1 relative">
+          <Input
+            ref={inputRef}
+            value={inputValue}
+            onChange={(e) => {
+              setInputValue(e.target.value)
+              setError("")
+            }}
+            onKeyPress={handleKeyPress}
+            placeholder="Search by name or email..."
+            disabled={disabled}
+            className={error ? "border-destructive" : ""}
+          />
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          
+          {showDropdown && (
+            <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-md max-h-[300px] overflow-auto">
+              {loading ? (
+                <div className="p-4 text-sm text-muted-foreground text-center">Searching...</div>
+              ) : users.length > 0 ? (
+                <div className="p-1">
+                  {users.map((user) => (
+                    <div
+                      key={user._id}
+                      onClick={() => handleSelectUser(user)}
+                      className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-accent rounded-sm"
+                    >
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={getImageUrl(user.profile.photo.url) || "/placeholder.svg"} alt={user.profile.name} />
+                        <AvatarFallback>{user.profile.name.charAt(0).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{user.profile.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                      </div>
+                      {emails.includes(user.email) && (
+                        <Check className="h-4 w-4 text-primary" />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-4 space-y-3">
+                  <p className="text-sm text-muted-foreground text-center">No users found</p>
+                  {isValidEmail(inputValue.trim()) && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={handleAddManual}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add "{inputValue.trim()}"
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
-          </PopoverTrigger>
-          <PopoverContent className="w-[400px] p-0" align="start">
-            <Command>
-              <CommandList>
-                {loading ? (
-                  <div className="p-4 text-sm text-muted-foreground text-center">Searching...</div>
-                ) : users.length > 0 ? (
-                  <CommandGroup>
-                    {users.map((user) => (
-                      <CommandItem
-                        key={user._id}
-                        onSelect={() => handleSelectUser(user)}
-                        className="flex items-center gap-3 cursor-pointer"
-                      >
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={getImageUrl(user.profile.photo.url) || "/placeholder.svg"} alt={user.profile.name} />
-                          <AvatarFallback>{user.profile.name.charAt(0).toUpperCase()}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex flex-col flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{user.profile.name}</p>
-                          <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                        </div>
-                        {emails.includes(user.email) && (
-                          <Check className="h-4 w-4 text-primary" />
-                        )}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                ) : inputValue.trim() ? (
-                  <div className="p-4 space-y-3">
-                    <p className="text-sm text-muted-foreground text-center">No users found</p>
-                    {isValidEmail(inputValue.trim()) && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="w-full"
-                        onClick={handleAddManual}
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add "{inputValue.trim()}"
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="p-4 text-sm text-muted-foreground text-center">
-                    Type to search users or enter an email
-                  </div>
-                )}
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
+          )}
+        </div>
         <Button type="button" onClick={handleAddManual} disabled={disabled} size="icon" variant="outline">
           <Plus className="h-4 w-4" />
         </Button>
@@ -304,7 +300,6 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess }: CreatePro
       const response = await projectsApi.create(formData)
 
       if (response.success) {
-        // Reset form
         setFormData({
           name: "",
           type: "Renovasi",

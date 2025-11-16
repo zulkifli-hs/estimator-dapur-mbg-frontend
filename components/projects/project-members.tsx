@@ -109,6 +109,12 @@ export function ProjectMembers({ project, onUpdate }: ProjectMembersProps) {
 
   // Handler for remove member
   const handleRemoveMember = async () => {
+    console.log('[v0] Remove member request:', {
+      projectId: project._id,
+      memberId: removeMemberDialog.memberId,
+      role: removeMemberDialog.role,
+    })
+    
     setIsRemoving(true)
     try {
       const result = await projectsApi.removeMember(
@@ -180,7 +186,7 @@ export function ProjectMembers({ project, onUpdate }: ProjectMembersProps) {
               </Button>
             </div>
           </CardHeader>
-          <CardContent>{renderMemberList(project.estimators, "Estimators")}</CardContent>
+          <CardContent>{renderMemberList(project.estimators, "estimators")}</CardContent>
         </Card>
 
         <Card>
@@ -193,7 +199,7 @@ export function ProjectMembers({ project, onUpdate }: ProjectMembersProps) {
               </Button>
             </div>
           </CardHeader>
-          <CardContent>{renderMemberList(project.projectManagers, "Project Managers")}</CardContent>
+          <CardContent>{renderMemberList(project.projectManagers, "projectManagers")}</CardContent>
         </Card>
 
         <Card>
@@ -206,7 +212,7 @@ export function ProjectMembers({ project, onUpdate }: ProjectMembersProps) {
               </Button>
             </div>
           </CardHeader>
-          <CardContent>{renderMemberList(project.finances, "Finance Team")}</CardContent>
+          <CardContent>{renderMemberList(project.finances, "finances")}</CardContent>
         </Card>
 
         <Card>
@@ -219,7 +225,7 @@ export function ProjectMembers({ project, onUpdate }: ProjectMembersProps) {
               </Button>
             </div>
           </CardHeader>
-          <CardContent>{renderMemberList(project.designers, "Designers")}</CardContent>
+          <CardContent>{renderMemberList(project.designers, "designers")}</CardContent>
         </Card>
 
         <Card>
@@ -232,7 +238,7 @@ export function ProjectMembers({ project, onUpdate }: ProjectMembersProps) {
               </Button>
             </div>
           </CardHeader>
-          <CardContent>{renderMemberList(project.clients, "Clients")}</CardContent>
+          <CardContent>{renderMemberList(project.clients, "clients")}</CardContent>
         </Card>
 
         <Card>
@@ -245,7 +251,7 @@ export function ProjectMembers({ project, onUpdate }: ProjectMembersProps) {
               </Button>
             </div>
           </CardHeader>
-          <CardContent>{renderMemberList(project.admins, "Admins")}</CardContent>
+          <CardContent>{renderMemberList(project.admins, "admins")}</CardContent>
         </Card>
       </div>
 

@@ -2,6 +2,16 @@
 
 import type React from "react"
 import { useRef } from "react"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { cn } from "@/lib/utils"
+import { RefreshCw, Settings } from "lucide-react"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -37,7 +47,6 @@ import { albumsApi } from "@/lib/api/albums"
 import { useToast } from "@/hooks/use-toast"
 import { API_BASE_URL } from "@/lib/api/config"
 import { PostDetailDialog } from "./post-detail-dialog"
-import { cn } from "@/lib/utils"
 import { uploadApi } from "@/lib/api/upload" // Import uploadApi
 
 interface ProjectOverviewProps {
@@ -70,10 +79,24 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
   const [albumsData, setAlbumsData] = useState<any[]>([])
   const [dataLoading, setDataLoading] = useState(true)
 
+  const [cardStyle, setCardStyle] = useState({
+    showBackground: true,
+    showPin: true,
+    showRotation: true,
+  })
+  const [showCustomizeDialog, setShowCustomizeDialog] = useState(false)
+
   useEffect(() => {
     loadPosts()
     loadProjectData()
   }, [project._id, currentPage])
+
+  useEffect(() => {
+    const savedStyle = localStorage.getItem(`cardStyle-${project._id}`)
+    if (savedStyle) {
+      setCardStyle(JSON.parse(savedStyle))
+    }
+  }, [project._id])
 
   const loadProjectData = async () => {
     try {
@@ -113,6 +136,11 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
     } finally {
       setLoading(false)
     }
+  }
+
+  const saveCardStyle = (newStyle: typeof cardStyle) => {
+    setCardStyle(newStyle)
+    localStorage.setItem(`cardStyle-${project._id}`, JSON.stringify(newStyle))
   }
 
   const hasLayoutFiles = !!(project.detail?.layout && project.detail.layout.length > 0)
@@ -512,13 +540,27 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center text-base">
-            Discussion Board
-            {totalPosts > 0 && (
-              <Badge variant="secondary" className="ml-auto">
-                {totalPosts}
-              </Badge>
-            )}
+          <CardTitle className="flex items-center justify-between text-base">
+            <div className="flex items-center gap-2">
+              Discussion Board
+              {totalPosts > 0 && <Badge variant="secondary">{totalPosts}</Badge>}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  loadPosts()
+                  toast({ title: "Posts refreshed" })
+                }}
+                disabled={loading}
+              >
+                <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setShowCustomizeDialog(true)}>
+                <Settings className="h-4 w-4" />
+              </Button>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -676,18 +718,23 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
                   <div
                     key={post._id}
                     className={cn(
-                      "relative cursor-pointer p-3 rounded-lg shadow-md border-2 transition-all hover:shadow-lg hover:scale-[1.02]",
-                      color.bg,
-                      color.border,
+                      "relative cursor-pointer p-3 rounded-lg shadow-md transition-all hover:shadow-lg hover:scale-[1.02]",
+                      cardStyle.showBackground && color.bg,
+                      cardStyle.showBackground && `border-2 ${color.border}`,
+                      !cardStyle.showBackground && "bg-background border-2 border-border",
                     )}
                     style={{
-                      transform: `rotate(${getRotationForPost(post._id)}deg)`,
+                      transform: cardStyle.showRotation ? `rotate(${getRotationForPost(post._id)}deg)` : undefined,
                     }}
                   >
-                    {/* Pin at the top */}
-                    <div
-                      className={cn("absolute -top-2 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full shadow", color.pin)}
-                    />
+                    {cardStyle.showPin && (
+                      <div
+                        className={cn(
+                          "absolute -top-2 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full shadow",
+                          color.pin,
+                        )}
+                      />
+                    )}
 
                     <div onClick={() => setSelectedPostId(post._id)}>
                       <div className="flex gap-2 items-start mb-2">
@@ -820,6 +867,61 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
         </CardContent>
       </Card>
 
+      <Dialog open={showCustomizeDialog} onOpenChange={setShowCustomizeDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Customize Sticky Notes</DialogTitle>
+            <DialogDescription>Customize how the discussion board sticky notes are displayed</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <label className="text-sm font-medium">Colorful Background</label>
+                <p className="text-xs text-muted-foreground">Show colored backgrounds for notes</p>
+              </div>
+              <Button
+                variant={cardStyle.showBackground ? "default" : "outline"}
+                size="sm"
+                onClick={() => saveCardStyle({ ...cardStyle, showBackground: !cardStyle.showBackground })}
+              >
+                {cardStyle.showBackground ? "On" : "Off"}
+              </Button>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <label className="text-sm font-medium">Pin Icon</label>
+                <p className="text-xs text-muted-foreground">Show decorative pin at the top</p>
+              </div>
+              <Button
+                variant={cardStyle.showPin ? "default" : "outline"}
+                size="sm"
+                onClick={() => saveCardStyle({ ...cardStyle, showPin: !cardStyle.showPin })}
+              >
+                {cardStyle.showPin ? "On" : "Off"}
+              </Button>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <label className="text-sm font-medium">Rotation Effect</label>
+                <p className="text-xs text-muted-foreground">Tilt notes for a natural look</p>
+              </div>
+              <Button
+                variant={cardStyle.showRotation ? "default" : "outline"}
+                size="sm"
+                onClick={() => saveCardStyle({ ...cardStyle, showRotation: !cardStyle.showRotation })}
+              >
+                {cardStyle.showRotation ? "On" : "Off"}
+              </Button>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCustomizeDialog(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {selectedPostId && (
         <PostDetailDialog
           open={!!selectedPostId}
@@ -827,6 +929,7 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
           projectId={project._id}
           postId={selectedPostId}
           onUpdate={loadPosts}
+          cardStyle={cardStyle}
         />
       )}
     </div>

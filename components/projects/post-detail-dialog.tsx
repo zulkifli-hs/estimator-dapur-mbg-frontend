@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import cn from "classnames"
 
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -19,10 +20,15 @@ interface PostDetailDialogProps {
   onClose: () => void
   projectId: string
   postId: string
-  onUpdate?: () => void
+  onUpdate: () => void
+  cardStyle?: {
+    showBackground: boolean
+    showPin: boolean
+    showRotation: boolean
+  }
 }
 
-export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate }: PostDetailDialogProps) {
+export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate, cardStyle }: PostDetailDialogProps) {
   const [post, setPost] = useState<Post | null>(null)
   const [loading, setLoading] = useState(true)
   const [newComment, setNewComment] = useState("")
@@ -157,7 +163,7 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate }:
         setNewComment("")
         handleRemoveFile()
         await loadPostDetail()
-        onUpdate?.()
+        onUpdate()
         toast({
           title: "Success",
           description: "Comment added successfully",
@@ -249,14 +255,28 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate }:
     return url.match(/\.pdf$/i)
   }
 
+  const appliedCardStyle = cardStyle || {
+    showBackground: true,
+    showPin: true,
+    showRotation: false,
+  }
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent
-        className={`max-w-2xl h-[90vh] flex flex-col p-0 bg-gradient-to-br ${color.bg} border-4 ${color.border} shadow-2xl`}
+        className={cn(
+          "max-w-2xl h-[90vh] flex flex-col p-0 shadow-2xl",
+          appliedCardStyle.showBackground ? `bg-gradient-to-br ${color.bg} border-4 ${color.border}` : "border-2",
+        )}
       >
-        <div
-          className={`absolute -top-3 left-1/2 -translate-x-1/2 ${color.pin} h-5 w-5 rounded-full shadow-md border-2 border-white dark:border-gray-800`}
-        />
+        {appliedCardStyle.showPin && (
+          <div
+            className={cn(
+              "absolute -top-3 left-1/2 -translate-x-1/2 h-5 w-5 rounded-full shadow-md border-2 border-white dark:border-gray-800",
+              color.pin,
+            )}
+          />
+        )}
 
         {loading ? (
           <div className="flex justify-center items-center py-12">
@@ -523,7 +543,7 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate }:
                     type="file"
                     className="hidden"
                     onChange={handleFileSelect}
-                    disabled={submitting || isUploading}
+                    disabled={submitting || isUploading || !!selectedFile}
                   />
                   <Button
                     variant="outline"

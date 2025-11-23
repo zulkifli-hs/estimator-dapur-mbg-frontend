@@ -577,7 +577,7 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
               </div>
             )}
 
-            <div className="flex items-center mt-2 justify-end">
+            <div className="flex items-center mt-2 justify-end gap-2">
               {/* File attachment button */}
               <label htmlFor="post-file-upload" className="cursor-pointer">
                 <Button

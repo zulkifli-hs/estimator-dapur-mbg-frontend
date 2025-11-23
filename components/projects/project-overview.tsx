@@ -675,110 +675,117 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
                 return (
                   <div
                     key={post._id}
-                    onClick={() => setSelectedPostId(post._id)}
                     className={cn(
-                      "cursor-pointer p-3 rounded-lg shadow-md border-2 transition-all hover:shadow-lg hover:scale-[1.02]",
+                      "relative cursor-pointer p-3 rounded-lg shadow-md border-2 transition-all hover:shadow-lg hover:scale-[1.02]",
                       color.bg,
                       color.border,
                     )}
-                    // style={{
-                    //   transform: `rotate(${getRotationForPost(post._id)}deg)`,
-                    // }}
+                    style={{
+                      transform: `rotate(${getRotationForPost(post._id)}deg)`,
+                    }}
                   >
-                    <div className="flex gap-2 items-start mb-2">
-                      <Avatar className="h-7 w-7 border-2 border-white dark:border-gray-700">
-                        <AvatarImage src={getUserAvatar(post.createdBy) || "/placeholder.svg"} />
-                        <AvatarFallback className="text-xs">
-                          {getUserName(post.createdBy)
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")
-                            .toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-xs truncate">{getUserName(post.createdBy)}</p>
-                        <p className="text-[10px] text-muted-foreground">{formatRelativeTime(post.createdAt)}</p>
+                    {/* Pin at the top */}
+                    <div
+                      className={cn("absolute -top-2 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full shadow", color.pin)}
+                    />
+
+                    <div onClick={() => setSelectedPostId(post._id)}>
+                      <div className="flex gap-2 items-start mb-2">
+                        <Avatar className="h-7 w-7 border-2 border-white dark:border-gray-700">
+                          <AvatarImage src={getUserAvatar(post.createdBy) || "/placeholder.svg"} />
+                          <AvatarFallback className="text-xs">
+                            {getUserName(post.createdBy)
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                              .toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-xs truncate">{getUserName(post.createdBy)}</p>
+                          <p className="text-[10px] text-muted-foreground">{formatRelativeTime(post.createdAt)}</p>
+                        </div>
                       </div>
-                    </div>
 
-                    <p className="text-xs mb-2 whitespace-pre-wrap">{post.content}</p>
+                      <p className="text-xs mb-2 whitespace-pre-wrap">{post.content}</p>
 
-                    {/* Attachment display */}
-                    {post.attachment && (
-                      <div className="mb-2 mt-2 p-2 bg-white/30 dark:bg-black/20 rounded border border-current/20">
-                        {post.attachment.url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                          <img
-                            src={getAttachmentUrl(post.attachment) || "/placeholder.svg"}
-                            alt="Attachment"
-                            className="w-full h-24 object-cover rounded"
-                          />
-                        ) : (
-                          <div className="flex items-center gap-2 text-xs">
-                            {getFileIcon(post.attachment.url)}
-                            <span className="truncate flex-1">{post.attachment.url.split("/").pop()}</span>
-                            <a
-                              href={getAttachmentUrl(post.attachment)}
-                              download
+                      {/* Attachment display */}
+                      {post.attachment && (
+                        <div className="mb-2 mt-2 p-2 bg-white/30 dark:bg-black/20 rounded border border-current/20">
+                          {post.attachment.url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                            <img
+                              src={getAttachmentUrl(post.attachment) || "/placeholder.svg"}
+                              alt="Attachment"
+                              className="w-full h-24 object-cover rounded"
                               onClick={(e) => e.stopPropagation()}
-                              className="hover:underline"
-                            >
-                              <Download className="h-3 w-3" />
-                            </a>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {post.comments.length > 0 && (
-                      <div className="bg-white/50 dark:bg-black/20 rounded p-2 space-y-1 mb-2 max-h-24 overflow-y-auto">
-                        {post.comments.slice(0, 2).map((comment) => (
-                          <div key={comment._id} className="flex gap-1.5 text-[10px]">
-                            <Avatar className="h-5 w-5">
-                              <AvatarImage src={getUserAvatar(comment.createdBy) || "/placeholder.svg"} />
-                              <AvatarFallback className="text-[8px]">
-                                {getUserName(comment.createdBy)
-                                  .split(" ")
-                                  .map((n) => n[0])
-                                  .join("")
-                                  .toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium truncate">{getUserName(comment.createdBy)}</p>
-                              <p className="text-muted-foreground line-clamp-1">{comment.content}</p>
-                            </div>
-                          </div>
-                        ))}
-                        {post.comments.length > 2 && (
-                          <p className="text-[10px] text-center text-muted-foreground">
-                            +{post.comments.length - 2} more
-                          </p>
-                        )}
-                      </div>
-                    )}
-
-                    <div className="space-y-1 border-t pt-2" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex gap-1.5">
-                        <Textarea
-                          placeholder="Comment..."
-                          value={newComments[post._id] || ""}
-                          onChange={(e) => setNewComments({ ...newComments, [post._id]: e.target.value })}
-                          className={`min-h-[50px] text-xs resize-none bg-white/70 dark:bg-black/30 border ${color.border} ${color.ring}`}
-                          disabled={commentingPostId === post._id}
-                        />
-                        <Button
-                          onClick={() => handleAddComment(post._id)}
-                          disabled={!newComments[post._id]?.trim() || commentingPostId === post._id}
-                          size="sm"
-                          className={`h-[50px] px-2 text-white ${color.button}`}
-                        >
-                          {commentingPostId === post._id ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
+                            />
                           ) : (
-                            <Send className="h-3 w-3" />
+                            <div className="flex items-center gap-2 text-xs">
+                              {getFileIcon(post.attachment.url)}
+                              <span className="truncate flex-1">{post.attachment.url.split("/").pop()}</span>
+                              <a
+                                href={getAttachmentUrl(post.attachment)}
+                                download
+                                onClick={(e) => e.stopPropagation()}
+                                className="hover:underline"
+                              >
+                                <Download className="h-3 w-3" />
+                              </a>
+                            </div>
                           )}
-                        </Button>
+                        </div>
+                      )}
+
+                      {post.comments.length > 0 && (
+                        <div className="bg-white/50 dark:bg-black/20 rounded p-2 space-y-1 mb-2 max-h-24 overflow-y-auto">
+                          {post.comments.slice(0, 2).map((comment) => (
+                            <div key={comment._id} className="flex gap-1.5 text-[10px]">
+                              <Avatar className="h-5 w-5">
+                                <AvatarImage src={getUserAvatar(comment.createdBy) || "/placeholder.svg"} />
+                                <AvatarFallback className="text-[8px]">
+                                  {getUserName(comment.createdBy)
+                                    .split(" ")
+                                    .map((n) => n[0])
+                                    .join("")
+                                    .toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium truncate">{getUserName(comment.createdBy)}</p>
+                                <p className="text-muted-foreground line-clamp-1">{comment.content}</p>
+                              </div>
+                            </div>
+                          ))}
+                          {post.comments.length > 2 && (
+                            <p className="text-[10px] text-center text-muted-foreground">
+                              +{post.comments.length - 2} more
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="space-y-1 border-t pt-2" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex gap-1.5">
+                          <Textarea
+                            placeholder="Comment..."
+                            value={newComments[post._id] || ""}
+                            onChange={(e) => setNewComments({ ...newComments, [post._id]: e.target.value })}
+                            className={`min-h-[50px] text-xs resize-none bg-white/70 dark:bg-black/30 border ${color.border} ${color.ring}`}
+                            disabled={commentingPostId === post._id}
+                          />
+                          <Button
+                            onClick={() => handleAddComment(post._id)}
+                            disabled={!newComments[post._id]?.trim() || commentingPostId === post._id}
+                            size="sm"
+                            className={`h-[50px] px-2 text-white ${color.button}`}
+                          >
+                            {commentingPostId === post._id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Send className="h-3 w-3" />
+                            )}
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>

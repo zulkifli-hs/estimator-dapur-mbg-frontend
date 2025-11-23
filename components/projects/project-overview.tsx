@@ -823,7 +823,7 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
                             onClick={() => handleAddComment(post._id)}
                             disabled={!newComments[post._id]?.trim() || commentingPostId === post._id}
                             size="sm"
-                            className={`h-[50px] px-2 text-white ${color.button}`}
+                            className={cn(`h-[50px] px-2 text-white`, cardStyle.showBackground && `${color.button}`)}
                           >
                             {commentingPostId === post._id ? (
                               <Loader2 className="h-3 w-3 animate-spin" />

@@ -4,6 +4,11 @@ export interface Post {
   _id: string
   project: string
   content: string
+  attachment?: {
+    // Added attachment field
+    url: string
+    provider: string
+  }
   createdBy: {
     _id: string
     email: string
@@ -53,10 +58,18 @@ const getPosts = async (projectId: string, limit = 10, page = 1): Promise<ApiRes
   return apiRequest<GetPostsResponse>(`/projects/${projectId}/post?limit=${limit}&page=${page}`, { method: "GET" })
 }
 
-const createPost = async (projectId: string, content: string): Promise<ApiResponse<Post>> => {
+const createPost = async (
+  projectId: string,
+  content: string,
+  attachment?: { url: string; provider: string },
+): Promise<ApiResponse<Post>> => {
+  const body: any = { content }
+  if (attachment) {
+    body.attachment = attachment
+  }
   return apiRequest<Post>(`/projects/${projectId}/post`, {
     method: "POST",
-    body: JSON.stringify({ content }),
+    body: JSON.stringify(body),
   })
 }
 
@@ -82,8 +95,8 @@ export const discussionsApi = {
       totalPage: response.data.totalPage,
     }
   },
-  createPost: async (projectId: string, content: string) => {
-    const response = await createPost(projectId, content)
+  createPost: async (projectId: string, content: string, attachment?: { url: string; provider: string }) => {
+    const response = await createPost(projectId, content, attachment)
     return {
       success: response.code === 200 || response.code === 201,
       data: response.data,

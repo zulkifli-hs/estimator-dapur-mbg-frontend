@@ -1,11 +1,32 @@
 "use client"
 
+import type React from "react"
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Building2, MessageSquare, Send, Loader2, Users, UserCheck, AlertTriangle, Crown, Briefcase, PenTool, DollarSign, Shield, TrendingUp, CheckCircle2, XCircle } from 'lucide-react'
+import {
+  Building2,
+  Send,
+  Loader2,
+  Users,
+  AlertTriangle,
+  Crown,
+  Briefcase,
+  PenTool,
+  DollarSign,
+  Shield,
+  TrendingUp,
+  CheckCircle2,
+  XCircle,
+  Paperclip,
+  X,
+  FileText,
+  Download,
+  ImageIcon,
+} from "lucide-react"
 import { useState, useEffect } from "react"
 import { discussionsApi, type Post } from "@/lib/api/discussions"
 import { boqApi } from "@/lib/api/boq"
@@ -15,16 +36,22 @@ import { albumsApi } from "@/lib/api/albums"
 import { useToast } from "@/hooks/use-toast"
 import { API_BASE_URL } from "@/lib/api/config"
 import { PostDetailDialog } from "./post-detail-dialog"
+import { cn } from "@/lib/utils"
+import { uploadApi } from "@/lib/api/upload" // Import uploadApi
 
 interface ProjectOverviewProps {
   project: any
   onUpdate: () => void
 }
 
-export function ProjectOverview({ project }: ProjectOverviewProps) {
+function ProjectOverview({ project }: ProjectOverviewProps) {
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
   const [newPost, setNewPost] = useState("")
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [filePreview, setFilePreview] = useState<string | null>(null)
+  const [uploadProgress, setUploadProgress] = useState<number>(0)
+  const [isUploading, setIsUploading] = useState(false)
   const [newComments, setNewComments] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
   const [commentingPostId, setCommentingPostId] = useState<string | null>(null)
@@ -87,7 +114,11 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
   }
 
   const hasLayoutFiles = !!(project.detail?.layout && project.detail.layout.length > 0)
-  const hasContractFiles = !!(project.detail?.contract && Array.isArray(project.detail.contract) && project.detail.contract.length > 0)
+  const hasContractFiles = !!(
+    project.detail?.contract &&
+    Array.isArray(project.detail.contract) &&
+    project.detail.contract.length > 0
+  )
   const hasMainBOQ = boqData.some((boq: any) => boq.number === 1)
   const hasAdditionalBOQ = boqData.some((boq: any) => boq.number > 1)
   const hasTermins = terminData.length > 0
@@ -95,15 +126,17 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
   const totalFolderFiles = foldersData.reduce((sum: number, folder: any) => sum + (folder.files?.length || 0), 0)
 
   const mainBOQ = boqData.find((boq: any) => boq.number === 1)
-  const hasGanttChart = !!mainBOQ && (
-    (Array.isArray(mainBOQ.preliminary) && mainBOQ.preliminary.some((item: any) => item.startDate && item.endDate)) ||
-    (Array.isArray(mainBOQ.fittingOut) && mainBOQ.fittingOut.some((cat: any) => 
-      Array.isArray(cat.products) && cat.products.some((p: any) => p.startDate && p.endDate)
-    )) ||
-    (Array.isArray(mainBOQ.furnitureWork) && mainBOQ.furnitureWork.some((cat: any) => 
-      Array.isArray(cat.products) && cat.products.some((p: any) => p.startDate && p.endDate)
-    ))
-  )
+  const hasGanttChart =
+    !!mainBOQ &&
+    ((Array.isArray(mainBOQ.preliminary) && mainBOQ.preliminary.some((item: any) => item.startDate && item.endDate)) ||
+      (Array.isArray(mainBOQ.fittingOut) &&
+        mainBOQ.fittingOut.some(
+          (cat: any) => Array.isArray(cat.products) && cat.products.some((p: any) => p.startDate && p.endDate),
+        )) ||
+      (Array.isArray(mainBOQ.furnitureWork) &&
+        mainBOQ.furnitureWork.some(
+          (cat: any) => Array.isArray(cat.products) && cat.products.some((p: any) => p.startDate && p.endDate),
+        )))
 
   const totalAlbums = albumsData.length
   const totalPhotos = albumsData.reduce((sum: number, album: any) => sum + (album.list?.length || 0), 0)
@@ -146,7 +179,7 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
     },
   ]
 
-  const completedCount = completenessChecks.filter(check => check.completed).length
+  const completedCount = completenessChecks.filter((check) => check.completed).length
   const completionPercentage = Math.round((completedCount / completenessChecks.length) * 100)
 
   const totalTeamMembers =
@@ -157,12 +190,12 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
     (project.admins?.length || 0)
 
   const emptyRoles = [
-    { name: 'Estimators', count: project.estimators?.length || 0 },
-    { name: 'Project Managers', count: project.projectManagers?.length || 0 },
-    { name: 'Finances', count: project.finances?.length || 0 },
-    { name: 'Designers', count: project.designers?.length || 0 },
-    { name: 'Admins', count: project.admins?.length || 0 },
-  ].filter(role => role.count === 0)
+    { name: "Estimators", count: project.estimators?.length || 0 },
+    { name: "Project Managers", count: project.projectManagers?.length || 0 },
+    { name: "Finances", count: project.finances?.length || 0 },
+    { name: "Designers", count: project.designers?.length || 0 },
+    { name: "Admins", count: project.admins?.length || 0 },
+  ].filter((role) => role.count === 0)
 
   const hasEmptyRoles = emptyRoles.length > 0
 
@@ -179,13 +212,42 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
   }
 
   const handleAddPost = async () => {
-    if (!newPost.trim()) return
+    if (!newPost.trim() && !selectedFile) return
 
     try {
       setSubmitting(true)
-      const result = await discussionsApi.createPost(project._id, newPost)
+      let attachment: { url: string; provider: string } | undefined
+
+      // Upload file if selected
+      if (selectedFile) {
+        setIsUploading(true)
+        try {
+          const uploadResult = await uploadApi.uploadFile(selectedFile, (progress) => {
+            setUploadProgress(progress)
+          })
+          attachment = {
+            url: uploadResult.url,
+            provider: uploadResult.provider,
+          }
+        } catch (error) {
+          console.error("Failed to upload file:", error)
+          toast({
+            title: "Error",
+            description: "Failed to upload file",
+            variant: "destructive",
+          })
+          setIsUploading(false)
+          setSubmitting(false)
+          return
+        }
+        setIsUploading(false)
+      }
+
+      // Create post with or without attachment
+      const result = await discussionsApi.createPost(project._id, newPost, attachment)
       if (result.success) {
         setNewPost("")
+        handleRemoveFile() // Clear file selection
         setCurrentPage(1)
         await loadPosts()
         toast({
@@ -202,10 +264,10 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
     } catch (error) {
       console.error("Failed to create post:", error)
       toast({
-          title: "Error",
-          description: "Failed to create post",
-          variant: "destructive",
-        })
+        title: "Error",
+        description: "Failed to create post",
+        variant: "destructive",
+      })
     } finally {
       setSubmitting(false)
     }
@@ -235,13 +297,37 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
     } catch (error) {
       console.error("Failed to add comment:", error)
       toast({
-          title: "Error",
-          description: "Failed to add comment",
-          variant: "destructive",
-        })
+        title: "Error",
+        description: "Failed to add comment",
+        variant: "destructive",
+      })
     } finally {
       setCommentingPostId(null)
     }
+  }
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setSelectedFile(file)
+
+    // Generate preview for images
+    if (file.type.startsWith("image/")) {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setFilePreview(e.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+    } else {
+      setFilePreview(null)
+    }
+  }
+
+  const handleRemoveFile = () => {
+    setSelectedFile(null)
+    setFilePreview(null)
+    setUploadProgress(0)
   }
 
   const getUserName = (user: any) => {
@@ -275,6 +361,18 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
     return rotations[Math.abs(hash) % rotations.length]
   }
 
+  const getFileIcon = (fileName: string) => {
+    const ext = fileName.split(".").pop()?.toLowerCase()
+    if (["pdf"].includes(ext || "")) return <FileText className="h-4 w-4" />
+    if (["jpg", "jpeg", "png", "gif", "webp"].includes(ext || "")) return <ImageIcon className="h-4 w-4" />
+    return <FileText className="h-4 w-4" />
+  }
+
+  const canPreviewFile = (url: string) => {
+    const ext = url.split(".").pop()?.toLowerCase()
+    return ["jpg", "jpeg", "png", "gif", "webp", "pdf"].includes(ext || "")
+  }
+
   return (
     <div className="space-y-6">
       <div className="grid gap-6 md:grid-cols-3">
@@ -291,7 +389,9 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
                 <Crown className="h-4 w-4 text-yellow-600" />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-muted-foreground">Owner</p>
-                  <p className="text-sm font-semibold truncate">{project.owner?.profile?.name || project.owner?.email || "N/A"}</p>
+                  <p className="text-sm font-semibold truncate">
+                    {project.owner?.profile?.name || project.owner?.email || "N/A"}
+                  </p>
                 </div>
               </div>
 
@@ -315,7 +415,9 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Location</span>
-                <span className="font-medium">{project.building}, Floor {project.floor}</span>
+                <span className="font-medium">
+                  {project.building}, Floor {project.floor}
+                </span>
               </div>
             </div>
           </CardContent>
@@ -338,7 +440,7 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
             ) : (
               <div className="space-y-1.5">
                 {completenessChecks.map((check, index) => (
-                  <div 
+                  <div
                     key={index}
                     className="flex items-center justify-between p-1.5 rounded hover:bg-muted/50 transition-colors"
                   >
@@ -372,16 +474,16 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
           <CardContent>
             <div className="space-y-1.5">
               {[
-                { name: 'Estimators', count: project.estimators?.length || 0, icon: Users },
-                { name: 'Project Managers', count: project.projectManagers?.length || 0, icon: TrendingUp },
-                { name: 'Finances', count: project.finances?.length || 0, icon: DollarSign },
-                { name: 'Designers', count: project.designers?.length || 0, icon: PenTool },
-                { name: 'Admins', count: project.admins?.length || 0, icon: Shield },
+                { name: "Estimators", count: project.estimators?.length || 0, icon: Users },
+                { name: "Project Managers", count: project.projectManagers?.length || 0, icon: TrendingUp },
+                { name: "Finances", count: project.finances?.length || 0, icon: DollarSign },
+                { name: "Designers", count: project.designers?.length || 0, icon: PenTool },
+                { name: "Admins", count: project.admins?.length || 0, icon: Shield },
               ].map((role) => {
                 const Icon = role.icon
                 return (
-                  <div 
-                    key={role.name} 
+                  <div
+                    key={role.name}
                     className="flex items-center justify-between p-1.5 rounded hover:bg-muted/50 transition-colors"
                   >
                     <div className="flex items-center gap-2 min-w-0">
@@ -389,10 +491,8 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
                       <span className="text-xs truncate">{role.name}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      {role.count === 0 && (
-                        <AlertTriangle className="h-3.5 w-3.5 text-orange-500" />
-                      )}
-                      <span className={`text-xs font-semibold ${role.count === 0 ? 'text-orange-500' : ''}`}>
+                      {role.count === 0 && <AlertTriangle className="h-3.5 w-3.5 text-orange-500" />}
+                      <span className={`text-xs font-semibold ${role.count === 0 ? "text-orange-500" : ""}`}>
                         {role.count}
                       </span>
                     </div>
@@ -406,8 +506,7 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <MessageSquare className="h-5 w-5" />
+          <CardTitle className="flex items-center text-base">
             Discussion Board
             {totalPosts > 0 && (
               <Badge variant="secondary" className="ml-auto">
@@ -426,19 +525,87 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
               value={newPost}
               onChange={(e) => setNewPost(e.target.value)}
               className="min-h-[80px] bg-transparent border-none focus-visible:ring-0 resize-none text-sm"
-              disabled={submitting}
+              disabled={submitting || isUploading}
             />
-            <div className="flex justify-end mt-2">
-              <Button 
-                onClick={handleAddPost} 
-                disabled={!newPost.trim() || submitting}
+
+            {/* File preview section */}
+            {selectedFile && (
+              <div className="mt-2 p-2 bg-white/50 dark:bg-gray-800/50 rounded border border-green-300 dark:border-green-600">
+                {filePreview ? (
+                  <div className="relative">
+                    <img src={filePreview || "/placeholder.svg"} alt="Preview" className="max-h-40 rounded" />
+                    <Button
+                      size="icon"
+                      variant="destructive"
+                      className="absolute top-1 right-1 h-6 w-6"
+                      onClick={handleRemoveFile}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {getFileIcon(selectedFile.name)}
+                      <span className="text-xs">{selectedFile.name}</span>
+                    </div>
+                    <Button size="icon" variant="ghost" className="h-6 w-6" onClick={handleRemoveFile}>
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
+                {isUploading && (
+                  <div className="mt-2">
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span>Uploading...</span>
+                      <span>{uploadProgress}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-1.5">
+                      <div
+                        className="bg-green-600 h-1.5 rounded-full transition-all"
+                        style={{ width: `${uploadProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="flex justify-between items-center mt-2">
+              {/* File attachment button */}
+              <label htmlFor="post-file-upload" className="cursor-pointer">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-green-600 hover:text-green-700 hover:bg-green-100"
+                  disabled={submitting || isUploading}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    document.getElementById("post-file-upload")?.click()
+                  }}
+                >
+                  <Paperclip className="h-3 w-3 mr-1" />
+                  Attach
+                </Button>
+                <input
+                  id="post-file-upload"
+                  type="file"
+                  className="hidden"
+                  onChange={handleFileSelect}
+                  disabled={submitting || isUploading}
+                />
+              </label>
+
+              <Button
+                onClick={handleAddPost}
+                disabled={(!newPost.trim() && !selectedFile) || submitting || isUploading}
                 size="sm"
                 className="bg-green-600 hover:bg-green-700 text-white"
               >
-                {submitting ? (
+                {submitting || isUploading ? (
                   <>
                     <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                    Posting...
+                    {isUploading ? "Uploading..." : "Posting..."}
                   </>
                 ) : (
                   <>
@@ -459,117 +626,183 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
               <p className="text-sm">No notes yet</p>
             </div>
           ) : (
-            <>
-              <div className="grid gap-3 md:grid-cols-3">
-                {posts.map((post) => {
-                  const colors = [
-                    { bg: "from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20", border: "border-blue-200 dark:border-blue-700", pin: "bg-blue-400", button: "bg-blue-500 hover:bg-blue-600", ring: "focus-visible:ring-blue-200 dark:focus-visible:ring-blue-700" },
-                    { bg: "from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20", border: "border-green-200 dark:border-green-700", pin: "bg-green-400", button: "bg-green-500 hover:bg-green-600", ring: "focus-visible:ring-green-200 dark:focus-visible:ring-green-700" },
-                    { bg: "from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-800/20", border: "border-pink-200 dark:border-pink-700", pin: "bg-pink-400", button: "bg-pink-500 hover:bg-pink-600", ring: "focus-visible:ring-pink-200 dark:focus-visible:ring-pink-700" },
-                    { bg: "from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20", border: "border-purple-200 dark:border-purple-700", pin: "bg-purple-400", button: "bg-purple-500 hover:bg-purple-600", ring: "focus-visible:ring-purple-200 dark:focus-visible:ring-purple-700" },
-                    { bg: "from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20", border: "border-orange-200 dark:border-orange-700", pin: "bg-orange-400", button: "bg-orange-500 hover:bg-orange-600", ring: "focus-visible:ring-orange-200 dark:focus-visible:ring-orange-700" },
-                  ]
-                  const color = colors[getColorForPost(post._id)]
-                  const rotation = getRotationForPost(post._id)
-                  
-                  return (
-                    <div
-                      key={post._id}
-                      className={`bg-gradient-to-br ${color.bg} p-3 rounded-lg shadow-lg border-2 ${color.border} relative transform hover:scale-105 transition-transform cursor-pointer`}
-                      style={{ transform: `rotate(${rotation}deg)` }}
-                      onClick={() => setSelectedPostId(post._id)}
-                    >
-                      <div className={`absolute -top-1.5 left-1/2 -translate-x-1/2 ${color.pin} h-3 w-3 rounded-full shadow border-2 border-white dark:border-gray-800`} />
-                      
-                      <div className="flex gap-2 items-start mb-2">
-                        <Avatar className="h-7 w-7 border-2 border-white dark:border-gray-700">
-                          <AvatarImage src={getUserAvatar(post.createdBy) || "/placeholder.svg"} />
-                          <AvatarFallback className="text-xs">
-                            {getUserName(post.createdBy).split(" ").map((n) => n[0]).join("").toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-xs truncate">{getUserName(post.createdBy)}</p>
-                          <p className="text-[10px] text-muted-foreground">{formatRelativeTime(post.createdAt)}</p>
-                        </div>
-                      </div>
-
-                      <p className="text-xs mb-2 line-clamp-4">{post.content}</p>
-
-                      {post.comments.length > 0 && (
-                        <div className="bg-white/50 dark:bg-black/20 rounded p-2 space-y-1 mb-2 max-h-24 overflow-y-auto">
-                          {post.comments.slice(0, 2).map((comment) => (
-                            <div key={comment._id} className="flex gap-1.5 text-[10px]">
-                              <Avatar className="h-5 w-5">
-                                <AvatarImage src={getUserAvatar(comment.createdBy) || "/placeholder.svg"} />
-                                <AvatarFallback className="text-[8px]">
-                                  {getUserName(comment.createdBy).split(" ").map((n) => n[0]).join("").toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium truncate">{getUserName(comment.createdBy)}</p>
-                                <p className="text-muted-foreground line-clamp-1">{comment.content}</p>
-                              </div>
-                            </div>
-                          ))}
-                          {post.comments.length > 2 && (
-                            <p className="text-[10px] text-center text-muted-foreground">+{post.comments.length - 2} more</p>
-                          )}
-                        </div>
-                      )}
-
-                      <div className="space-y-1 border-t pt-2" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex gap-1.5">
-                          <Textarea
-                            placeholder="Comment..."
-                            value={newComments[post._id] || ""}
-                            onChange={(e) => setNewComments({ ...newComments, [post._id]: e.target.value })}
-                            className={`min-h-[50px] text-xs resize-none bg-white/70 dark:bg-black/30 border ${color.border} ${color.ring}`}
-                            disabled={commentingPostId === post._id}
-                          />
-                          <Button
-                            onClick={() => handleAddComment(post._id)}
-                            disabled={!newComments[post._id]?.trim() || commentingPostId === post._id}
-                            size="sm"
-                            className={`h-[50px] px-2 text-white ${color.button}`}
-                          >
-                            {commentingPostId === post._id ? (
-                              <Loader2 className="h-3 w-3 animate-spin" />
-                            ) : (
-                              <Send className="h-3 w-3" />
-                            )}
-                          </Button>
-                        </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {posts.map((post, index) => {
+                const colors = [
+                  {
+                    bg: "from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20",
+                    border: "border-blue-200 dark:border-blue-700",
+                    pin: "bg-blue-400",
+                    button: "bg-blue-500 hover:bg-blue-600",
+                    ring: "focus-visible:ring-blue-200 dark:focus-visible:ring-blue-700",
+                  },
+                  {
+                    bg: "from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20",
+                    border: "border-green-200 dark:border-green-700",
+                    pin: "bg-green-400",
+                    button: "bg-green-500 hover:bg-green-600",
+                    ring: "focus-visible:ring-green-200 dark:focus-visible:ring-green-700",
+                  },
+                  {
+                    bg: "from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-800/20",
+                    border: "border-pink-200 dark:border-pink-700",
+                    pin: "bg-pink-400",
+                    button: "bg-pink-500 hover:bg-pink-600",
+                    ring: "focus-visible:ring-pink-200 dark:focus-visible:ring-pink-700",
+                  },
+                  {
+                    bg: "from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20",
+                    border: "border-purple-200 dark:border-purple-700",
+                    pin: "bg-purple-400",
+                    button: "bg-purple-500 hover:bg-purple-600",
+                    ring: "focus-visible:ring-purple-200 dark:focus-visible:ring-purple-700",
+                  },
+                  {
+                    bg: "from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20",
+                    border: "border-orange-200 dark:border-orange-700",
+                    pin: "bg-orange-400",
+                    button: "bg-orange-500 hover:bg-orange-600",
+                    ring: "focus-visible:ring-orange-200 dark:focus-visible:ring-orange-700",
+                  },
+                ]
+                const color = colors[getColorForPost(post._id)]
+                return (
+                  <div
+                    key={post._id}
+                    onClick={() => setSelectedPostId(post._id)}
+                    className={cn(
+                      "cursor-pointer p-3 rounded-lg shadow-md border-2 transition-all hover:shadow-lg hover:scale-[1.02]",
+                      color.bg,
+                      color.border,
+                    )}
+                    style={{
+                      transform: `rotate(${getRotationForPost(post._id)}deg)`,
+                    }}
+                  >
+                    <div className="flex gap-2 items-start mb-2">
+                      <Avatar className="h-7 w-7 border-2 border-white dark:border-gray-700">
+                        <AvatarImage src={getUserAvatar(post.createdBy) || "/placeholder.svg"} />
+                        <AvatarFallback className="text-xs">
+                          {getUserName(post.createdBy)
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")
+                            .toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-xs truncate">{getUserName(post.createdBy)}</p>
+                        <p className="text-[10px] text-muted-foreground">{formatRelativeTime(post.createdAt)}</p>
                       </div>
                     </div>
-                  )
-                })}
-              </div>
-              
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 pt-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    disabled={currentPage === 1 || loading}
-                  >
-                    Previous
-                  </Button>
-                  <span className="text-sm text-muted-foreground">
-                    Page {currentPage} of {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages || loading}
-                  >
-                    Next
-                  </Button>
-                </div>
-              )}
-            </>
+
+                    <p className="text-xs mb-2 whitespace-pre-wrap">{post.content}</p>
+
+                    {/* Attachment display */}
+                    {post.attachment && (
+                      <div className="mb-2 mt-2 p-2 bg-white/30 dark:bg-black/20 rounded border border-current/20">
+                        {post.attachment.url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                          <img
+                            src={`${API_BASE_URL.replace("/api/v1", "")}/${post.attachment.url}`}
+                            alt="Attachment"
+                            className="w-full h-24 object-cover rounded"
+                          />
+                        ) : (
+                          <div className="flex items-center gap-2 text-xs">
+                            {getFileIcon(post.attachment.url)}
+                            <span className="truncate flex-1">{post.attachment.url.split("/").pop()}</span>
+                            <a
+                              href={`${API_BASE_URL.replace("/api/v1", "")}/${post.attachment.url}`}
+                              download
+                              onClick={(e) => e.stopPropagation()}
+                              className="hover:underline"
+                            >
+                              <Download className="h-3 w-3" />
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {post.comments.length > 0 && (
+                      <div className="bg-white/50 dark:bg-black/20 rounded p-2 space-y-1 mb-2 max-h-24 overflow-y-auto">
+                        {post.comments.slice(0, 2).map((comment) => (
+                          <div key={comment._id} className="flex gap-1.5 text-[10px]">
+                            <Avatar className="h-5 w-5">
+                              <AvatarImage src={getUserAvatar(comment.createdBy) || "/placeholder.svg"} />
+                              <AvatarFallback className="text-[8px]">
+                                {getUserName(comment.createdBy)
+                                  .split(" ")
+                                  .map((n) => n[0])
+                                  .join("")
+                                  .toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium truncate">{getUserName(comment.createdBy)}</p>
+                              <p className="text-muted-foreground line-clamp-1">{comment.content}</p>
+                            </div>
+                          </div>
+                        ))}
+                        {post.comments.length > 2 && (
+                          <p className="text-[10px] text-center text-muted-foreground">
+                            +{post.comments.length - 2} more
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="space-y-1 border-t pt-2" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex gap-1.5">
+                        <Textarea
+                          placeholder="Comment..."
+                          value={newComments[post._id] || ""}
+                          onChange={(e) => setNewComments({ ...newComments, [post._id]: e.target.value })}
+                          className={`min-h-[50px] text-xs resize-none bg-white/70 dark:bg-black/30 border ${color.border} ${color.ring}`}
+                          disabled={commentingPostId === post._id}
+                        />
+                        <Button
+                          onClick={() => handleAddComment(post._id)}
+                          disabled={!newComments[post._id]?.trim() || commentingPostId === post._id}
+                          size="sm"
+                          className={`h-[50px] px-2 text-white ${color.button}`}
+                        >
+                          {commentingPostId === post._id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Send className="h-3 w-3" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 pt-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1 || loading}
+              >
+                Previous
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Page {currentPage} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages || loading}
+              >
+                Next
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -586,3 +819,5 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
     </div>
   )
 }
+
+export { ProjectOverview }

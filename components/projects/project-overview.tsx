@@ -719,7 +719,6 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
                     key={post._id}
                     className={cn(
                       "relative cursor-pointer p-3 rounded-lg shadow-md transition-all hover:shadow-lg hover:scale-[1.02]",
-                      cardStyle.showBackground && color.bg,
                       cardStyle.showBackground && `border-2 ${color.border} bg-gradient-to-br ${color.bg}`,
                       !cardStyle.showBackground && "bg-background border-2 border-border",
                     )}

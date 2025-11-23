@@ -577,7 +577,7 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
               </div>
             )}
 
-            <div className="flex justify-between items-center mt-2">
+            <div className="flex items-center mt-2 justify-end">
               {/* File attachment button */}
               <label htmlFor="post-file-upload" className="cursor-pointer">
                 <Button
@@ -681,9 +681,9 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
                       color.bg,
                       color.border,
                     )}
-                    style={{
-                      transform: `rotate(${getRotationForPost(post._id)}deg)`,
-                    }}
+                    // style={{
+                    //   transform: `rotate(${getRotationForPost(post._id)}deg)`,
+                    // }}
                   >
                     <div className="flex gap-2 items-start mb-2">
                       <Avatar className="h-7 w-7 border-2 border-white dark:border-gray-700">

@@ -10,12 +10,14 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { RefreshCw, Settings, MessageSquare } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { RefreshCw, Settings } from "lucide-react"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   Building2,
   Send,
@@ -31,7 +33,9 @@ import {
   CheckCircle2,
   XCircle,
   Paperclip,
+  X,
   FileText,
+  Download,
   ImageIcon,
 } from "lucide-react"
 import { useState, useEffect } from "react"
@@ -81,18 +85,6 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
     showRotation: true,
   })
   const [showCustomizeDialog, setShowCustomizeDialog] = useState(false)
-  const [stickySettings, setStickySettings] = useState({
-    useColors: true,
-    showPin: true,
-    useRotation: true,
-  })
-  const [commentInputs, setCommentInputs] = useState<Record<string, string>>({})
-  const [addingComment, setAddingComment] = useState<string | null>(null)
-
-  const [completionPercentage, setCompletionPercentage] = useState(0)
-  const [completenessChecks, setCompletenessChecks] = useState<any[]>([])
-  const [hasEmptyRoles, setHasEmptyRoles] = useState(false)
-  const [totalTeamMembers, setTotalTeamMembers] = useState(0)
 
   useEffect(() => {
     loadPosts()
@@ -123,39 +115,6 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
         const albumsList = Array.isArray(albumsResult.data) ? albumsResult.data : albumsResult.data?.list || []
         setAlbumsData(albumsList)
       }
-
-      // Calculate completion percentage and completeness checks
-      const totalChecks = 5
-      const completedChecks = [
-        project.owner,
-        project.companyClient,
-        project.type,
-        project.area,
-        project.building && project.floor,
-      ].filter(Boolean).length
-      setCompletionPercentage((completedChecks / totalChecks) * 100)
-
-      // Define completeness checks
-      setCompletenessChecks([
-        { label: "Owner", detail: "Project owner is set", completed: !!project.owner },
-        { label: "Client", detail: "Company client is set", completed: !!project.companyClient },
-        { label: "Type", detail: "Project type is set", completed: !!project.type },
-        { label: "Area", detail: "Project area is set", completed: !!project.area },
-        { label: "Location", detail: "Building and floor are set", completed: !!project.building && !!project.floor },
-      ])
-
-      // Check for empty roles
-      const roles = [
-        project.estimators?.length,
-        project.projectManagers?.length,
-        project.finances?.length,
-        project.designers?.length,
-        project.admins?.length,
-      ]
-      setHasEmptyRoles(roles.some((role) => role === 0))
-
-      // Calculate total team members
-      setTotalTeamMembers(roles.reduce((sum, role) => sum + (role || 0), 0))
     } catch (error) {
       console.error("Failed to load project data:", error)
     } finally {
@@ -184,8 +143,102 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
     localStorage.setItem(`cardStyle-${project._id}`, JSON.stringify(newStyle))
   }
 
-  const handlePostClick = (post: Post) => {
-    setSelectedPostId(post._id)
+  const hasLayoutFiles = !!(project.detail?.layout && project.detail.layout.length > 0)
+  const hasContractFiles = !!(
+    project.detail?.contract &&
+    Array.isArray(project.detail.contract) &&
+    project.detail.contract.length > 0
+  )
+  const hasMainBOQ = boqData.some((boq: any) => boq.number === 1)
+  const hasAdditionalBOQ = boqData.some((boq: any) => boq.number > 1)
+  const hasTermins = terminData.length > 0
+  const hasFolders = foldersData.length > 0
+  const totalFolderFiles = foldersData.reduce((sum: number, folder: any) => sum + (folder.files?.length || 0), 0)
+
+  const mainBOQ = boqData.find((boq: any) => boq.number === 1)
+  const hasGanttChart =
+    !!mainBOQ &&
+    ((Array.isArray(mainBOQ.preliminary) && mainBOQ.preliminary.some((item: any) => item.startDate && item.endDate)) ||
+      (Array.isArray(mainBOQ.fittingOut) &&
+        mainBOQ.fittingOut.some(
+          (cat: any) => Array.isArray(cat.products) && cat.products.some((p: any) => p.startDate && p.endDate),
+        )) ||
+      (Array.isArray(mainBOQ.furnitureWork) &&
+        mainBOQ.furnitureWork.some(
+          (cat: any) => Array.isArray(cat.products) && cat.products.some((p: any) => p.startDate && p.endDate),
+        )))
+
+  const totalAlbums = albumsData.length
+  const totalPhotos = albumsData.reduce((sum: number, album: any) => sum + (album.list?.length || 0), 0)
+
+  const completenessChecks = [
+    {
+      label: "Layout Files",
+      completed: hasLayoutFiles,
+      detail: hasLayoutFiles ? `${project.detail.layout.length} file(s)` : "Not uploaded",
+    },
+    {
+      label: "Contract Files",
+      completed: hasContractFiles,
+      detail: hasContractFiles ? `${project.detail.contract.length} file(s)` : "Not uploaded",
+    },
+    {
+      label: "Main BOQ",
+      completed: hasMainBOQ,
+      detail: hasMainBOQ ? "Created" : "Not created",
+    },
+    {
+      label: "Gantt Chart",
+      completed: hasGanttChart,
+      detail: hasGanttChart ? "Timeline set" : "No timeline",
+    },
+    {
+      label: "Payment Terms",
+      completed: hasTermins,
+      detail: hasTermins ? `${terminData.length} termin(s)` : "Not set",
+    },
+    {
+      label: "Documents",
+      completed: hasFolders && totalFolderFiles > 0,
+      detail: hasFolders ? `${foldersData.length} folder(s), ${totalFolderFiles} file(s)` : "No documents",
+    },
+    {
+      label: "Albums & Photos",
+      completed: totalAlbums > 0 && totalPhotos > 0,
+      detail: totalAlbums > 0 ? `${totalAlbums} album(s), ${totalPhotos} photo(s)` : "No photos",
+    },
+  ]
+
+  const completedCount = completenessChecks.filter((check) => check.completed).length
+  const completionPercentage = Math.round((completedCount / completenessChecks.length) * 100)
+
+  const totalTeamMembers =
+    (project.estimators?.length || 0) +
+    (project.projectManagers?.length || 0) +
+    (project.finances?.length || 0) +
+    (project.designers?.length || 0) +
+    (project.admins?.length || 0)
+
+  const emptyRoles = [
+    { name: "Estimators", count: project.estimators?.length || 0 },
+    { name: "Project Managers", count: project.projectManagers?.length || 0 },
+    { name: "Finances", count: project.finances?.length || 0 },
+    { name: "Designers", count: project.designers?.length || 0 },
+    { name: "Admins", count: project.admins?.length || 0 },
+  ].filter((role) => role.count === 0)
+
+  const hasEmptyRoles = emptyRoles.length > 0
+
+  const formatRelativeTime = (date: string | Date) => {
+    const timestamp = typeof date === "string" ? new Date(date) : date
+    const now = new Date()
+    const diffInSeconds = Math.floor((now.getTime() - timestamp.getTime()) / 1000)
+
+    if (diffInSeconds < 60) return "Baru saja"
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} menit yang lalu`
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} jam yang lalu`
+    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} hari yang lalu`
+    return timestamp.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })
   }
 
   const handleAddPost = async () => {
@@ -251,14 +304,14 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
   }
 
   const handleAddComment = async (postId: string) => {
-    const commentText = commentInputs[postId]
+    const commentText = newComments[postId]
     if (!commentText?.trim()) return
 
     try {
-      setAddingComment(postId)
+      setCommentingPostId(postId)
       const result = await discussionsApi.createComment(project._id, postId, commentText)
       if (result.success) {
-        setCommentInputs({ ...commentInputs, [postId]: "" })
+        setNewComments({ ...newComments, [postId]: "" })
         await loadPosts()
         toast({
           title: "Success",
@@ -279,7 +332,7 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
         variant: "destructive",
       })
     } finally {
-      setAddingComment(null)
+      setCommentingPostId(null)
     }
   }
 
@@ -350,8 +403,8 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
     return ["jpg", "jpeg", "png", "gif", "webp", "pdf"].includes(ext || "")
   }
 
-  const getAttachmentUrl = (provider: string, url: string) => {
-    return `${API_BASE_URL}/public/${provider}/${url}`
+  const getAttachmentUrl = (attachment: { url: string; provider: string }) => {
+    return `${API_BASE_URL}/public/${attachment.provider}/${attachment.url}`
   }
 
   return (
@@ -485,167 +538,332 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
         </Card>
       </div>
 
-      <Card className="overflow-hidden">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5 text-primary" />
-            <CardTitle>Discussion Board</CardTitle>
-            <span className="text-sm text-muted-foreground">
-              ({posts.length} {posts.length === 1 ? "post" : "posts"})
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline" onClick={loadPosts} disabled={loading}>
-              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => setShowCustomizeDialog(true)}>
-              <Settings className="h-4 w-4" />
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {posts.map((post, index) => {
-            const colors = [
-              {
-                bg: "from-blue-200 to-blue-300 dark:from-blue-600 dark:to-blue-700",
-                border: "border-blue-400 dark:border-blue-500",
-                pin: "bg-blue-500",
-                button: "bg-blue-600 hover:bg-blue-700 text-white",
-                ring: "focus-visible:ring-blue-400 dark:focus-visible:ring-blue-500",
-                text: "text-blue-900 dark:text-blue-50",
-              },
-              {
-                bg: "from-yellow-200 to-yellow-300 dark:from-yellow-600 dark:to-yellow-700",
-                border: "border-yellow-400 dark:border-yellow-500",
-                pin: "bg-yellow-500",
-                button: "bg-yellow-600 hover:bg-yellow-700 text-white",
-                ring: "focus-visible:ring-yellow-400 dark:focus-visible:ring-yellow-500",
-                text: "text-yellow-900 dark:text-yellow-50",
-              },
-              {
-                bg: "from-pink-200 to-pink-300 dark:from-pink-600 dark:to-pink-700",
-                border: "border-pink-400 dark:border-pink-500",
-                pin: "bg-pink-500",
-                button: "bg-pink-600 hover:bg-pink-700 text-white",
-                ring: "focus-visible:ring-pink-400 dark:focus-visible:ring-pink-500",
-                text: "text-pink-900 dark:text-pink-50",
-              },
-              {
-                bg: "from-green-200 to-green-300 dark:from-green-600 dark:to-green-700",
-                border: "border-green-400 dark:border-green-500",
-                pin: "bg-green-500",
-                button: "bg-green-600 hover:bg-green-700 text-white",
-                ring: "focus-visible:ring-green-400 dark:focus-visible:ring-green-500",
-                text: "text-green-900 dark:text-green-50",
-              },
-              {
-                bg: "from-orange-200 to-orange-300 dark:from-orange-600 dark:to-orange-700",
-                border: "border-orange-400 dark:border-orange-500",
-                pin: "bg-orange-500",
-                button: "bg-orange-600 hover:bg-orange-700 text-white",
-                ring: "focus-visible:ring-orange-400 dark:focus-visible:ring-orange-500",
-                text: "text-orange-900 dark:text-orange-50",
-              },
-            ]
-
-            const colorIndex = getColorForPost(post._id)
-            const color = colors[colorIndex]
-            const rotation = getRotationForPost(post._id)
-
-            return (
-              <div
-                key={post._id}
-                className={`relative p-4 rounded-lg shadow-md cursor-pointer transition-all hover:shadow-xl ${
-                  stickySettings.useColors
-                    ? `bg-gradient-to-br ${color.bg} border-2 ${color.border}`
-                    : "bg-card border-2 border-border"
-                }`}
-                style={{
-                  transform: stickySettings.useRotation ? `rotate(${rotation}deg)` : "rotate(0deg)",
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between text-base">
+            <div className="flex items-center gap-2">
+              Discussion Board
+              {totalPosts > 0 && <Badge variant="secondary">{totalPosts}</Badge>}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  loadPosts()
+                  toast({ title: "Posts refreshed" })
                 }}
-                onClick={() => handlePostClick(post)}
+                disabled={loading}
               >
-                {/* Pin */}
-                {stickySettings.showPin && (
-                  <div
-                    className={`absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full shadow-md ${
-                      stickySettings.useColors ? color.pin : "bg-muted-foreground"
-                    }`}
-                  />
-                )}
+                <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setShowCustomizeDialog(true)}>
+                <Settings className="h-4 w-4" />
+              </Button>
+            </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 p-3 rounded-lg shadow border-2 border-green-200 dark:border-green-700 relative">
+            <div className="absolute -top-2 left-4 bg-green-500 px-2 py-0.5 rounded-full text-xs font-medium text-white">
+              New
+            </div>
+            <Textarea
+              placeholder="Write a note..."
+              value={newPost}
+              onChange={(e) => setNewPost(e.target.value)}
+              className="min-h-[80px] bg-transparent border-none focus-visible:ring-0 resize-none text-sm"
+              disabled={submitting || isUploading}
+            />
 
-                {/* Post Content */}
-                <div className="space-y-3">
-                  <p
-                    className={`text-sm whitespace-pre-wrap line-clamp-5 ${stickySettings.useColors ? color.text : ""}`}
-                  >
-                    {post.content}
-                  </p>
-
-                  {post.attachment && (
-                    <div className="mt-2">
-                      {post.attachment.url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                        <img
-                          src={getAttachmentUrl(post.attachment.provider, post.attachment.url) || "/placeholder.svg"}
-                          alt="Attachment"
-                          className="w-full h-32 object-cover rounded"
-                        />
-                      ) : (
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Paperclip className="h-3 w-3" />
-                          <span>File attached</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Separator */}
-                  <div className={`border-t ${stickySettings.useColors ? color.border : "border-border"}`} />
-
-                  {/* Comment Input */}
-                  <div className="flex gap-2">
-                    <Textarea
-                      placeholder="Add a comment..."
-                      value={commentInputs[post._id] || ""}
-                      onChange={(e) =>
-                        setCommentInputs({
-                          ...commentInputs,
-                          [post._id]: e.target.value,
-                        })
-                      }
-                      onClick={(e) => e.stopPropagation()}
-                      className={`flex-1 min-h-[60px] text-xs resize-none ${
-                        stickySettings.useColors ? `${color.border} ${color.ring}` : ""
-                      }`}
-                    />
+            {/* File preview section */}
+            {selectedFile && (
+              <div className="mt-2 p-2 bg-white/50 dark:bg-gray-800/50 rounded border border-green-300 dark:border-green-600">
+                {filePreview ? (
+                  <div className="relative">
+                    <img src={filePreview || "/placeholder.svg"} alt="Preview" className="max-h-40 rounded" />
                     <Button
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleAddComment(post._id)
-                      }}
-                      disabled={!commentInputs[post._id]?.trim() || addingComment === post._id}
-                      className={stickySettings.useColors ? color.button : ""}
+                      size="icon"
+                      variant="destructive"
+                      className="absolute top-1 right-1 h-6 w-6"
+                      onClick={handleRemoveFile}
                     >
-                      {addingComment === post._id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Send className="h-4 w-4" />
-                      )}
+                      <X className="h-3 w-3" />
                     </Button>
                   </div>
-
-                  {/* Comments Count */}
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <MessageSquare className="h-3 w-3" />
-                    <span>
-                      {post.comments?.length || 0} {post.comments?.length === 1 ? "comment" : "comments"}
-                    </span>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {getFileIcon(selectedFile.name)}
+                      <span className="text-xs">{selectedFile.name}</span>
+                    </div>
+                    <Button size="icon" variant="ghost" className="h-6 w-6" onClick={handleRemoveFile}>
+                      <X className="h-3 w-3" />
+                    </Button>
                   </div>
-                </div>
+                )}
+                {isUploading && (
+                  <div className="mt-2">
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span>Uploading...</span>
+                      <span>{uploadProgress}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-1.5">
+                      <div
+                        className="bg-green-600 h-1.5 rounded-full transition-all"
+                        style={{ width: `${uploadProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
-            )
-          })}
+            )}
+
+            <div className="flex items-center mt-2 justify-end gap-2">
+              {/* File attachment button */}
+              <label htmlFor="post-file-upload" className="cursor-pointer">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-green-600 hover:text-green-700 hover:bg-green-100"
+                  disabled={submitting || isUploading}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    document.getElementById("post-file-upload")?.click()
+                  }}
+                >
+                  <Paperclip className="h-3 w-3 mr-1" />
+                  Attach
+                </Button>
+                <input
+                  id="post-file-upload"
+                  type="file"
+                  className="hidden"
+                  onChange={handleFileSelect}
+                  disabled={submitting || isUploading}
+                />
+              </label>
+
+              <Button
+                onClick={handleAddPost}
+                disabled={(!newPost.trim() && !selectedFile) || submitting || isUploading}
+                size="sm"
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                {submitting || isUploading ? (
+                  <>
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    {isUploading ? "Uploading..." : "Posting..."}
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-3 w-3 mr-1" />
+                    Post
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="flex justify-center py-6">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : posts.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p className="text-sm">No notes yet</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {posts.map((post, index) => {
+                const colors = [
+                  {
+                    bg: "from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20",
+                    border: "border-blue-200 dark:border-blue-700",
+                    pin: "bg-blue-400",
+                    button: "bg-blue-500 hover:bg-blue-600",
+                    ring: "focus-visible:ring-blue-200 dark:focus-visible:ring-blue-700",
+                  },
+                  {
+                    bg: "from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20",
+                    border: "border-green-200 dark:border-green-700",
+                    pin: "bg-green-400",
+                    button: "bg-green-500 hover:bg-green-600",
+                    ring: "focus-visible:ring-green-200 dark:focus-visible:ring-green-700",
+                  },
+                  {
+                    bg: "from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-800/20",
+                    border: "border-pink-200 dark:border-pink-700",
+                    pin: "bg-pink-400",
+                    button: "bg-pink-500 hover:bg-pink-600",
+                    ring: "focus-visible:ring-pink-200 dark:focus-visible:ring-pink-700",
+                  },
+                  {
+                    bg: "from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20",
+                    border: "border-purple-200 dark:border-purple-700",
+                    pin: "bg-purple-400",
+                    button: "bg-purple-500 hover:bg-purple-600",
+                    ring: "focus-visible:ring-purple-200 dark:focus-visible:ring-purple-700",
+                  },
+                  {
+                    bg: "from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20",
+                    border: "border-orange-200 dark:border-orange-700",
+                    pin: "bg-orange-400",
+                    button: "bg-orange-500 hover:bg-orange-600",
+                    ring: "focus-visible:ring-orange-200 dark:focus-visible:ring-orange-700",
+                  },
+                ]
+                const color = colors[getColorForPost(post._id)]
+                return (
+                  <div
+                    key={post._id}
+                    className={cn(
+                      "relative cursor-pointer p-3 rounded-lg shadow-md transition-all hover:shadow-lg hover:scale-[1.02]",
+                      cardStyle.showBackground && color.bg,
+                      cardStyle.showBackground && `border-2 ${color.border} bg-gradient-to-br ${color.bg}`,
+                      !cardStyle.showBackground && "bg-background border-2 border-border",
+                    )}
+                    style={{
+                      transform: cardStyle.showRotation ? `rotate(${getRotationForPost(post._id)}deg)` : undefined,
+                    }}
+                  >
+                    {cardStyle.showPin && (
+                      <div
+                        className={cn(
+                          "absolute -top-2 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full shadow",
+                          color.pin,
+                        )}
+                      />
+                    )}
+
+                    <div onClick={() => setSelectedPostId(post._id)}>
+                      <div className="flex gap-2 items-start mb-2">
+                        <Avatar className="h-7 w-7 border-2 border-white dark:border-gray-700">
+                          <AvatarImage src={getUserAvatar(post.createdBy) || "/placeholder.svg"} />
+                          <AvatarFallback className="text-xs">
+                            {getUserName(post.createdBy)
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                              .toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-xs truncate">{getUserName(post.createdBy)}</p>
+                          <p className="text-[10px] text-muted-foreground">{formatRelativeTime(post.createdAt)}</p>
+                        </div>
+                      </div>
+
+                      <p className="text-xs mb-2 whitespace-pre-wrap">{post.content}</p>
+
+                      {/* Attachment display */}
+                      {post.attachment && (
+                        <div className="mb-2 mt-2 p-2 bg-white/30 dark:bg-black/20 rounded border border-current/20">
+                          {post.attachment.url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                            <img
+                              src={getAttachmentUrl(post.attachment) || "/placeholder.svg"}
+                              alt="Attachment"
+                              className="w-full h-24 object-cover rounded"
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          ) : (
+                            <div className="flex items-center gap-2 text-xs">
+                              {getFileIcon(post.attachment.url)}
+                              <span className="truncate flex-1">{post.attachment.url.split("/").pop()}</span>
+                              <a
+                                href={getAttachmentUrl(post.attachment)}
+                                download
+                                onClick={(e) => e.stopPropagation()}
+                                className="hover:underline"
+                              >
+                                <Download className="h-3 w-3" />
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {post.comments.length > 0 && (
+                        <div className="bg-white/50 dark:bg-black/20 rounded p-2 space-y-1 mb-2 max-h-24 overflow-y-auto">
+                          {post.comments.slice(0, 2).map((comment) => (
+                            <div key={comment._id} className="flex gap-1.5 text-[10px]">
+                              <Avatar className="h-5 w-5">
+                                <AvatarImage src={getUserAvatar(comment.createdBy) || "/placeholder.svg"} />
+                                <AvatarFallback className="text-[8px]">
+                                  {getUserName(comment.createdBy)
+                                    .split(" ")
+                                    .map((n) => n[0])
+                                    .join("")
+                                    .toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium truncate">{getUserName(comment.createdBy)}</p>
+                                <p className="text-muted-foreground line-clamp-1">{comment.content}</p>
+                              </div>
+                            </div>
+                          ))}
+                          {post.comments.length > 2 && (
+                            <p className="text-[10px] text-center text-muted-foreground">
+                              +{post.comments.length - 2} more
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="space-y-1 border-t pt-2" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex gap-1.5">
+                          <Textarea
+                            placeholder="Comment..."
+                            value={newComments[post._id] || ""}
+                            onChange={(e) => setNewComments({ ...newComments, [post._id]: e.target.value })}
+                            className={`min-h-[50px] text-xs resize-none bg-white/70 dark:bg-black/30 border ${color.border} ${color.ring}`}
+                            disabled={commentingPostId === post._id}
+                          />
+                          <Button
+                            onClick={() => handleAddComment(post._id)}
+                            disabled={!newComments[post._id]?.trim() || commentingPostId === post._id}
+                            size="sm"
+                            className={`h-[50px] px-2 text-white ${color.button}`}
+                          >
+                            {commentingPostId === post._id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Send className="h-3 w-3" />
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 pt-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1 || loading}
+              >
+                Previous
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Page {currentPage} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages || loading}
+              >
+                Next
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -662,11 +880,11 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
                 <p className="text-xs text-muted-foreground">Show colored backgrounds for notes</p>
               </div>
               <Button
-                variant={stickySettings.useColors ? "default" : "outline"}
+                variant={cardStyle.showBackground ? "default" : "outline"}
                 size="sm"
-                onClick={() => setStickySettings({ ...stickySettings, useColors: !stickySettings.useColors })}
+                onClick={() => saveCardStyle({ ...cardStyle, showBackground: !cardStyle.showBackground })}
               >
-                {stickySettings.useColors ? "On" : "Off"}
+                {cardStyle.showBackground ? "On" : "Off"}
               </Button>
             </div>
             <div className="flex items-center justify-between">
@@ -675,11 +893,11 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
                 <p className="text-xs text-muted-foreground">Show decorative pin at the top</p>
               </div>
               <Button
-                variant={stickySettings.showPin ? "default" : "outline"}
+                variant={cardStyle.showPin ? "default" : "outline"}
                 size="sm"
-                onClick={() => setStickySettings({ ...stickySettings, showPin: !stickySettings.showPin })}
+                onClick={() => saveCardStyle({ ...cardStyle, showPin: !cardStyle.showPin })}
               >
-                {stickySettings.showPin ? "On" : "Off"}
+                {cardStyle.showPin ? "On" : "Off"}
               </Button>
             </div>
             <div className="flex items-center justify-between">
@@ -688,11 +906,11 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
                 <p className="text-xs text-muted-foreground">Tilt notes for a natural look</p>
               </div>
               <Button
-                variant={stickySettings.useRotation ? "default" : "outline"}
+                variant={cardStyle.showRotation ? "default" : "outline"}
                 size="sm"
-                onClick={() => setStickySettings({ ...stickySettings, useRotation: !stickySettings.useRotation })}
+                onClick={() => saveCardStyle({ ...cardStyle, showRotation: !cardStyle.showRotation })}
               >
-                {stickySettings.useRotation ? "On" : "Off"}
+                {cardStyle.showRotation ? "On" : "Off"}
               </Button>
             </div>
           </div>

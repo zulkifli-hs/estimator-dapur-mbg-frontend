@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import { useRef } from "react"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -61,6 +62,7 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
   const [totalPosts, setTotalPosts] = useState(0)
   const postsPerPage = 12
   const { toast } = useToast()
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [boqData, setBoqData] = useState<any[]>([])
   const [terminData, setTerminData] = useState<any[]>([])
@@ -371,6 +373,10 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
   const canPreviewFile = (url: string) => {
     const ext = url.split(".").pop()?.toLowerCase()
     return ["jpg", "jpeg", "png", "gif", "webp", "pdf"].includes(ext || "")
+  }
+
+  const getAttachmentUrl = (attachment: { url: string; provider: string }) => {
+    return `${API_BASE_URL}/public/${attachment.provider}/${attachment.url}`
   }
 
   return (
@@ -703,7 +709,7 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
                       <div className="mb-2 mt-2 p-2 bg-white/30 dark:bg-black/20 rounded border border-current/20">
                         {post.attachment.url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
                           <img
-                            src={`${API_BASE_URL.replace("/api/v1", "")}/${post.attachment.url}`}
+                            src={getAttachmentUrl(post.attachment) || "/placeholder.svg"}
                             alt="Attachment"
                             className="w-full h-24 object-cover rounded"
                           />
@@ -712,7 +718,7 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
                             {getFileIcon(post.attachment.url)}
                             <span className="truncate flex-1">{post.attachment.url.split("/").pop()}</span>
                             <a
-                              href={`${API_BASE_URL.replace("/api/v1", "")}/${post.attachment.url}`}
+                              href={getAttachmentUrl(post.attachment)}
                               download
                               onClick={(e) => e.stopPropagation()}
                               className="hover:underline"

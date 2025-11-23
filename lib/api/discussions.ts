@@ -5,7 +5,6 @@ export interface Post {
   project: string
   content: string
   attachment?: {
-    // Added attachment field
     url: string
     provider: string
   }
@@ -26,6 +25,10 @@ export interface Post {
   comments: Array<{
     _id: string
     content: string
+    attachment?: {
+      url: string
+      provider: string
+    }
     createdBy: {
       _id: string
       email: string
@@ -73,10 +76,19 @@ const createPost = async (
   })
 }
 
-const createComment = async (projectId: string, postId: string, content: string): Promise<ApiResponse<any>> => {
+const createComment = async (
+  projectId: string,
+  postId: string,
+  content: string,
+  attachment?: { url: string; provider: string },
+): Promise<ApiResponse<any>> => {
+  const body: any = { content }
+  if (attachment) {
+    body.attachment = attachment
+  }
   return apiRequest<any>(`/projects/${projectId}/post/${postId}/comment`, {
     method: "POST",
-    body: JSON.stringify({ content }),
+    body: JSON.stringify(body),
   })
 }
 
@@ -102,8 +114,13 @@ export const discussionsApi = {
       data: response.data,
     }
   },
-  createComment: async (projectId: string, postId: string, content: string) => {
-    const response = await createComment(projectId, postId, content)
+  createComment: async (
+    projectId: string,
+    postId: string,
+    content: string,
+    attachment?: { url: string; provider: string },
+  ) => {
+    const response = await createComment(projectId, postId, content, attachment)
     return {
       success: response.code === 200 || response.code === 201,
       data: response.data,

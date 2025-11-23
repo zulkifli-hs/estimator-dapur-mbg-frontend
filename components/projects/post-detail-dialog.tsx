@@ -1,15 +1,18 @@
 "use client"
 
+import type React from "react"
+
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Loader2, Send, Download, FileText, ImageIcon } from "lucide-react"
-import { useState, useEffect } from "react"
+import { Loader2, Send, Download, FileText, ImageIcon, Paperclip, X } from "lucide-react"
+import { useState, useEffect, useRef } from "react"
 import { discussionsApi, type Post } from "@/lib/api/discussions"
 import { useToast } from "@/hooks/use-toast"
 import { API_BASE_URL } from "@/lib/api/config"
+import { uploadApi } from "@/lib/api/upload"
 
 interface PostDetailDialogProps {
   open: boolean
@@ -24,7 +27,11 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate }:
   const [loading, setLoading] = useState(true)
   const [newComment, setNewComment] = useState("")
   const [submitting, setSubmitting] = useState(false)
-  const [colorIndex, setColorIndex] = useState(0)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [filePreview, setFilePreview] = useState<string | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
 
   const colors = [
@@ -115,13 +122,40 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate }:
   }
 
   const handleAddComment = async () => {
-    if (!newComment.trim()) return
+    if (!newComment.trim() && !selectedFile) return
 
     try {
       setSubmitting(true)
-      const result = await discussionsApi.createComment(projectId, postId, newComment)
+      let attachment: { url: string; provider: string } | undefined
+
+      if (selectedFile) {
+        setIsUploading(true)
+        try {
+          const uploadResult = await uploadApi.uploadFile(selectedFile, (progress) => {
+            setUploadProgress(progress)
+          })
+          attachment = {
+            url: uploadResult.url,
+            provider: uploadResult.provider,
+          }
+        } catch (error) {
+          console.error("Failed to upload file:", error)
+          toast({
+            title: "Error",
+            description: "Failed to upload file",
+            variant: "destructive",
+          })
+          setIsUploading(false)
+          setSubmitting(false)
+          return
+        }
+        setIsUploading(false)
+      }
+
+      const result = await discussionsApi.createComment(projectId, postId, newComment, attachment)
       if (result.success) {
         setNewComment("")
+        handleRemoveFile()
         await loadPostDetail()
         onUpdate?.()
         toast({
@@ -145,6 +179,36 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate }:
     } finally {
       setSubmitting(false)
     }
+  }
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setSelectedFile(file)
+
+    if (file.type.startsWith("image/")) {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setFilePreview(e.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+    } else {
+      setFilePreview(null)
+    }
+  }
+
+  const handleRemoveFile = () => {
+    setSelectedFile(null)
+    setFilePreview(null)
+    setUploadProgress(0)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
+  }
+
+  const getAttachmentUrl = (attachment: { url: string; provider: string }) => {
+    return `${API_BASE_URL}/public/${attachment.provider}/${attachment.url}`
   }
 
   const getUserName = (user: any) => {
@@ -190,7 +254,6 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate }:
       <DialogContent
         className={`max-w-2xl h-[90vh] flex flex-col p-0 bg-gradient-to-br ${color.bg} border-4 ${color.border} shadow-2xl`}
       >
-        {/* Pin at top */}
         <div
           className={`absolute -top-3 left-1/2 -translate-x-1/2 ${color.pin} h-5 w-5 rounded-full shadow-md border-2 border-white dark:border-gray-800`}
         />
@@ -202,7 +265,6 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate }:
         ) : post ? (
           <div className="flex-1 flex flex-col overflow-hidden">
             <ScrollArea className="flex-1 h-0 px-6 pt-8 pb-4">
-              {/* Post Content */}
               <div className="space-y-4">
                 <div className="flex gap-3 items-start">
                   <Avatar className="h-12 w-12 border-2 border-white dark:border-gray-700 shadow-md">
@@ -228,7 +290,7 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate }:
                         {isImageFile(post.attachment.url) ? (
                           <div className="space-y-2">
                             <img
-                              src={`${API_BASE_URL.replace("/api/v1", "")}/${post.attachment.url}`}
+                              src={getAttachmentUrl(post.attachment) || "/placeholder.svg"}
                               alt="Attachment"
                               className="w-full rounded-lg shadow-sm max-h-96 object-contain"
                             />
@@ -237,7 +299,7 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate }:
                                 {post.attachment.url.split("/").pop()}
                               </span>
                               <a
-                                href={`${API_BASE_URL.replace("/api/v1", "")}/${post.attachment.url}`}
+                                href={getAttachmentUrl(post.attachment)}
                                 download
                                 target="_blank"
                                 rel="noopener noreferrer"
@@ -251,7 +313,7 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate }:
                         ) : isPdfFile(post.attachment.url) ? (
                           <div className="space-y-3">
                             <iframe
-                              src={`${API_BASE_URL.replace("/api/v1", "")}/${post.attachment.url}`}
+                              src={getAttachmentUrl(post.attachment)}
                               className="w-full h-96 rounded border"
                               title="PDF Preview"
                             />
@@ -263,7 +325,7 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate }:
                                 </span>
                               </div>
                               <a
-                                href={`${API_BASE_URL.replace("/api/v1", "")}/${post.attachment.url}`}
+                                href={getAttachmentUrl(post.attachment)}
                                 download
                                 target="_blank"
                                 rel="noopener noreferrer"
@@ -284,7 +346,7 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate }:
                               </div>
                             </div>
                             <a
-                              href={`${API_BASE_URL.replace("/api/v1", "")}/${post.attachment.url}`}
+                              href={getAttachmentUrl(post.attachment)}
                               download
                               target="_blank"
                               rel="noopener noreferrer"
@@ -300,7 +362,6 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate }:
                   </div>
                 </div>
 
-                {/* Comments */}
                 <div className="pt-4 space-y-3">
                   <div className="flex items-center gap-2">
                     <div className={`h-px ${color.accent} flex-1`} />
@@ -338,6 +399,52 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate }:
                               <p className="text-xs text-muted-foreground">{formatRelativeTime(comment.createdAt)}</p>
                             </div>
                             <p className="text-sm whitespace-pre-wrap leading-relaxed">{comment.content}</p>
+
+                            {comment.attachment && (
+                              <div className="mt-2 p-2 bg-white/40 dark:bg-black/20 rounded border">
+                                {isImageFile(comment.attachment.url) ? (
+                                  <div className="space-y-1">
+                                    <img
+                                      src={getAttachmentUrl(comment.attachment) || "/placeholder.svg"}
+                                      alt="Attachment"
+                                      className="w-full rounded max-h-48 object-contain"
+                                    />
+                                    <div className="flex items-center justify-between text-xs">
+                                      <span className="text-muted-foreground truncate flex-1">
+                                        {comment.attachment.url.split("/").pop()}
+                                      </span>
+                                      <a
+                                        href={getAttachmentUrl(comment.attachment)}
+                                        download
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-primary hover:underline ml-2"
+                                      >
+                                        <Download className="h-3 w-3" />
+                                      </a>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                                      {getFileIcon(comment.attachment.url)}
+                                      <span className="text-xs truncate">
+                                        {comment.attachment.url.split("/").pop()}
+                                      </span>
+                                    </div>
+                                    <a
+                                      href={getAttachmentUrl(comment.attachment)}
+                                      download
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-primary hover:underline ml-2"
+                                    >
+                                      <Download className="h-3 w-3" />
+                                    </a>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -347,9 +454,8 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate }:
               </div>
             </ScrollArea>
 
-            {/* Add Comment Section */}
             <div className={`p-4 border-t-2 ${color.border} bg-white/40 dark:bg-black/20 flex-shrink-0`}>
-              <div className="flex gap-2">
+              <div className="space-y-2">
                 <Textarea
                   placeholder="Add a comment to this note..."
                   value={newComment}
@@ -365,15 +471,86 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate }:
                             ? "focus-visible:ring-purple-200 dark:focus-visible:ring-purple-700"
                             : "focus-visible:ring-orange-200 dark:focus-visible:ring-orange-700"
                   }`}
-                  disabled={submitting}
+                  disabled={submitting || isUploading}
                 />
-                <Button
-                  onClick={handleAddComment}
-                  disabled={!newComment.trim() || submitting}
-                  className={`h-[80px] px-4 shadow-md ${color.button}`}
-                >
-                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                </Button>
+
+                {selectedFile && (
+                  <div className="p-2 bg-white/60 dark:bg-black/30 rounded border space-y-1">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {getFileIcon(selectedFile.name)}
+                        <span className="text-xs font-medium truncate max-w-[150px]">{selectedFile.name}</span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0"
+                        onClick={handleRemoveFile}
+                        disabled={submitting || isUploading}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+
+                    {filePreview && (
+                      <img
+                        src={filePreview || "/placeholder.svg"}
+                        alt="Preview"
+                        className="w-full h-20 object-cover rounded"
+                      />
+                    )}
+
+                    {isUploading && (
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span>Uploading...</span>
+                          <span>{uploadProgress}%</span>
+                        </div>
+                        <div className="w-full bg-secondary rounded-full h-1.5">
+                          <div
+                            className="bg-primary h-1.5 rounded-full transition-all"
+                            style={{ width: `${uploadProgress}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    onChange={handleFileSelect}
+                    disabled={submitting || isUploading}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={submitting || isUploading || !!selectedFile}
+                    className={`gap-1 ${color.border}`}
+                  >
+                    <Paperclip className="h-3 w-3" />
+                    Attach
+                  </Button>
+                  <Button
+                    onClick={handleAddComment}
+                    disabled={(!newComment.trim() && !selectedFile) || submitting || isUploading}
+                    size="sm"
+                    className={`gap-1 ml-auto ${color.button}`}
+                  >
+                    {submitting ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <>
+                        <Send className="h-3 w-3" />
+                        Send
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>

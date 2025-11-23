@@ -42,44 +42,49 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate, c
 
   const colors = [
     {
-      bg: "from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20",
-      border: "border-blue-200 dark:border-blue-700",
-      pin: "bg-blue-400 dark:bg-blue-600",
-      accent: "bg-blue-300 dark:bg-blue-600",
-      button: "bg-blue-500 hover:bg-blue-600 text-white border-blue-600",
-      ring: "ring-blue-200 dark:ring-blue-700",
+      bg: "from-blue-200 to-blue-300 dark:from-blue-600 dark:to-blue-700",
+      border: "border-blue-400 dark:border-blue-500",
+      pin: "bg-blue-500",
+      accent: "bg-blue-400",
+      button: "bg-blue-600 hover:bg-blue-700 text-white border-blue-600",
+      ring: "ring-blue-400 dark:ring-blue-500",
+      text: "text-blue-900 dark:text-blue-50",
     },
     {
-      bg: "from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20",
-      border: "border-green-200 dark:border-green-700",
-      pin: "bg-green-400 dark:bg-green-600",
-      accent: "bg-green-300 dark:bg-green-600",
-      button: "bg-green-500 hover:bg-green-600 text-white border-green-600",
-      ring: "ring-green-200 dark:ring-green-700",
+      bg: "from-yellow-200 to-yellow-300 dark:from-yellow-600 dark:to-yellow-700",
+      border: "border-yellow-400 dark:border-yellow-500",
+      pin: "bg-yellow-500",
+      accent: "bg-yellow-400",
+      button: "bg-yellow-600 hover:bg-yellow-700 text-white border-yellow-600",
+      ring: "ring-yellow-400 dark:ring-yellow-500",
+      text: "text-yellow-900 dark:text-yellow-50",
     },
     {
-      bg: "from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-800/20",
-      border: "border-pink-200 dark:border-pink-700",
-      pin: "bg-pink-400 dark:bg-pink-600",
-      accent: "bg-pink-300 dark:bg-pink-600",
-      button: "bg-pink-500 hover:bg-pink-600 text-white border-pink-600",
-      ring: "ring-pink-200 dark:ring-pink-700",
+      bg: "from-pink-200 to-pink-300 dark:from-pink-600 dark:to-pink-700",
+      border: "border-pink-400 dark:border-pink-500",
+      pin: "bg-pink-500",
+      accent: "bg-pink-400",
+      button: "bg-pink-600 hover:bg-pink-700 text-white border-pink-600",
+      ring: "ring-pink-400 dark:ring-pink-500",
+      text: "text-pink-900 dark:text-pink-50",
     },
     {
-      bg: "from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20",
-      border: "border-purple-200 dark:border-purple-700",
-      pin: "bg-purple-400 dark:bg-purple-600",
-      accent: "bg-purple-300 dark:bg-purple-600",
-      button: "bg-purple-500 hover:bg-purple-600 text-white border-purple-600",
-      ring: "ring-purple-200 dark:ring-purple-700",
+      bg: "from-green-200 to-green-300 dark:from-green-600 dark:to-green-700",
+      border: "border-green-400 dark:border-green-500",
+      pin: "bg-green-500",
+      accent: "bg-green-400",
+      button: "bg-green-600 hover:bg-green-700 text-white border-green-600",
+      ring: "ring-green-400 dark:ring-green-500",
+      text: "text-green-900 dark:text-green-50",
     },
     {
-      bg: "from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20",
-      border: "border-orange-200 dark:border-orange-700",
-      pin: "bg-orange-400 dark:bg-orange-600",
-      accent: "bg-orange-300 dark:bg-orange-600",
-      button: "bg-orange-500 hover:bg-orange-600 text-white border-orange-600",
-      ring: "ring-orange-200 dark:ring-orange-700",
+      bg: "from-orange-200 to-orange-300 dark:from-orange-600 dark:to-orange-700",
+      border: "border-orange-400 dark:border-orange-500",
+      pin: "bg-orange-500",
+      accent: "bg-orange-400",
+      button: "bg-orange-600 hover:bg-orange-700 text-white border-orange-600",
+      ring: "ring-orange-400 dark:ring-orange-500",
+      text: "text-orange-900 dark:text-orange-50",
     },
   ]
 
@@ -299,11 +304,13 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate, c
                   </Avatar>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="font-bold text-lg">{getUserName(post.createdBy)}</p>
+                      <p className={`font-bold text-lg ${color.text}`}>{getUserName(post.createdBy)}</p>
                       <span className="text-xs text-muted-foreground">•</span>
-                      <p className="text-sm text-muted-foreground">{formatRelativeTime(post.createdAt)}</p>
+                      <p className={`text-sm text-muted-foreground ${color.text}`}>
+                        {formatRelativeTime(post.createdAt)}
+                      </p>
                     </div>
-                    <p className="text-base mt-3 whitespace-pre-wrap leading-relaxed">{post.content}</p>
+                    <p className={`text-base mt-3 whitespace-pre-wrap leading-relaxed ${color.text}`}>{post.content}</p>
 
                     {post.attachment && (
                       <div className="mt-4 p-3 bg-white/60 dark:bg-black/30 rounded-lg border-2 border-white dark:border-gray-700 shadow-sm">
@@ -361,7 +368,9 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate, c
                             <div className="flex items-center gap-3 flex-1 min-w-0">
                               {getFileIcon(post.attachment.url)}
                               <div className="flex-1 min-w-0">
-                                <p className="font-medium truncate">{post.attachment.url.split("/").pop()}</p>
+                                <p className={`font-medium truncate ${color.text}`}>
+                                  {post.attachment.url.split("/").pop()}
+                                </p>
                                 <p className="text-xs text-muted-foreground">{post.attachment.provider}</p>
                               </div>
                             </div>
@@ -385,14 +394,14 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate, c
                 <div className="pt-4 space-y-3">
                   <div className="flex items-center gap-2">
                     <div className={`h-px ${color.accent} flex-1`} />
-                    <h3 className="font-semibold text-sm text-muted-foreground px-2">
+                    <h3 className={`font-semibold text-sm text-muted-foreground px-2 ${color.text}`}>
                       {post.comments.length} {post.comments.length === 1 ? "Comment" : "Comments"}
                     </h3>
                     <div className={`h-px ${color.accent} flex-1`} />
                   </div>
 
                   {post.comments.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-8 italic">
+                    <p className={`text-sm text-muted-foreground text-center py-8 italic ${color.text}`}>
                       No comments yet. Be the first to comment!
                     </p>
                   ) : (
@@ -414,11 +423,15 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate, c
                           </Avatar>
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
-                              <p className="font-semibold text-sm">{getUserName(comment.createdBy)}</p>
+                              <p className={`font-semibold text-sm ${color.text}`}>{getUserName(comment.createdBy)}</p>
                               <span className="text-xs text-muted-foreground">•</span>
-                              <p className="text-xs text-muted-foreground">{formatRelativeTime(comment.createdAt)}</p>
+                              <p className={`text-xs text-muted-foreground ${color.text}`}>
+                                {formatRelativeTime(comment.createdAt)}
+                              </p>
                             </div>
-                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{comment.content}</p>
+                            <p className={`text-sm whitespace-pre-wrap leading-relaxed ${color.text}`}>
+                              {comment.content}
+                            </p>
 
                             {comment.attachment && (
                               <div className="mt-2 p-2 bg-white/40 dark:bg-black/20 rounded border">
@@ -448,7 +461,7 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate, c
                                   <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2 flex-1 min-w-0">
                                       {getFileIcon(comment.attachment.url)}
-                                      <span className="text-xs truncate">
+                                      <span className={`text-xs truncate ${color.text}`}>
                                         {comment.attachment.url.split("/").pop()}
                                       </span>
                                     </div>
@@ -482,14 +495,14 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate, c
                   onChange={(e) => setNewComment(e.target.value)}
                   className={`min-h-[80px] resize-none bg-white/80 dark:bg-black/40 border-2 ${color.border} focus-visible:ring-offset-0 focus-visible:ring-2 ${
                     getColorForPost(postId) === 0
-                      ? "focus-visible:ring-blue-200 dark:focus-visible:ring-blue-700"
+                      ? "focus-visible:ring-blue-400 dark:focus-visible:ring-blue-500"
                       : getColorForPost(postId) === 1
-                        ? "focus-visible:ring-green-200 dark:focus-visible:ring-green-700"
+                        ? "focus-visible:ring-yellow-400 dark:focus-visible:ring-yellow-500"
                         : getColorForPost(postId) === 2
-                          ? "focus-visible:ring-pink-200 dark:focus-visible:ring-pink-700"
+                          ? "focus-visible:ring-pink-400 dark:focus-visible:ring-pink-500"
                           : getColorForPost(postId) === 3
-                            ? "focus-visible:ring-purple-200 dark:focus-visible:ring-purple-700"
-                            : "focus-visible:ring-orange-200 dark:focus-visible:ring-orange-700"
+                            ? "focus-visible:ring-green-400 dark:focus-visible:ring-green-500"
+                            : "focus-visible:ring-orange-400 dark:focus-visible:ring-orange-500"
                   }`}
                   disabled={submitting || isUploading}
                 />

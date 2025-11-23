@@ -517,7 +517,7 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate }:
                   </div>
                 )}
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-row justify-center">
                   <input
                     ref={fileInputRef}
                     type="file"

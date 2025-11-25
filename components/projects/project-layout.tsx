@@ -35,6 +35,7 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
   const shopDrawingFurniture = projectDetail.shopDrawingFurniture || []
   const approvedMaterial = projectDetail.approvedMaterial || []
   const approvedFurniture = projectDetail.approvedFurniture || []
+  const contractFiles = projectDetail.contract || [] // Added for contract files
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
@@ -44,6 +45,7 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
 
   const tabs = [
     { value: "main-layout", label: "Main Layout" },
+    { value: "contract", label: "Contract Files" }, // Added contract tab
     { value: "cad", label: "CAD Files" },
     { value: "fitout", label: "Fitout Drawing" },
     { value: "furniture", label: "Furniture Drawing" },
@@ -198,10 +200,12 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
                           <p className="text-sm text-muted-foreground">
                             Uploaded by {getUserName(layout.createdBy)} •{" "}
                             {layout.createdAt
-                              ? new Date(layout.createdAt).toLocaleDateString("en-US", {
+                              ? new Date(layout.createdAt).toLocaleString("en-US", {
                                   year: "numeric",
                                   month: "2-digit",
                                   day: "2-digit",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
                                 })
                               : "N/A"}
                           </p>
@@ -220,6 +224,93 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
                           variant="ghost"
                           size="icon"
                           onClick={() => handleDownload(layout.provider, layout.url, layout.name)}
+                          title="Download file"
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* New Tab: Contract Files */}
+        <TabsContent value="contract" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Contract Files</CardTitle>
+                  <CardDescription>Upload and manage contract documents</CardDescription>
+                </div>
+                <div>
+                  <Input
+                    id="contract-upload"
+                    type="file"
+                    accept=".pdf"
+                    className="hidden"
+                    onChange={(e) => onFileChange(e, "contract")}
+                    disabled={uploading}
+                  />
+                  <Button asChild disabled={uploading}>
+                    <label htmlFor="contract-upload" className="cursor-pointer">
+                      <Upload className="h-4 w-4 mr-2" />
+                      {uploading ? "Uploading..." : "Upload Contract"}
+                    </label>
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {contractFiles.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No contract files uploaded yet</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {contractFiles.map((contract: any) => (
+                    <div
+                      key={contract._id}
+                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-4">
+                        <FileText className="h-8 w-8 text-green-500" />
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{contract.name}</p>
+                            <Badge variant="default">v{contract.version || 1}.0</Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            Uploaded by {getUserName(contract.createdBy)} •{" "}
+                            {contract.createdAt
+                              ? new Date(contract.createdAt).toLocaleString("en-US", {
+                                  year: "numeric",
+                                  month: "2-digit",
+                                  day: "2-digit",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })
+                              : "N/A"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleView(contract.provider, contract.url, contract.name)}
+                          title="View file"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDownload(contract.provider, contract.url, contract.name)}
                           title="Download file"
                         >
                           <Download className="h-4 w-4" />
@@ -275,14 +366,19 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
                       <div className="flex items-center gap-4">
                         <FileText className="h-8 w-8 text-blue-500" />
                         <div>
-                          <p className="font-medium">{file.name}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{file.name}</p>
+                            <Badge variant="default">v{file.version || 1}.0</Badge>
+                          </div>
                           <p className="text-sm text-muted-foreground">
                             Uploaded by {getUserName(file.createdBy)} •{" "}
                             {file.createdAt
-                              ? new Date(file.createdAt).toLocaleDateString("en-US", {
+                              ? new Date(file.createdAt).toLocaleString("en-US", {
                                   year: "numeric",
                                   month: "2-digit",
                                   day: "2-digit",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
                                 })
                               : "N/A"}
                           </p>
@@ -350,17 +446,17 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
                         <div>
                           <div className="flex items-center gap-2">
                             <p className="font-medium">{drawing.name}</p>
-                            <Badge variant={drawing.status === "Approved" ? "default" : "secondary"}>
-                              {drawing.status || "Pending"}
-                            </Badge>
+                            <Badge variant="default">v{drawing.version || 1}.0</Badge>
                           </div>
                           <p className="text-sm text-muted-foreground">
-                            v{drawing.version || 1}.0 •{" "}
+                            Uploaded by {getUserName(drawing.createdBy)} •{" "}
                             {drawing.createdAt
-                              ? new Date(drawing.createdAt).toLocaleDateString("en-US", {
+                              ? new Date(drawing.createdAt).toLocaleString("en-US", {
                                   year: "numeric",
                                   month: "2-digit",
                                   day: "2-digit",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
                                 })
                               : "N/A"}
                           </p>
@@ -434,17 +530,17 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
                         <div>
                           <div className="flex items-center gap-2">
                             <p className="font-medium">{drawing.name}</p>
-                            <Badge variant={drawing.status === "Approved" ? "default" : "secondary"}>
-                              {drawing.status || "Pending"}
-                            </Badge>
+                            <Badge variant="default">v{drawing.version || 1}.0</Badge>
                           </div>
                           <p className="text-sm text-muted-foreground">
-                            v{drawing.version || 1}.0 •{" "}
+                            Uploaded by {getUserName(drawing.createdBy)} •{" "}
                             {drawing.createdAt
-                              ? new Date(drawing.createdAt).toLocaleDateString("en-US", {
+                              ? new Date(drawing.createdAt).toLocaleString("en-US", {
                                   year: "numeric",
                                   month: "2-digit",
                                   day: "2-digit",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
                                 })
                               : "N/A"}
                           </p>
@@ -518,14 +614,17 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
                         <div>
                           <div className="flex items-center gap-2">
                             <p className="font-medium">{material.name}</p>
-                            <Badge variant="default">Approved</Badge>
+                            <Badge variant="default">v{material.version || 1}.0</Badge>
                           </div>
                           <p className="text-sm text-muted-foreground">
+                            Uploaded by {getUserName(material.createdBy)} •{" "}
                             {material.createdAt
-                              ? new Date(material.createdAt).toLocaleDateString("en-US", {
+                              ? new Date(material.createdAt).toLocaleString("en-US", {
                                   year: "numeric",
                                   month: "2-digit",
                                   day: "2-digit",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
                                 })
                               : "N/A"}
                           </p>
@@ -599,14 +698,17 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
                         <div>
                           <div className="flex items-center gap-2">
                             <p className="font-medium">{furniture.name}</p>
-                            <Badge variant="default">Approved</Badge>
+                            <Badge variant="default">v{furniture.version || 1}.0</Badge>
                           </div>
                           <p className="text-sm text-muted-foreground">
+                            Uploaded by {getUserName(furniture.createdBy)} •{" "}
                             {furniture.createdAt
-                              ? new Date(furniture.createdAt).toLocaleDateString("en-US", {
+                              ? new Date(furniture.createdAt).toLocaleString("en-US", {
                                   year: "numeric",
                                   month: "2-digit",
                                   day: "2-digit",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
                                 })
                               : "N/A"}
                           </p>

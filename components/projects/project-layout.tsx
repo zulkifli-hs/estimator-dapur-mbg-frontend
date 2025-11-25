@@ -4,7 +4,7 @@ import type React from "react"
 
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Upload, FileText, Download, Eye } from 'lucide-react'
+import { Upload, FileText, Download, Eye } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -70,30 +70,46 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
   const handleFileUpload = async (file: File, type: string) => {
     if (!file) return
 
+    console.log("[v0] handleFileUpload called:", {
+      fileName: file.name,
+      fileSize: file.size,
+      type,
+      projectId,
+    })
+
     setUploading(true)
     try {
-      await uploadProjectFile(projectId, file, type)
+      console.log("[v0] Starting upload...")
+      const result = await uploadProjectFile(projectId, file, type)
+      console.log("[v0] Upload completed successfully:", result)
+
       toast({
         title: "Success",
         description: "File uploaded successfully",
       })
+
       if (onUpdate) {
+        console.log("[v0] Calling onUpdate to refresh data")
         onUpdate()
       }
     } catch (error) {
+      console.error("[v0] Upload error in handleFileUpload:", error)
       toast({
         title: "Error",
-        description: "Failed to upload file",
+        description: error instanceof Error ? error.message : "Failed to upload file",
         variant: "destructive",
       })
     } finally {
       setUploading(false)
+      console.log("[v0] Upload process completed, uploading state reset")
     }
   }
 
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: string) => {
     const file = e.target.files?.[0]
+    console.log("[v0] File selected:", { fileName: file?.name, fileType: type, fileSize: file?.size })
     if (file) {
+      console.log("[v0] Calling handleFileUpload...")
       handleFileUpload(file, type)
     }
     e.target.value = ""
@@ -175,7 +191,13 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
                           </div>
                           <p className="text-sm text-muted-foreground">
                             Uploaded by {getUserName(layout.createdBy)} •{" "}
-                            {layout.createdAt ? new Date(layout.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit" }) : "N/A"}
+                            {layout.createdAt
+                              ? new Date(layout.createdAt).toLocaleDateString("en-US", {
+                                  year: "numeric",
+                                  month: "2-digit",
+                                  day: "2-digit",
+                                })
+                              : "N/A"}
                           </p>
                         </div>
                       </div>
@@ -250,7 +272,13 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
                           <p className="font-medium">{file.name}</p>
                           <p className="text-sm text-muted-foreground">
                             Uploaded by {getUserName(file.createdBy)} •{" "}
-                            {file.createdAt ? new Date(file.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit" }) : "N/A"}
+                            {file.createdAt
+                              ? new Date(file.createdAt).toLocaleDateString("en-US", {
+                                  year: "numeric",
+                                  month: "2-digit",
+                                  day: "2-digit",
+                                })
+                              : "N/A"}
                           </p>
                         </div>
                       </div>
@@ -322,7 +350,13 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
                           </div>
                           <p className="text-sm text-muted-foreground">
                             v{drawing.version || 1}.0 •{" "}
-                            {drawing.createdAt ? new Date(drawing.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit" }) : "N/A"}
+                            {drawing.createdAt
+                              ? new Date(drawing.createdAt).toLocaleDateString("en-US", {
+                                  year: "numeric",
+                                  month: "2-digit",
+                                  day: "2-digit",
+                                })
+                              : "N/A"}
                           </p>
                         </div>
                       </div>
@@ -400,7 +434,13 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
                           </div>
                           <p className="text-sm text-muted-foreground">
                             v{drawing.version || 1}.0 •{" "}
-                            {drawing.createdAt ? new Date(drawing.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit" }) : "N/A"}
+                            {drawing.createdAt
+                              ? new Date(drawing.createdAt).toLocaleDateString("en-US", {
+                                  year: "numeric",
+                                  month: "2-digit",
+                                  day: "2-digit",
+                                })
+                              : "N/A"}
                           </p>
                         </div>
                       </div>
@@ -475,7 +515,13 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
                             <Badge variant="default">Approved</Badge>
                           </div>
                           <p className="text-sm text-muted-foreground">
-                            {material.createdAt ? new Date(material.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit" }) : "N/A"}
+                            {material.createdAt
+                              ? new Date(material.createdAt).toLocaleDateString("en-US", {
+                                  year: "numeric",
+                                  month: "2-digit",
+                                  day: "2-digit",
+                                })
+                              : "N/A"}
                           </p>
                         </div>
                       </div>
@@ -550,7 +596,13 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
                             <Badge variant="default">Approved</Badge>
                           </div>
                           <p className="text-sm text-muted-foreground">
-                            {furniture.createdAt ? new Date(furniture.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit" }) : "N/A"}
+                            {furniture.createdAt
+                              ? new Date(furniture.createdAt).toLocaleDateString("en-US", {
+                                  year: "numeric",
+                                  month: "2-digit",
+                                  day: "2-digit",
+                                })
+                              : "N/A"}
                           </p>
                         </div>
                       </div>

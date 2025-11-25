@@ -238,14 +238,14 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>CAD Files - Empty Building</CardTitle>
-                  <CardDescription>Upload CAD files (.dwg) of empty building structure</CardDescription>
+                  <CardTitle>CAD Files</CardTitle>
+                  <CardDescription>Upload CAD files (DWG, DXF, DWF, STEP, IGES)</CardDescription>
                 </div>
                 <div>
                   <Input
                     id="cad-upload"
                     type="file"
-                    accept=".dwg,.dxf,.pdf"
+                    accept=".dwg,.dxf,.dwf,.step,.stp,.iges,.igs"
                     className="hidden"
                     onChange={(e) => onFileChange(e, "cad")}
                     disabled={uploading}
@@ -253,7 +253,7 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
                   <Button asChild disabled={uploading}>
                     <label htmlFor="cad-upload" className="cursor-pointer">
                       <Upload className="h-4 w-4 mr-2" />
-                      {uploading ? "Uploading..." : "Upload CAD File"}
+                      {uploading ? "Uploading..." : "Upload CAD"}
                     </label>
                   </Button>
                 </div>

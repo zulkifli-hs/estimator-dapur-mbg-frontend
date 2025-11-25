@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
-import { LayoutDashboard, FolderKanban, MessageSquare, Users, Settings, HelpCircle, Package } from "lucide-react"
+import { LayoutDashboard, FolderKanban, MessageSquare, Users, Settings, HelpCircle, Package, User } from "lucide-react"
 
 interface NavItem {
   name: string
@@ -32,6 +32,7 @@ const mainNavigation: NavItem[] = [
 ]
 
 const secondaryNavigation: NavItem[] = [
+  { name: "Profile", href: "/profile", icon: User },
   { name: "Settings", href: "/settings", icon: Settings },
   { name: "Help & Support", href: "/help", icon: HelpCircle },
 ]

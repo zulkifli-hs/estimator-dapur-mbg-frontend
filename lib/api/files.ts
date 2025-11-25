@@ -109,9 +109,12 @@ export const uploadProjectFile = async (projectId: string, file: File, type: str
   console.log("[v0] Upload response status:", response.status, response.ok)
 
   if (!response.ok) {
-    const error = await response.json()
-    console.error("[v0] Upload error:", error)
-    throw new Error(error.message || "Upload failed")
+    const errorData = await response.json()
+    console.error("[v0] Upload error details:", JSON.stringify(errorData, null, 2))
+
+    // Extract the user-friendly error message
+    const errorMessage = errorData.message?.user || errorData.message || "Upload failed"
+    throw new Error(errorMessage)
   }
 
   const result = await response.json()

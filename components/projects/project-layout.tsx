@@ -94,9 +94,15 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
       }
     } catch (error) {
       console.error("[v0] Upload error in handleFileUpload:", error)
+
+      let errorMessage = "Failed to upload file"
+      if (error instanceof Error) {
+        errorMessage = error.message
+      }
+
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to upload file",
+        title: "Upload Failed",
+        description: errorMessage,
         variant: "destructive",
       })
     } finally {

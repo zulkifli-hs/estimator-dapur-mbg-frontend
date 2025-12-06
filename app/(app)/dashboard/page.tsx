@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -11,8 +13,37 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Building2, FolderKanban, TrendingUp, Users, Settings2, GripVertical, FileText, CreditCard, MessageSquare, Image, Calendar, DollarSign, CheckCircle2, Clock, AlertCircle } from 'lucide-react'
-import { Bar, BarChart, Line, LineChart, Pie, PieChart, Cell, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Legend } from "recharts"
+import {
+  Building2,
+  FolderKanban,
+  TrendingUp,
+  Users,
+  Settings2,
+  GripVertical,
+  FileText,
+  CreditCard,
+  MessageSquare,
+  ImageIcon,
+  Calendar,
+  DollarSign,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+} from "lucide-react"
+import {
+  Bar,
+  BarChart,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  Cell,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Legend,
+} from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { projectsApi } from "@/lib/api/projects"
 import { boqApi } from "@/lib/api/boq"
@@ -104,19 +135,29 @@ export default function DashboardPage() {
   const [terminData, setTerminData] = useState<any[]>([])
   const [discussionData, setDiscussionData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [layout, setLayout] = useState<DashboardLayout>(DEFAULT_LAYOUT)
+  const [layout, setLayout] = useState<DashboardLayout>(() => {
+    if (typeof window === "undefined") return DEFAULT_LAYOUT
+
+    const saved = localStorage.getItem("dashboard-layout")
+    if (saved) {
+      try {
+        const parsedLayout = JSON.parse(saved) as DashboardLayout
+        // Filter out any invalid card IDs that might exist in saved layout
+        const validCardIds = Object.keys(cardLabels) as DashboardCardId[]
+        return {
+          cardOrder: parsedLayout.cardOrder.filter((id) => validCardIds.includes(id)),
+          hiddenCards: parsedLayout.hiddenCards.filter((id) => validCardIds.includes(id)),
+        }
+      } catch {
+        return DEFAULT_LAYOUT
+      }
+    }
+    return DEFAULT_LAYOUT
+  })
   const [draggedCard, setDraggedCard] = useState<DashboardCardId | null>(null)
 
   useEffect(() => {
     loadDashboardData()
-    const savedLayout = localStorage.getItem("dashboard-layout")
-    if (savedLayout) {
-      try {
-        setLayout(JSON.parse(savedLayout))
-      } catch (error) {
-        console.error("Failed to parse saved layout:", error)
-      }
-    }
   }, [])
 
   const loadDashboardData = async () => {
@@ -237,8 +278,8 @@ export default function DashboardPage() {
     updateLayout(DEFAULT_LAYOUT)
   }
 
-  const safeCalculate = (value: number, fallback: number = 0): number => {
-    if (typeof value !== 'number' || isNaN(value) || !isFinite(value)) {
+  const safeCalculate = (value: number, fallback = 0): number => {
+    if (typeof value !== "number" || isNaN(value) || !isFinite(value)) {
       return fallback
     }
     return value
@@ -252,7 +293,7 @@ export default function DashboardPage() {
     return String(num)
   }
 
-  const teamMembersCount = typeof stats.teamMembers === 'number' && !isNaN(stats.teamMembers) ? stats.teamMembers : 0
+  const teamMembersCount = typeof stats.teamMembers === "number" && !isNaN(stats.teamMembers) ? stats.teamMembers : 0
   const estimatorsCount = Math.floor(teamMembersCount * 0.3)
   const pmsCount = Math.floor(teamMembersCount * 0.25)
   const designersCount = Math.floor(teamMembersCount * 0.25)
@@ -335,7 +376,7 @@ export default function DashboardPage() {
     },
   ]
 
-  const cardComponents: Record<DashboardCardId, JSX.Element> = {
+  const cardComponents: Record<DashboardCardId, React.JSX.Element> = {
     stats: (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {statCards.map((stat) => {
@@ -462,7 +503,9 @@ export default function DashboardPage() {
                 <Clock className="h-5 w-5 text-yellow-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{formatNumber(boqData.filter((b) => b.status === "pending").length)}</p>
+                <p className="text-2xl font-bold">
+                  {formatNumber(boqData.filter((b) => b.status === "pending").length)}
+                </p>
                 <p className="text-xs text-muted-foreground">Pending</p>
               </div>
             </div>
@@ -471,7 +514,9 @@ export default function DashboardPage() {
                 <CheckCircle2 className="h-5 w-5 text-green-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{formatNumber(boqData.filter((b) => b.status === "approved").length)}</p>
+                <p className="text-2xl font-bold">
+                  {formatNumber(boqData.filter((b) => b.status === "approved").length)}
+                </p>
                 <p className="text-xs text-muted-foreground">Approved</p>
               </div>
             </div>
@@ -480,7 +525,9 @@ export default function DashboardPage() {
                 <AlertCircle className="h-5 w-5 text-red-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{formatNumber(boqData.filter((b) => b.status === "rejected").length)}</p>
+                <p className="text-2xl font-bold">
+                  {formatNumber(boqData.filter((b) => b.status === "rejected").length)}
+                </p>
                 <p className="text-xs text-muted-foreground">Rejected</p>
               </div>
             </div>
@@ -656,7 +703,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-2 gap-4">
             <div className="flex items-center gap-3">
               <div className="h-12 w-12 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                <Image className="h-6 w-6 text-purple-600" />
+                <ImageIcon className="h-6 w-6 text-purple-600" />
               </div>
               <div>
                 <p className="text-3xl font-bold">{formatNumber(stats.totalAlbums)}</p>
@@ -676,10 +723,13 @@ export default function DashboardPage() {
           <div className="mt-6 p-4 bg-muted rounded-lg">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm">Storage Usage</span>
-              <span className="text-sm font-medium">67%</span>
+              <span className="text-sm bg-yellow-500/10 text-yellow-700 px-2 py-1 rounded">67%</span>
             </div>
             <div className="h-2 bg-background rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-green-500 to-yellow-500 rounded-full" style={{ width: "67%" }} />
+              <div
+                className="h-full bg-gradient-to-r from-green-500 to-yellow-500 rounded-full"
+                style={{ width: "67%" }}
+              />
             </div>
             <p className="text-xs text-muted-foreground mt-2">2.3GB of 5GB used</p>
           </div>
@@ -804,15 +854,20 @@ export default function DashboardPage() {
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>Dashboard Layout</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            {layout.cardOrder.map((cardId) => (
-              <DropdownMenuCheckboxItem
-                key={cardId}
-                checked={!layout.hiddenCards.includes(cardId)}
-                onCheckedChange={() => toggleCardVisibility(cardId)}
-              >
-                {cardLabels[cardId]}
-              </DropdownMenuCheckboxItem>
-            ))}
+            {layout.cardOrder.map((cardId) => {
+              // Skip rendering if the card ID doesn't have a label
+              if (!cardLabels[cardId]) return null
+
+              return (
+                <DropdownMenuCheckboxItem
+                  key={cardId}
+                  checked={!layout.hiddenCards.includes(cardId)}
+                  onCheckedChange={() => toggleCardVisibility(cardId)}
+                >
+                  {cardLabels[cardId]}
+                </DropdownMenuCheckboxItem>
+              )
+            })}
             <DropdownMenuSeparator />
             <div className="px-2 py-1.5">
               <Button variant="ghost" size="sm" onClick={resetLayout} className="w-full justify-start">
@@ -825,7 +880,7 @@ export default function DashboardPage() {
 
       <div className="space-y-4">
         {layout.cardOrder
-          .filter((cardId) => !layout.hiddenCards.includes(cardId))
+          .filter((cardId) => !layout.hiddenCards.includes(cardId) && cardComponents[cardId])
           .map((cardId, index) => {
             const isChartsRow =
               (cardId === "projectProgress" || cardId === "budgetOverview") &&

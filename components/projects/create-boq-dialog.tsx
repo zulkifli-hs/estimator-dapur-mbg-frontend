@@ -124,6 +124,14 @@ export function CreateBOQDialog({
   const handleSubmit = async () => {
     setLoading(true)
     try {
+      const formatDateToYYYYMMDD = (dateString: string) => {
+        const date = new Date(dateString)
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, "0")
+        const day = String(date.getDate()).padStart(2, "0")
+        return `${year}-${month}-${day}`
+      }
+
       const filteredPreliminary = preliminary
         .filter((item) => item.name.trim() !== "")
         .map((item) => {
@@ -133,8 +141,8 @@ export function CreateBOQDialog({
             unit: item.unit,
             price: item.price,
           }
-          if (item.startDate) filtered.startDate = item.startDate
-          if (item.endDate) filtered.endDate = item.endDate
+          if (item.startDate) filtered.startDate = formatDateToYYYYMMDD(item.startDate)
+          if (item.endDate) filtered.endDate = formatDateToYYYYMMDD(item.endDate)
           return filtered
         })
 
@@ -151,8 +159,8 @@ export function CreateBOQDialog({
                 unit: p.unit,
                 price: p.price,
               }
-              if (p.startDate) filtered.startDate = p.startDate
-              if (p.endDate) filtered.endDate = p.endDate
+              if (p.startDate) filtered.startDate = formatDateToYYYYMMDD(p.startDate)
+              if (p.endDate) filtered.endDate = formatDateToYYYYMMDD(p.endDate)
               return filtered
             }),
         }))
@@ -171,8 +179,8 @@ export function CreateBOQDialog({
                 unit: p.unit,
                 price: p.price,
               }
-              if (p.startDate) filtered.startDate = p.startDate
-              if (p.endDate) filtered.endDate = p.endDate
+              if (p.startDate) filtered.startDate = formatDateToYYYYMMDD(p.startDate)
+              if (p.endDate) filtered.endDate = formatDateToYYYYMMDD(p.endDate)
               return filtered
             }),
         }))

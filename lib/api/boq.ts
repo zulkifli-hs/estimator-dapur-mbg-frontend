@@ -141,14 +141,14 @@ export const updateBOQ = async (
   projectId: string,
   boqId: string,
   data: {
-    preliminary: Array<{ qty: number; name: string; unit: string; price: number }>
+    preliminary: Array<{ qty: number; name: string; unit: string; price: number; startDate?: string; endDate?: string }>
     fittingOut: Array<{
       name: string
-      products: Array<{ qty: number; name: string; unit: string; price: number }>
+      products: Array<{ qty: number; name: string; unit: string; price: number; startDate?: string; endDate?: string }>
     }>
     furnitureWork: Array<{
       name: string
-      products: Array<{ qty: number; name: string; unit: string; price: number }>
+      products: Array<{ qty: number; name: string; unit: string; price: number; startDate?: string; endDate?: string }>
     }>
   },
 ): Promise<any> => {
@@ -287,14 +287,35 @@ export const boqApi = {
     projectId: string,
     boqId: string,
     boqData: {
-      preliminary: Array<{ qty: number; name: string; unit: string; price: number }>
+      preliminary: Array<{
+        qty: number
+        name: string
+        unit: string
+        price: number
+        startDate?: string
+        endDate?: string
+      }>
       fittingOut: Array<{
         name: string
-        products: Array<{ qty: number; name: string; unit: string; price: number }>
+        products: Array<{
+          qty: number
+          name: string
+          unit: string
+          price: number
+          startDate?: string
+          endDate?: string
+        }>
       }>
       furnitureWork: Array<{
         name: string
-        products: Array<{ qty: number; name: string; unit: string; price: number }>
+        products: Array<{
+          qty: number
+          name: string
+          unit: string
+          price: number
+          startDate?: string
+          endDate?: string
+        }>
       }>
     },
   ) => {

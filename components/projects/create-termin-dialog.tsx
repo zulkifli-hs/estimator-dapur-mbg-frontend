@@ -21,20 +21,21 @@ interface CreateTerminDialogProps {
 interface TerminEntry {
   name: string
   percentage: number
+  note?: string
 }
 
 export function CreateTerminDialog({ open, onOpenChange, projectId, onSuccess }: CreateTerminDialogProps) {
   const [termins, setTermins] = useState<TerminEntry[]>([
-    { name: "Down Payment", percentage: 30 },
-    { name: "Progress 1", percentage: 30 },
-    { name: "Progress 2", percentage: 30 },
-    { name: "Final Payment", percentage: 10 },
+    { name: "Down Payment", percentage: 30, note: "" },
+    { name: "Progress 1", percentage: 30, note: "" },
+    { name: "Progress 2", percentage: 30, note: "" },
+    { name: "Final Payment", percentage: 10, note: "" },
   ])
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
 
   const handleAddTermin = () => {
-    setTermins([...termins, { name: "", percentage: 0 }])
+    setTermins([...termins, { name: "", percentage: 0, note: "" }])
   }
 
   const handleRemoveTermin = (index: number) => {
@@ -104,10 +105,10 @@ export function CreateTerminDialog({ open, onOpenChange, projectId, onSuccess }:
       onOpenChange(false)
       // Reset form
       setTermins([
-        { name: "Down Payment", percentage: 30 },
-        { name: "Progress 1", percentage: 30 },
-        { name: "Progress 2", percentage: 30 },
-        { name: "Final Payment", percentage: 10 },
+        { name: "Down Payment", percentage: 30, note: "" },
+        { name: "Progress 1", percentage: 30, note: "" },
+        { name: "Progress 2", percentage: 30, note: "" },
+        { name: "Final Payment", percentage: 10, note: "" },
       ])
     } catch (error) {
       console.error("Failed to create termins:", error)
@@ -136,38 +137,48 @@ export function CreateTerminDialog({ open, onOpenChange, projectId, onSuccess }:
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-4">
             {termins.map((termin, index) => (
-              <div key={index} className="flex gap-4 items-end">
-                <div className="flex-1 space-y-2">
-                  <Label className="mb-1.5 block">Payment Term Name</Label>
+              <div key={index} className="space-y-3 p-4 border rounded-lg">
+                <div className="flex gap-4 items-end">
+                  <div className="flex-1 space-y-2">
+                    <Label className="mb-1.5 block">Payment Term Name</Label>
+                    <Input
+                      placeholder="e.g., Down Payment, Progress 1"
+                      value={termin.name}
+                      onChange={(e) => handleTerminChange(index, "name", e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="w-32 space-y-2">
+                    <Label className="mb-1.5 block">Percentage (%)</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      placeholder="0"
+                      value={termin.percentage || ""}
+                      onChange={(e) => handleTerminChange(index, "percentage", Number.parseFloat(e.target.value) || 0)}
+                      required
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handleRemoveTermin(index)}
+                    disabled={termins.length <= 1}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  <Label className="mb-1.5 block">Note (Optional)</Label>
                   <Input
-                    placeholder="e.g., Down Payment, Progress 1"
-                    value={termin.name}
-                    onChange={(e) => handleTerminChange(index, "name", e.target.value)}
-                    required
+                    placeholder="Add a note for this payment term"
+                    value={termin.note || ""}
+                    onChange={(e) => handleTerminChange(index, "note", e.target.value)}
                   />
                 </div>
-                <div className="w-32 space-y-2">
-                  <Label className="mb-1.5 block">Percentage (%)</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.01"
-                    placeholder="0"
-                    value={termin.percentage || ""}
-                    onChange={(e) => handleTerminChange(index, "percentage", Number.parseFloat(e.target.value) || 0)}
-                    required
-                  />
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={() => handleRemoveTermin(index)}
-                  disabled={termins.length <= 1}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
               </div>
             ))}
           </div>

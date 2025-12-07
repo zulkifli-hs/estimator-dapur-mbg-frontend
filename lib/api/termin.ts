@@ -219,11 +219,12 @@ export const terminApi = {
     const data = await getTermin(projectId, terminId)
     return { success: true, data }
   },
-  createFormat: async (projectId: string, termins: Array<{ name: string; percentage: number }>) => {
-    const transformedTermins = termins.map(t => ({
+  createFormat: async (projectId: string, termins: Array<{ name: string; percentage: number; note?: string }>) => {
+    const transformedTermins = termins.map((t) => ({
       name: t.name,
       value: t.percentage,
-      valueType: "%"
+      valueType: "%",
+      ...(t.note && { note: t.note }),
     }))
     const data = await createTerminFormat(projectId, transformedTermins)
     return { success: true, data }

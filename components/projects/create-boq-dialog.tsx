@@ -25,6 +25,8 @@ interface PreliminaryItem {
   name: string
   unit: string
   price: number
+  startDate?: string
+  endDate?: string
 }
 
 interface Product {
@@ -32,6 +34,8 @@ interface Product {
   name: string
   unit: string
   price: number
+  startDate?: string
+  endDate?: string
 }
 
 interface Category {
@@ -67,6 +71,8 @@ export function CreateBOQDialog({
             name: item.name || "",
             unit: item.unit || "",
             price: item.price || 0,
+            ...(item.startDate && { startDate: item.startDate }),
+            ...(item.endDate && { endDate: item.endDate }),
           })),
         )
       }
@@ -82,6 +88,8 @@ export function CreateBOQDialog({
                     name: p.name || "",
                     unit: p.unit || "",
                     price: p.price || 0,
+                    ...(p.startDate && { startDate: p.startDate }),
+                    ...(p.endDate && { endDate: p.endDate }),
                   }))
                 : [{ qty: 0, name: "", unit: "", price: 0 }],
           })),
@@ -99,6 +107,8 @@ export function CreateBOQDialog({
                     name: p.name || "",
                     unit: p.unit || "",
                     price: p.price || 0,
+                    ...(p.startDate && { startDate: p.startDate }),
+                    ...(p.endDate && { endDate: p.endDate }),
                   }))
                 : [{ qty: 0, name: "", unit: "", price: 0 }],
           })),
@@ -114,12 +124,37 @@ export function CreateBOQDialog({
   const handleSubmit = async () => {
     setLoading(true)
     try {
-      const filteredPreliminary = preliminary.filter((item) => item.name.trim() !== "")
+      const filteredPreliminary = preliminary
+        .filter((item) => item.name.trim() !== "")
+        .map((item) => {
+          const filtered: any = {
+            qty: item.qty,
+            name: item.name,
+            unit: item.unit,
+            price: item.price,
+          }
+          if (item.startDate) filtered.startDate = item.startDate
+          if (item.endDate) filtered.endDate = item.endDate
+          return filtered
+        })
+
       const filteredFittingOut = fittingOut
         .filter((cat) => cat.name.trim() !== "")
         .map((cat) => ({
           name: cat.name,
-          products: cat.products.filter((p) => p.name.trim() !== ""),
+          products: cat.products
+            .filter((p) => p.name.trim() !== "")
+            .map((p) => {
+              const filtered: any = {
+                qty: p.qty,
+                name: p.name,
+                unit: p.unit,
+                price: p.price,
+              }
+              if (p.startDate) filtered.startDate = p.startDate
+              if (p.endDate) filtered.endDate = p.endDate
+              return filtered
+            }),
         }))
         .filter((cat) => cat.products.length > 0)
 
@@ -127,7 +162,19 @@ export function CreateBOQDialog({
         .filter((cat) => cat.name.trim() !== "")
         .map((cat) => ({
           name: cat.name,
-          products: cat.products.filter((p) => p.name.trim() !== ""),
+          products: cat.products
+            .filter((p) => p.name.trim() !== "")
+            .map((p) => {
+              const filtered: any = {
+                qty: p.qty,
+                name: p.name,
+                unit: p.unit,
+                price: p.price,
+              }
+              if (p.startDate) filtered.startDate = p.startDate
+              if (p.endDate) filtered.endDate = p.endDate
+              return filtered
+            }),
         }))
         .filter((cat) => cat.products.length > 0)
 
@@ -293,7 +340,7 @@ export function CreateBOQDialog({
                 <Card key={index}>
                   <CardContent className="pt-6">
                     <div className="flex items-start gap-4">
-                      <div className="flex-1 grid grid-cols-3 gap-4">
+                      <div className="flex-1 grid grid-cols-4 gap-4">
                         <div>
                           <Label className="mb-1.5 block">Item Name</Label>
                           <Input
@@ -378,7 +425,7 @@ export function CreateBOQDialog({
                   <div className="space-y-2 pl-4 border-l-2">
                     {category.products.map((product, productIndex) => (
                       <div key={productIndex} className="flex items-start gap-4">
-                        <div className="flex-1 grid grid-cols-3 gap-4">
+                        <div className="flex-1 grid grid-cols-4 gap-4">
                           <div>
                             <Label className="text-sm mb-1.5 block">Product Name</Label>
                             <Input
@@ -481,7 +528,7 @@ export function CreateBOQDialog({
                   <div className="space-y-2 pl-4 border-l-2">
                     {category.products.map((product, productIndex) => (
                       <div key={productIndex} className="flex items-start gap-4">
-                        <div className="flex-1 grid grid-cols-3 gap-4">
+                        <div className="flex-1 grid grid-cols-4 gap-4">
                           <div>
                             <Label className="text-sm mb-1.5 block">Product Name</Label>
                             <Input

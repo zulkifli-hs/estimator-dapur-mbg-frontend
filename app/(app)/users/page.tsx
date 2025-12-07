@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Plus, Search, Edit, Trash2, Loader2, Upload, X, Shield } from "lucide-react"
-import { usersApi, type User, type UpdateUserInput } from "@/lib/api/users"
+import { usersApi, type User, type UpdateUserInput, type CreateUserInput } from "@/lib/api/users"
 import { uploadApi } from "@/lib/api/upload"
 import { getProfile } from "@/lib/api/auth"
 import { useToast } from "@/hooks/use-toast"
@@ -161,18 +161,18 @@ export default function UsersPage() {
     try {
       setSubmitting(true)
 
-      let photoData = undefined
+      let photoData = { url: "images/user-default.jpeg", provider: "local" }
       if (photoFile) {
         const uploaded = await uploadApi.uploadFile(photoFile, setUploadProgress)
         photoData = { url: uploaded.url, provider: uploaded.provider }
       }
 
-      const createData = {
+      const createData: CreateUserInput = {
         email: formData.email,
         password: formData.password,
         profile: {
-          name: formData.name || undefined,
-          phone: formData.phone || undefined,
+          name: formData.name || "",
+          phone: formData.phone || "",
           photo: photoData,
         },
       }
@@ -210,13 +210,12 @@ export default function UsersPage() {
         photoData = { url: uploaded.url, provider: uploaded.provider }
       }
 
-      // Restructured update payload to nest name, phone, and photo under profile object
       const updateData: UpdateUserInput = {
         email: formData.email || undefined,
         password: formData.password || undefined,
         profile: {
-          name: formData.name || undefined,
-          phone: formData.phone || undefined,
+          name: formData.name || "",
+          phone: formData.phone || "",
           photo: photoData,
         },
       }

@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Menu, Bell, User, LogOut, Settings, Moon, Sun } from "lucide-react"
-import { useTheme } from "next-themes"
+import { useTheme } from "@/components/providers/theme-provider"
 import { useRouter } from "next/navigation"
 import { Breadcrumb } from "./breadcrumb"
 

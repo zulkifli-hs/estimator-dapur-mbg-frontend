@@ -19,23 +19,27 @@ export interface User {
 export interface CreateUserInput {
   email: string
   password: string
-  name?: string
-  photo?: {
-    url: string
-    provider: string
+  profile?: {
+    name?: string
+    photo?: {
+      url: string
+      provider: string
+    }
+    phone?: string
   }
-  phone?: string
 }
 
 export interface UpdateUserInput {
   email?: string
   password?: string
-  name?: string
-  photo?: {
-    url: string
-    provider: string
+  profile?: {
+    name?: string
+    photo?: {
+      url: string
+      provider: string
+    }
+    phone?: string
   }
-  phone?: string
 }
 
 export const usersApi = {

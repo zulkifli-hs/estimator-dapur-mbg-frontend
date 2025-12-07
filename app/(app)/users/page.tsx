@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Plus, Search, Edit, Trash2, Loader2, Upload, X, Shield } from "lucide-react"
-import { usersApi, type User, type CreateUserInput, type UpdateUserInput } from "@/lib/api/users"
+import { usersApi, type User, type UpdateUserInput } from "@/lib/api/users"
 import { uploadApi } from "@/lib/api/upload"
 import { getProfile } from "@/lib/api/auth"
 import { useToast } from "@/hooks/use-toast"
@@ -149,6 +149,15 @@ export default function UsersPage() {
   }
 
   const handleCreate = async () => {
+    if (!formData.email || !formData.password) {
+      toast({
+        title: "Error",
+        description: "Email and password are required",
+        variant: "destructive",
+      })
+      return
+    }
+
     try {
       setSubmitting(true)
 
@@ -158,12 +167,14 @@ export default function UsersPage() {
         photoData = { url: uploaded.url, provider: uploaded.provider }
       }
 
-      const createData: CreateUserInput = {
+      const createData = {
         email: formData.email,
         password: formData.password,
-        name: formData.name || undefined,
-        phone: formData.phone || undefined,
-        photo: photoData,
+        profile: {
+          name: formData.name || undefined,
+          phone: formData.phone || undefined,
+          photo: photoData,
+        },
       }
 
       await usersApi.create(createData)
@@ -199,12 +210,15 @@ export default function UsersPage() {
         photoData = { url: uploaded.url, provider: uploaded.provider }
       }
 
+      // Restructured update payload to nest name, phone, and photo under profile object
       const updateData: UpdateUserInput = {
         email: formData.email || undefined,
         password: formData.password || undefined,
-        name: formData.name || undefined,
-        phone: formData.phone || undefined,
-        photo: photoData,
+        profile: {
+          name: formData.name || undefined,
+          phone: formData.phone || undefined,
+          photo: photoData,
+        },
       }
 
       await usersApi.update(editingUser._id, updateData)

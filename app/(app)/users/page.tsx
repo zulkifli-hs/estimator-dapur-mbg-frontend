@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Plus, Search, Edit, Trash2, Loader2, Upload, X, Shield } from "lucide-react"
-import { usersApi, type User, type UpdateUserInput, type CreateUserInput } from "@/lib/api/users"
+import { usersApi, type User, type UpdateUserInput } from "@/lib/api/users"
 import { uploadApi } from "@/lib/api/upload"
 import { getProfile } from "@/lib/api/auth"
 import { useToast } from "@/hooks/use-toast"
@@ -167,17 +167,21 @@ export default function UsersPage() {
         photoData = { url: uploaded.url, provider: uploaded.provider }
       }
 
-      const createData: CreateUserInput = {
-        email: formData.email,
-        password: formData.password,
-        profile: {
-          name: formData.name || "",
-          phone: formData.phone || "",
-          photo: photoData,
-        },
+      const profileData: any = {
+        name: formData.name || "",
+        photo: photoData,
       }
 
-      await usersApi.create(createData)
+      // Only add phone to profile if it's not empty
+      if (formData.phone && formData.phone.trim()) {
+        profileData.phone = formData.phone
+      }
+
+      await usersApi.create({
+        email: formData.email,
+        password: formData.password,
+        profile: profileData,
+      })
 
       toast({
         title: "Success",
@@ -210,14 +214,20 @@ export default function UsersPage() {
         photoData = { url: uploaded.url, provider: uploaded.provider }
       }
 
+      const profileData: any = {
+        name: formData.name || "",
+        photo: photoData,
+      }
+
+      // Only add phone to profile if it's not empty
+      if (formData.phone && formData.phone.trim()) {
+        profileData.phone = formData.phone
+      }
+
       const updateData: UpdateUserInput = {
         email: formData.email || undefined,
         password: formData.password || undefined,
-        profile: {
-          name: formData.name || "",
-          phone: formData.phone || "",
-          photo: photoData,
-        },
+        profile: profileData,
       }
 
       await usersApi.update(editingUser._id, updateData)

@@ -83,17 +83,51 @@ export const getFileUrl = (provider: string, url: string): string => {
 }
 
 export const uploadProjectFile = async (projectId: string, file: File, type: string): Promise<any> => {
+  const getFileExtension = (filename: string): string => {
+    const lastDot = filename.lastIndexOf(".")
+    return lastDot !== -1 ? filename.substring(lastDot + 1).toLowerCase() : ""
+  }
+
+  // Map file extensions to MIME types for CAD files
+  const getMimeType = (file: File): string => {
+    // If browser provides MIME type, use it
+    if (file.type) return file.type
+
+    // Otherwise, determine from extension
+    const ext = getFileExtension(file.name)
+    const mimeTypes: Record<string, string> = {
+      dwg: "application/acad",
+      dxf: "application/dxf",
+      dwf: "application/dwf",
+      step: "application/step",
+      stp: "application/step",
+      iges: "application/iges",
+      igs: "application/iges",
+      pdf: "application/pdf",
+    }
+    return mimeTypes[ext] || "application/octet-stream"
+  }
+
+  const fileType = getMimeType(file)
+
   console.log("[v0] uploadProjectFile called:", {
     projectId,
     fileName: file.name,
     fileSize: file.size,
-    fileType: file.type,
+    fileType,
+    browserFileType: file.type,
     type,
     endpoint: `${API_BASE_URL}/projects/${projectId}/${type}`,
   })
 
   const formData = new FormData()
   formData.append("file", file)
+
+  if (!file.type && fileType !== "application/octet-stream") {
+    const correctedFile = new File([file], file.name, { type: fileType })
+    formData.set("file", correctedFile)
+    console.log("[v0] Created corrected file with MIME type:", fileType)
+  }
 
   const token = getAuthToken()
   console.log("[v0] Token available:", !!token)

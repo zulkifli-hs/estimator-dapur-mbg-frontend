@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -28,16 +29,19 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Plus, Search, Edit, Trash2, Loader2, Upload, X } from "lucide-react"
+import { Plus, Search, Edit, Trash2, Loader2, Upload, X, Shield } from "lucide-react"
 import { usersApi, type User, type CreateUserInput, type UpdateUserInput } from "@/lib/api/users"
 import { uploadApi } from "@/lib/api/upload"
+import { getProfile } from "@/lib/api/auth"
 import { useToast } from "@/hooks/use-toast"
 import { API_BASE_URL } from "@/lib/api/config"
 
 export default function UsersPage() {
   const { toast } = useToast()
+  const router = useRouter()
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
+  const [checkingAuth, setCheckingAuth] = useState(true) // Added auth checking state
   const [searchQuery, setSearchQuery] = useState("")
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -64,8 +68,38 @@ export default function UsersPage() {
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
-    loadUsers()
-  }, [page, searchQuery])
+    const checkAdminAccess = async () => {
+      try {
+        const response = await getProfile()
+        if (!response.data.admin) {
+          toast({
+            title: "Access Denied",
+            description: "You don't have permission to access this page",
+            variant: "destructive",
+          })
+          router.push("/dashboard")
+          return
+        }
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to verify access permissions",
+          variant: "destructive",
+        })
+        router.push("/dashboard")
+        return
+      } finally {
+        setCheckingAuth(false)
+      }
+    }
+    checkAdminAccess()
+  }, [router, toast])
+
+  useEffect(() => {
+    if (!checkingAuth) {
+      loadUsers()
+    }
+  }, [page, searchQuery, checkingAuth])
 
   const loadUsers = async () => {
     try {
@@ -262,12 +296,26 @@ export default function UsersPage() {
     }
   }
 
+  if (checkingAuth) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground">Verifying access permissions...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
-          <p className="text-muted-foreground mt-1">Manage users and their permissions</p>
+          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+            <Shield className="h-8 w-8 text-primary" /> {/* Added admin shield icon */}
+            User Management
+          </h1>
+          <p className="text-muted-foreground mt-1">Manage users and permissions (Admin Only)</p>
         </div>
         <Button onClick={() => setCreateDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />

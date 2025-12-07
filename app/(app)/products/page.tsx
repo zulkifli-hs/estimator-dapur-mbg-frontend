@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -25,14 +26,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Plus, Search, Edit, Trash2, Loader2, Package } from "lucide-react"
+import { Plus, Search, Edit, Trash2, Loader2, Package, Shield } from "lucide-react"
 import { productsApi, type Product, type CreateProductInput, type UpdateProductInput } from "@/lib/api/products"
+import { getProfile } from "@/lib/api/auth"
 import { useToast } from "@/hooks/use-toast"
 
 export default function ProductsPage() {
   const { toast } = useToast()
+  const router = useRouter()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
+  const [checkingAuth, setCheckingAuth] = useState(true) // Added auth checking state
   const [searchQuery, setSearchQuery] = useState("")
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -55,8 +59,38 @@ export default function ProductsPage() {
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
-    loadProducts()
-  }, [page, searchQuery])
+    const checkAdminAccess = async () => {
+      try {
+        const response = await getProfile()
+        if (!response.data.admin) {
+          toast({
+            title: "Access Denied",
+            description: "You don't have permission to access this page",
+            variant: "destructive",
+          })
+          router.push("/dashboard")
+          return
+        }
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to verify access permissions",
+          variant: "destructive",
+        })
+        router.push("/dashboard")
+        return
+      } finally {
+        setCheckingAuth(false)
+      }
+    }
+    checkAdminAccess()
+  }, [router, toast])
+
+  useEffect(() => {
+    if (!checkingAuth) {
+      loadProducts()
+    }
+  }, [page, searchQuery, checkingAuth])
 
   const loadProducts = async () => {
     try {
@@ -223,12 +257,26 @@ export default function ProductsPage() {
     }).format(amount)
   }
 
+  if (checkingAuth) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground">Verifying access permissions...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Product Management</h1>
-          <p className="text-muted-foreground mt-1">Manage products and pricing</p>
+          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+            <Shield className="h-8 w-8 text-primary" /> {/* Added admin shield icon */}
+            Product Management
+          </h1>
+          <p className="text-muted-foreground mt-1">Manage products and pricing (Admin Only)</p>
         </div>
         <Button onClick={() => setCreateDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />

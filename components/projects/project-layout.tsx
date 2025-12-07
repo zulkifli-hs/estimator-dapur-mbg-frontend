@@ -143,9 +143,9 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
         </div>
 
         {/* Desktop: Tabs */}
-        <TabsList className="hidden md:grid w-full grid-cols-3 lg:grid-cols-6">
+        <TabsList className="hidden md:grid w-full grid-cols-4 lg:grid-cols-7 gap-1">
           {tabs.map((tab) => (
-            <TabsTrigger key={tab.value} value={tab.value}>
+            <TabsTrigger key={tab.value} value={tab.value} className="text-xs lg:text-sm">
               {tab.label}
             </TabsTrigger>
           ))}

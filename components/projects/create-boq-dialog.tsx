@@ -25,8 +25,6 @@ interface PreliminaryItem {
   name: string
   unit: string
   price: number
-  startDate?: string
-  endDate?: string
 }
 
 interface Product {
@@ -34,8 +32,6 @@ interface Product {
   name: string
   unit: string
   price: number
-  startDate?: string
-  endDate?: string
 }
 
 interface Category {
@@ -71,8 +67,6 @@ export function CreateBOQDialog({
             name: item.name || "",
             unit: item.unit || "",
             price: item.price || 0,
-            ...(item.startDate && { startDate: item.startDate }),
-            ...(item.endDate && { endDate: item.endDate }),
           })),
         )
       }
@@ -88,8 +82,6 @@ export function CreateBOQDialog({
                     name: p.name || "",
                     unit: p.unit || "",
                     price: p.price || 0,
-                    ...(p.startDate && { startDate: p.startDate }),
-                    ...(p.endDate && { endDate: p.endDate }),
                   }))
                 : [{ qty: 0, name: "", unit: "", price: 0 }],
           })),
@@ -107,8 +99,6 @@ export function CreateBOQDialog({
                     name: p.name || "",
                     unit: p.unit || "",
                     price: p.price || 0,
-                    ...(p.startDate && { startDate: p.startDate }),
-                    ...(p.endDate && { endDate: p.endDate }),
                   }))
                 : [{ qty: 0, name: "", unit: "", price: 0 }],
           })),
@@ -303,7 +293,7 @@ export function CreateBOQDialog({
                 <Card key={index}>
                   <CardContent className="pt-6">
                     <div className="flex items-start gap-4">
-                      <div className="flex-1 grid grid-cols-4 gap-4">
+                      <div className="flex-1 grid grid-cols-3 gap-4">
                         <div>
                           <Label className="mb-1.5 block">Item Name</Label>
                           <Input
@@ -336,22 +326,6 @@ export function CreateBOQDialog({
                             value={item.price}
                             onChange={(e) => updatePreliminaryItem(index, "price", Number(e.target.value))}
                             placeholder="0"
-                          />
-                        </div>
-                        <div>
-                          <Label className="mb-1.5 block">Start Date</Label>
-                          <Input
-                            type="date"
-                            value={item.startDate}
-                            onChange={(e) => updatePreliminaryItem(index, "startDate", e.target.value)}
-                          />
-                        </div>
-                        <div>
-                          <Label className="mb-1.5 block">End Date</Label>
-                          <Input
-                            type="date"
-                            value={item.endDate}
-                            onChange={(e) => updatePreliminaryItem(index, "endDate", e.target.value)}
                           />
                         </div>
                       </div>
@@ -404,7 +378,7 @@ export function CreateBOQDialog({
                   <div className="space-y-2 pl-4 border-l-2">
                     {category.products.map((product, productIndex) => (
                       <div key={productIndex} className="flex items-start gap-4">
-                        <div className="flex-1 grid grid-cols-4 gap-4">
+                        <div className="flex-1 grid grid-cols-3 gap-4">
                           <div>
                             <Label className="text-sm mb-1.5 block">Product Name</Label>
                             <Input
@@ -445,26 +419,6 @@ export function CreateBOQDialog({
                                 updateFittingOutProduct(categoryIndex, productIndex, "price", Number(e.target.value))
                               }
                               placeholder="0"
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-sm mb-1.5 block">Start Date</Label>
-                            <Input
-                              type="date"
-                              value={product.startDate}
-                              onChange={(e) =>
-                                updateFittingOutProduct(categoryIndex, productIndex, "startDate", e.target.value)
-                              }
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-sm mb-1.5 block">End Date</Label>
-                            <Input
-                              type="date"
-                              value={product.endDate}
-                              onChange={(e) =>
-                                updateFittingOutProduct(categoryIndex, productIndex, "endDate", e.target.value)
-                              }
                             />
                           </div>
                         </div>
@@ -527,7 +481,7 @@ export function CreateBOQDialog({
                   <div className="space-y-2 pl-4 border-l-2">
                     {category.products.map((product, productIndex) => (
                       <div key={productIndex} className="flex items-start gap-4">
-                        <div className="flex-1 grid grid-cols-4 gap-4">
+                        <div className="flex-1 grid grid-cols-3 gap-4">
                           <div>
                             <Label className="text-sm mb-1.5 block">Product Name</Label>
                             <Input
@@ -568,26 +522,6 @@ export function CreateBOQDialog({
                                 updateFurnitureWorkProduct(categoryIndex, productIndex, "price", Number(e.target.value))
                               }
                               placeholder="0"
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-sm mb-1.5 block">Start Date</Label>
-                            <Input
-                              type="date"
-                              value={product.startDate}
-                              onChange={(e) =>
-                                updateFurnitureWorkProduct(categoryIndex, productIndex, "startDate", e.target.value)
-                              }
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-sm mb-1.5 block">End Date</Label>
-                            <Input
-                              type="date"
-                              value={product.endDate}
-                              onChange={(e) =>
-                                updateFurnitureWorkProduct(categoryIndex, productIndex, "endDate", e.target.value)
-                              }
                             />
                           </div>
                         </div>

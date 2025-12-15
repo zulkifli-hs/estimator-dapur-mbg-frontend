@@ -2,23 +2,67 @@ import { apiRequest } from "./config"
 
 export interface Product {
   _id: string
+  sku: string
+  type: "Goods" | "Services" | "Goods and Services"
   name: string
   unit: string
-  price: number
+  sellingPrice: number
+  purchasePrice: number
+  brand?: string
+  photos?: Array<{
+    url: string
+    provider: string
+  }>
+  details?: Array<{
+    name: string
+    value: string
+    label: string
+    type: string
+  }>
+  // Legacy price field for backward compatibility
+  price?: number
   createdAt: string
   updatedAt: string
 }
 
 export interface CreateProductInput {
+  sku: string
+  type: "Goods" | "Services" | "Goods and Services"
   name: string
   unit: string
-  price: number
+  sellingPrice: number
+  purchasePrice: number
+  brand?: string
+  photos?: Array<{
+    url: string
+    provider: string
+  }>
+  details?: Array<{
+    name: string
+    value: string
+    label: string
+    type: string
+  }>
 }
 
 export interface UpdateProductInput {
+  sku?: string
+  type?: "Goods" | "Services" | "Goods and Services"
   name?: string
   unit?: string
-  price?: number
+  sellingPrice?: number
+  purchasePrice?: number
+  brand?: string
+  photos?: Array<{
+    url: string
+    provider: string
+  }>
+  details?: Array<{
+    name: string
+    value: string
+    label: string
+    type: string
+  }>
 }
 
 export const productsApi = {

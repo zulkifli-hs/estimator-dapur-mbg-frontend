@@ -1,5 +1,17 @@
 import { apiRequest } from "./config"
 
+export interface ProductPhoto {
+  url: string
+  provider: string
+}
+
+export interface ProductDetail {
+  name: string
+  value: string
+  label: string
+  type: string
+}
+
 export interface Product {
   _id: string
   sku: string
@@ -8,19 +20,9 @@ export interface Product {
   unit: string
   sellingPrice: number
   purchasePrice: number
-  brand?: string
-  photos?: Array<{
-    url: string
-    provider: string
-  }>
-  details?: Array<{
-    name: string
-    value: string
-    label: string
-    type: string
-  }>
-  // Legacy price field for backward compatibility
-  price?: number
+  photos: ProductPhoto[]
+  details: ProductDetail[]
+  brand: string
   createdAt: string
   updatedAt: string
 }
@@ -32,17 +34,9 @@ export interface CreateProductInput {
   unit: string
   sellingPrice: number
   purchasePrice: number
+  photos?: ProductPhoto[]
+  details?: ProductDetail[]
   brand?: string
-  photos?: Array<{
-    url: string
-    provider: string
-  }>
-  details?: Array<{
-    name: string
-    value: string
-    label: string
-    type: string
-  }>
 }
 
 export interface UpdateProductInput {
@@ -52,17 +46,9 @@ export interface UpdateProductInput {
   unit?: string
   sellingPrice?: number
   purchasePrice?: number
+  photos?: ProductPhoto[]
+  details?: ProductDetail[]
   brand?: string
-  photos?: Array<{
-    url: string
-    provider: string
-  }>
-  details?: Array<{
-    name: string
-    value: string
-    label: string
-    type: string
-  }>
 }
 
 export const productsApi = {

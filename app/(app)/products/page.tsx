@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -27,9 +29,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Plus, Search, Edit, Trash2, Loader2, Package, Shield } from "lucide-react"
+import { Plus, Search, Edit, Trash2, Loader2, Package, Shield, Eye } from "lucide-react"
 import { productsApi, type Product, type CreateProductInput, type UpdateProductInput } from "@/lib/api/products"
 import { getProfile } from "@/lib/api/auth"
+import { uploadApi } from "@/lib/api/upload"
 import { useToast } from "@/hooks/use-toast"
 
 export default function ProductsPage() {
@@ -48,6 +51,8 @@ export default function ProductsPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false)
+  const [viewingProduct, setViewingProduct] = useState<Product | null>(null)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null)
 
@@ -59,7 +64,11 @@ export default function ProductsPage() {
     sellingPrice: "",
     purchasePrice: "",
     brand: "",
+    photos: [] as Array<{ url: string; provider: string }>,
+    details: [] as Array<{ name: string; value: string; label: string; type: string }>,
   })
+  const [newDetail, setNewDetail] = useState({ name: "", value: "" })
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
@@ -128,6 +137,73 @@ export default function ProductsPage() {
       sellingPrice: "",
       purchasePrice: "",
       brand: "",
+      photos: [],
+      details: [],
+    })
+    setNewDetail({ name: "", value: "" })
+  }
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    try {
+      setUploadingPhoto(true)
+      const uploadedPhoto = await uploadApi.uploadFile(file)
+      setFormData({
+        ...formData,
+        photos: [...formData.photos, { url: uploadedPhoto.url, provider: uploadedPhoto.provider }],
+      })
+      toast({
+        title: "Success",
+        description: "Photo uploaded successfully",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to upload photo",
+        variant: "destructive",
+      })
+    } finally {
+      setUploadingPhoto(false)
+    }
+  }
+
+  const addDetail = () => {
+    if (!newDetail.name || !newDetail.value) {
+      toast({
+        title: "Error",
+        description: "Please fill in all detail fields",
+        variant: "destructive",
+      })
+      return
+    }
+    setFormData({
+      ...formData,
+      details: [
+        ...formData.details,
+        {
+          name: newDetail.name,
+          value: newDetail.value,
+          label: newDetail.name,
+          type: "text",
+        },
+      ],
+    })
+    setNewDetail({ name: "", value: "" })
+  }
+
+  const removeDetail = (index: number) => {
+    setFormData({
+      ...formData,
+      details: formData.details.filter((_, i) => i !== index),
+    })
+  }
+
+  const removePhoto = (index: number) => {
+    setFormData({
+      ...formData,
+      photos: formData.photos.filter((_, i) => i !== index),
     })
   }
 
@@ -143,8 +219,8 @@ export default function ProductsPage() {
         sellingPrice: Number.parseFloat(formData.sellingPrice),
         purchasePrice: Number.parseFloat(formData.purchasePrice),
         brand: formData.brand || undefined,
-        photos: [],
-        details: [],
+        photos: formData.photos,
+        details: formData.details,
       }
 
       await productsApi.create(createData)
@@ -182,6 +258,8 @@ export default function ProductsPage() {
         sellingPrice: Number.parseFloat(formData.sellingPrice),
         purchasePrice: Number.parseFloat(formData.purchasePrice),
         brand: formData.brand || undefined,
+        photos: formData.photos,
+        details: formData.details,
       }
 
       await productsApi.update(editingProduct._id, updateData)
@@ -216,6 +294,8 @@ export default function ProductsPage() {
       sellingPrice: product.sellingPrice.toString(),
       purchasePrice: product.purchasePrice.toString(),
       brand: product.brand || "",
+      photos: product.photos || [],
+      details: product.details || [],
     })
     setEditDialogOpen(true)
   }
@@ -388,6 +468,16 @@ export default function ProductsPage() {
                         <TableCell>{new Date(product.createdAt).toLocaleDateString()}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setViewingProduct(product)
+                                setDetailsDialogOpen(true)
+                              }}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
                             <Button variant="ghost" size="sm" onClick={() => openEditDialog(product)}>
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -528,6 +618,77 @@ export default function ProductsPage() {
                 />
               </div>
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="create-photos">Photos</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="create-photos"
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoUpload}
+                  disabled={uploadingPhoto}
+                />
+                {uploadingPhoto && <Loader2 className="h-4 w-4 animate-spin" />}
+              </div>
+              {formData.photos.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {formData.photos.map((photo, idx) => (
+                    <div key={idx} className="relative">
+                      <img
+                        src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/${photo.url}`}
+                        alt="Product"
+                        className="h-16 w-16 object-cover rounded border"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removePhoto(idx)}
+                        className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Product Details</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Input
+                  placeholder="Detail name (e.g., Color)"
+                  value={newDetail.name}
+                  onChange={(e) => setNewDetail({ ...newDetail, name: e.target.value })}
+                />
+                <Input
+                  placeholder="Detail value (e.g., Ungu)"
+                  value={newDetail.value}
+                  onChange={(e) => setNewDetail({ ...newDetail, value: e.target.value })}
+                />
+              </div>
+              <Button type="button" size="sm" variant="outline" onClick={addDetail} className="w-full bg-transparent">
+                Add Detail
+              </Button>
+              {formData.details.length > 0 && (
+                <div className="space-y-2 mt-2">
+                  {formData.details.map((detail, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-2 bg-secondary rounded text-sm">
+                      <span>
+                        <strong>{detail.name}:</strong> {detail.value}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeDetail(idx)}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
           <DialogFooter>
             <Button
@@ -543,6 +704,7 @@ export default function ProductsPage() {
               onClick={handleCreate}
               disabled={
                 submitting ||
+                uploadingPhoto ||
                 !formData.sku ||
                 !formData.name ||
                 !formData.unit ||
@@ -642,6 +804,77 @@ export default function ProductsPage() {
                 />
               </div>
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-photos">Photos</Label>
+              <Input
+                id="edit-photos"
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoUpload}
+                disabled={uploadingPhoto}
+              />
+              {uploadingPhoto && <Loader2 className="h-4 w-4 animate-spin" />}
+              {formData.photos.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {formData.photos.map((photo, idx) => (
+                    <div key={idx} className="relative">
+                      <img
+                        src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/${photo.url}`}
+                        alt="Product"
+                        className="h-16 w-16 object-cover rounded border"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removePhoto(idx)}
+                        className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-details">Details</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Input
+                  id="edit-details-name"
+                  value={newDetail.name}
+                  onChange={(e) => setNewDetail({ ...newDetail, name: e.target.value })}
+                  placeholder="Name"
+                />
+                <Input
+                  id="edit-details-value"
+                  value={newDetail.value}
+                  onChange={(e) => setNewDetail({ ...newDetail, value: e.target.value })}
+                  placeholder="Value"
+                />
+              </div>
+              <Button variant="outline" size="sm" onClick={addDetail}>
+                Add Detail
+              </Button>
+              {formData.details.length > 0 && (
+                <div className="space-y-2 mt-2">
+                  {formData.details.map((detail, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-2 bg-secondary rounded text-sm">
+                      <span>
+                        <strong>{detail.name}:</strong> {detail.value}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeDetail(idx)}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
           <DialogFooter>
             <Button
@@ -658,6 +891,7 @@ export default function ProductsPage() {
               onClick={handleEdit}
               disabled={
                 submitting ||
+                uploadingPhoto ||
                 !formData.sku ||
                 !formData.name ||
                 !formData.unit ||
@@ -692,6 +926,48 @@ export default function ProductsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* View Product Details Dialog */}
+      <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{viewingProduct?.name}</DialogTitle>
+            <DialogDescription>Product details and information</DialogDescription>
+          </DialogHeader>
+          {viewingProduct && (
+            <div className="space-y-4">
+              {viewingProduct.photos && viewingProduct.photos.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="font-semibold">Photos</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {viewingProduct.photos.map((photo, idx) => (
+                      <img
+                        key={idx}
+                        src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/${photo.url}`}
+                        alt="Product"
+                        className="h-24 w-24 object-cover rounded border"
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+              {viewingProduct.details && viewingProduct.details.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="font-semibold">Details</Label>
+                  <div className="space-y-1 text-sm">
+                    {viewingProduct.details.map((detail, idx) => (
+                      <div key={idx} className="flex justify-between p-2 bg-secondary rounded">
+                        <span className="font-medium">{detail.label}:</span>
+                        <span>{detail.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

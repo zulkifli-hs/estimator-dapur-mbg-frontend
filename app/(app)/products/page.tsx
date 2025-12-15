@@ -30,7 +30,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Plus, Search, Edit, Trash2, Loader2, Package, Shield, Eye } from "lucide-react"
-import { productsApi, type Product, type CreateProductInput, type UpdateProductInput } from "@/lib/api/products"
+import { productsApi, type Product, type UpdateProductInput } from "@/lib/api/products"
 import { getProfile } from "@/lib/api/auth"
 import { uploadApi } from "@/lib/api/upload"
 import { useToast } from "@/hooks/use-toast"
@@ -67,7 +67,7 @@ export default function ProductsPage() {
     photos: [] as Array<{ url: string; provider: string }>,
     details: [] as Array<{ name: string; value: string; label: string; type: string }>,
   })
-  const [newDetail, setNewDetail] = useState({ name: "", value: "" })
+  const [newDetail, setNewDetail] = useState({ name: "", type: "text" as const, value: "" })
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
@@ -140,7 +140,7 @@ export default function ProductsPage() {
       photos: [],
       details: [],
     })
-    setNewDetail({ name: "", value: "" })
+    setNewDetail({ name: "", type: "text", value: "" })
   }
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -186,11 +186,11 @@ export default function ProductsPage() {
           name: newDetail.name,
           value: newDetail.value,
           label: newDetail.name,
-          type: "text",
+          type: newDetail.type,
         },
       ],
     })
-    setNewDetail({ name: "", value: "" })
+    setNewDetail({ name: "", type: "text", value: "" })
   }
 
   const removeDetail = (index: number) => {
@@ -208,30 +208,47 @@ export default function ProductsPage() {
   }
 
   const handleCreate = async () => {
+    if (!formData.name || !formData.unit || !formData.sellingPrice || !formData.purchasePrice) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      })
+      return
+    }
+
     try {
       setSubmitting(true)
-
-      const createData: CreateProductInput = {
+      await productsApi.create({
         sku: formData.sku,
         type: formData.type,
         name: formData.name,
         unit: formData.unit,
-        sellingPrice: Number.parseFloat(formData.sellingPrice),
-        purchasePrice: Number.parseFloat(formData.purchasePrice),
-        brand: formData.brand || undefined,
-        photos: formData.photos,
+        brand: formData.brand,
+        sellingPrice: Number.parseFloat(formData.sellingPrice as string),
+        purchasePrice: Number.parseFloat(formData.purchasePrice as string),
+        photos: formData.photos.map((photo) => ({
+          url: photo.url,
+          provider: photo.provider,
+        })),
         details: formData.details,
-      }
-
-      await productsApi.create(createData)
-
+      })
       toast({
         title: "Success",
         description: "Product created successfully",
       })
-
       setCreateDialogOpen(false)
-      resetForm()
+      setFormData({
+        sku: "",
+        type: "Goods",
+        name: "",
+        unit: "",
+        sellingPrice: "",
+        purchasePrice: "",
+        brand: "",
+        photos: [],
+        details: [],
+      })
       loadProducts()
     } catch (error) {
       toast({
@@ -361,6 +378,15 @@ export default function ProductsPage() {
       currency: "IDR",
       minimumFractionDigits: 0,
     }).format(amount)
+  }
+
+  const generateSKUSuggestion = (name: string, type: string, brand: string): string => {
+    if (!name || !type || !brand) return ""
+    const year = new Date().getFullYear()
+    const nameInitial = name.slice(0, 3).toUpperCase()
+    const typeInitial = type.slice(0, 2).toUpperCase()
+    const brandInitial = brand.slice(0, 2).toUpperCase()
+    return `${nameInitial}-${typeInitial}-${brandInitial}-${year}`
   }
 
   if (checkingAuth) {
@@ -535,23 +561,37 @@ export default function ProductsPage() {
             <DialogDescription>Add a new product to the system</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="create-sku">SKU *</Label>
-                <Input
-                  id="create-sku"
-                  value={formData.sku}
-                  onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                  placeholder="e.g., SKU-001"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="create-name">Product Name *</Label>
+              <Input
+                id="create-name"
+                value={formData.name}
+                onChange={(e) => {
+                  const newName = e.target.value
+                  setFormData({ ...formData, name: newName })
+                  // Auto-generate SKU suggestion if name, type, and brand are filled
+                  if (newName && formData.type && formData.brand) {
+                    const suggestion = generateSKUSuggestion(newName, formData.type, formData.brand)
+                    setFormData((prev) => ({ ...prev, sku: suggestion }))
+                  }
+                }}
+                placeholder="e.g., Semen"
+              />
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="create-type">Type *</Label>
                 <Select
                   value={formData.type}
-                  onValueChange={(value: "Goods" | "Services" | "Goods and Services") =>
+                  onValueChange={(value: "Goods" | "Services" | "Goods and Services") => {
                     setFormData({ ...formData, type: value })
-                  }
+                    // Auto-generate SKU suggestion
+                    if (formData.name && value && formData.brand) {
+                      const suggestion = generateSKUSuggestion(formData.name, value, formData.brand)
+                      setFormData((prev) => ({ ...prev, sku: suggestion }))
+                    }
+                  }}
                 >
                   <SelectTrigger id="create-type">
                     <SelectValue placeholder="Select type" />
@@ -563,26 +603,13 @@ export default function ProductsPage() {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="create-name">Product Name *</Label>
-              <Input
-                id="create-name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="e.g., Semen"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="create-unit">Unit *</Label>
                 <Input
                   id="create-unit"
                   value={formData.unit}
                   onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                  placeholder="e.g., liter, kg, pcs"
+                  placeholder="e.g., liter"
                 />
               </div>
               <div className="space-y-2">
@@ -590,23 +617,21 @@ export default function ProductsPage() {
                 <Input
                   id="create-brand"
                   value={formData.brand}
-                  onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+                  onChange={(e) => {
+                    const newBrand = e.target.value
+                    setFormData({ ...formData, brand: newBrand })
+                    // Auto-generate SKU suggestion
+                    if (formData.name && formData.type && newBrand) {
+                      const suggestion = generateSKUSuggestion(formData.name, formData.type, newBrand)
+                      setFormData((prev) => ({ ...prev, sku: suggestion }))
+                    }
+                  }}
                   placeholder="e.g., Mitsubishi"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="create-selling-price">Selling Price (IDR) *</Label>
-                <Input
-                  id="create-selling-price"
-                  type="number"
-                  value={formData.sellingPrice}
-                  onChange={(e) => setFormData({ ...formData, sellingPrice: e.target.value })}
-                  placeholder="e.g., 25000"
-                />
-              </div>
               <div className="space-y-2">
                 <Label htmlFor="create-purchase-price">Purchase Price (IDR) *</Label>
                 <Input
@@ -617,6 +642,29 @@ export default function ProductsPage() {
                   placeholder="e.g., 20000"
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="create-selling-price">Selling Price (IDR) *</Label>
+                <Input
+                  id="create-selling-price"
+                  type="number"
+                  value={formData.sellingPrice}
+                  onChange={(e) => setFormData({ ...formData, sellingPrice: e.target.value })}
+                  placeholder="e.g., 25000"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="create-sku">SKU</Label>
+                <span className="text-xs text-muted-foreground">Auto-generated based on name, type, and brand</span>
+              </div>
+              <Input
+                id="create-sku"
+                value={formData.sku}
+                onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                placeholder="e.g., SEM-GO-MIT-2025"
+              />
             </div>
 
             <div className="space-y-2">
@@ -634,16 +682,22 @@ export default function ProductsPage() {
               {formData.photos.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-2">
                   {formData.photos.map((photo, idx) => (
-                    <div key={idx} className="relative">
+                    <div key={idx} className="relative group">
                       <img
-                        src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/${photo.url}`}
-                        alt="Product"
-                        className="h-16 w-16 object-cover rounded border"
+                        src={
+                          `${process.env.NEXT_PUBLIC_API_BASE_URL}/${photo.url}` ||
+                          `/placeholder.svg?width=100&height=100`
+                        }
+                        alt={`Product ${idx}`}
+                        className="w-24 h-24 object-cover rounded border"
+                        onError={(e) => {
+                          console.log("[v0] Image load failed:", photo.url)
+                          e.currentTarget.src = `/placeholder.svg?width=100&height=100`
+                        }}
                       />
                       <button
-                        type="button"
                         onClick={() => removePhoto(idx)}
-                        className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                        className="absolute top-0 right-0 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition"
                       >
                         ×
                       </button>
@@ -655,34 +709,48 @@ export default function ProductsPage() {
 
             <div className="space-y-2">
               <Label>Product Details</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <Input
-                  placeholder="Detail name (e.g., Color)"
-                  value={newDetail.name}
-                  onChange={(e) => setNewDetail({ ...newDetail, name: e.target.value })}
-                />
-                <Input
-                  placeholder="Detail value (e.g., Ungu)"
-                  value={newDetail.value}
-                  onChange={(e) => setNewDetail({ ...newDetail, value: e.target.value })}
-                />
+              <div className="space-y-2">
+                <div className="grid grid-cols-3 gap-2">
+                  <Input
+                    placeholder="Detail Name (e.g., Color)"
+                    value={newDetail.name}
+                    onChange={(e) => setNewDetail({ ...newDetail, name: e.target.value })}
+                  />
+                  <Select
+                    value={newDetail.type}
+                    onValueChange={(value: "text" | "number" | "date") => setNewDetail({ ...newDetail, type: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="text">Text</SelectItem>
+                      <SelectItem value="number">Number</SelectItem>
+                      <SelectItem value="date">Date</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    placeholder="Value"
+                    type={newDetail.type === "number" ? "number" : newDetail.type === "date" ? "date" : "text"}
+                    value={newDetail.value}
+                    onChange={(e) => setNewDetail({ ...newDetail, value: e.target.value })}
+                  />
+                </div>
+                <Button onClick={addDetail} variant="outline" className="w-full bg-transparent">
+                  + Add Detail
+                </Button>
               </div>
-              <Button type="button" size="sm" variant="outline" onClick={addDetail} className="w-full bg-transparent">
-                Add Detail
-              </Button>
               {formData.details.length > 0 && (
-                <div className="space-y-2 mt-2">
+                <div className="mt-2 space-y-2">
                   {formData.details.map((detail, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-2 bg-secondary rounded text-sm">
-                      <span>
-                        <strong>{detail.name}:</strong> {detail.value}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => removeDetail(idx)}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        ×
+                    <div key={idx} className="flex items-center justify-between bg-muted p-2 rounded">
+                      <div className="text-sm">
+                        <span className="font-medium">{detail.name}</span>
+                        <span className="text-muted-foreground ml-2">({detail.type})</span>
+                        <span className="ml-2">{detail.value}</span>
+                      </div>
+                      <button onClick={() => removeDetail(idx)} className="text-red-500 text-sm">
+                        Remove
                       </button>
                     </div>
                   ))}
@@ -705,7 +773,6 @@ export default function ProductsPage() {
               disabled={
                 submitting ||
                 uploadingPhoto ||
-                !formData.sku ||
                 !formData.name ||
                 !formData.unit ||
                 !formData.sellingPrice ||
@@ -839,7 +906,7 @@ export default function ProductsPage() {
 
             <div className="space-y-2">
               <Label htmlFor="edit-details">Details</Label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-4">
                 <Input
                   id="edit-details-name"
                   value={newDetail.name}

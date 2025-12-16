@@ -11,18 +11,6 @@ import { Plus, Search, Trash2, Eye, Edit, Loader2 } from "lucide-react"
 import { templatesApi, type BOQTemplate } from "@/lib/api/templates"
 import { getProfile } from "@/lib/api/auth"
 import { useToast } from "@/hooks/use-toast"
-import { CreateTemplateDialog } from "@/components/templates/create-template-dialog"
-import { ViewTemplateDialog } from "@/components/templates/view-template-dialog"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 
 export default function BOQTemplatesPage() {
   const router = useRouter()
@@ -32,10 +20,6 @@ export default function BOQTemplatesPage() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedTemplates, setSelectedTemplates] = useState<string[]>([])
-  const [createDialogOpen, setCreateDialogOpen] = useState(false)
-  const [viewDialogOpen, setViewDialogOpen] = useState(false)
-  const [editingTemplate, setEditingTemplate] = useState<BOQTemplate | null>(null)
-  const [viewingTemplate, setViewingTemplate] = useState<BOQTemplate | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
@@ -168,18 +152,15 @@ export default function BOQTemplatesPage() {
   }
 
   const handleEdit = (template: BOQTemplate) => {
-    setEditingTemplate(template)
-    setCreateDialogOpen(true)
+    router.push(`/boq-templates/${template._id}`)
   }
 
   const handleView = (template: BOQTemplate) => {
-    setViewingTemplate(template)
-    setViewDialogOpen(true)
+    router.push(`/boq-templates/${template._id}`)
   }
 
-  const handleDialogClose = () => {
-    setCreateDialogOpen(false)
-    setEditingTemplate(null)
+  const handleCreate = () => {
+    router.push("/boq-templates/new")
   }
 
   const calculateTotal = (template: BOQTemplate) => {
@@ -219,7 +200,7 @@ export default function BOQTemplatesPage() {
           <h1 className="text-3xl font-bold tracking-tight">BOQ Templates</h1>
           <p className="text-muted-foreground">Manage your Bill of Quantities templates</p>
         </div>
-        <Button onClick={() => setCreateDialogOpen(true)}>
+        <Button onClick={handleCreate}>
           <Plus className="h-4 w-4 mr-2" />
           Create Template
         </Button>
@@ -302,35 +283,6 @@ export default function BOQTemplatesPage() {
           )}
         </CardContent>
       </Card>
-
-      <CreateTemplateDialog
-        open={createDialogOpen}
-        onOpenChange={handleDialogClose}
-        onSuccess={() => {
-          fetchTemplates()
-          handleDialogClose()
-        }}
-        template={editingTemplate}
-      />
-
-      <ViewTemplateDialog open={viewDialogOpen} onOpenChange={setViewDialogOpen} template={viewingTemplate} />
-
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the template.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground">
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   )
 }

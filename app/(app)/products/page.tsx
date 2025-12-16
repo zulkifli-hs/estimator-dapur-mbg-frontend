@@ -356,16 +356,71 @@ export default function ProductsPage() {
     }).format(amount)
   }
 
-  useEffect(() => {
-    if (formData.name || formData.type || formData.brand) {
-      const year = new Date().getFullYear()
-      const namePart = formData.name.substring(0, 3).toUpperCase()
-      const typePart = formData.type.substring(0, 3).toUpperCase()
-      const brandPart = formData.brand.substring(0, 3).toUpperCase()
-      const generatedSku = `${namePart}${typePart}${brandPart}${year}`.replace(/\s/g, "")
-      setFormData((prev) => ({ ...prev, sku: generatedSku }))
+  const generateSKU = () => {
+    if (!formData.name) {
+      toast({
+        title: "Error",
+        description: "Please enter a product name first",
+        variant: "destructive",
+      })
+      return
     }
-  }, [formData.name, formData.type, formData.brand])
+
+    // Generate 3-letter abbreviation from name
+    const generateAbbreviation = (text: string): string => {
+      if (!text) return "XXX"
+
+      const words = text.trim().split(/\s+/)
+
+      if (words.length >= 3) {
+        // Take first letter of first 3 words
+        return words
+          .slice(0, 3)
+          .map((w) => w[0])
+          .join("")
+          .toUpperCase()
+      } else if (words.length === 2) {
+        // First letter of each word + first letter again
+        return (words[0][0] + words[1][0] + words[1][0]).toUpperCase()
+      } else if (words.length === 1) {
+        // Take first 3 letters of the word
+        const word = words[0]
+        if (word.length >= 3) {
+          return word.substring(0, 3).toUpperCase()
+        } else if (word.length === 2) {
+          return (word[0] + word[1] + word[1]).toUpperCase()
+        } else {
+          return (word[0] + word[0] + word[0]).toUpperCase()
+        }
+      }
+
+      return "XXX"
+    }
+
+    const namePart = generateAbbreviation(formData.name)
+
+    // Type abbreviation
+    const typeMap: { [key: string]: string } = {
+      Goods: "GO",
+      Services: "SE",
+      "Goods and Services": "GS",
+    }
+    const typePart = typeMap[formData.type] || "XX"
+
+    // Brand abbreviation
+    const brandPart = formData.brand ? generateAbbreviation(formData.brand) : "XXX"
+
+    // Last 2 digits of current year
+    const year = new Date().getFullYear().toString().slice(-2)
+
+    const generatedSku = `${namePart}-${typePart}-${brandPart}-${year}`
+    setFormData((prev) => ({ ...prev, sku: generatedSku }))
+
+    toast({
+      title: "SKU Generated",
+      description: `Generated SKU: ${generatedSku}`,
+    })
+  }
 
   const openDetailsDialog = (product: Product) => {
     setViewingProduct(product)
@@ -614,13 +669,25 @@ export default function ProductsPage() {
             {/* SKU */}
             <div className="space-y-2">
               <Label htmlFor="create-sku">SKU *</Label>
-              <Input
-                id="create-sku"
-                value={formData.sku}
-                onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                placeholder="Auto-generated from name, type, brand, and year"
-              />
-              <p className="text-xs text-muted-foreground">Auto-generated based on product details</p>
+              <div className="flex gap-2">
+                <Input
+                  id="create-sku"
+                  value={formData.sku}
+                  onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                  placeholder="e.g., DSG-GS-MIT-25"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={generateSKU}
+                  className="whitespace-nowrap bg-transparent"
+                >
+                  Generate SKU
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Click Generate SKU to create based on name, type, brand, and year
+              </p>
             </div>
 
             {/* Photos */}
@@ -653,7 +720,7 @@ export default function ProductsPage() {
                     {uploadedPhotos.map((photo, index) => (
                       <div key={index} className="relative group">
                         <img
-                          src={`${API_BASE_URL}/files/${photo.url}`}
+                          src={`${API_BASE_URL}/public/${photo.provider}/${photo.url}`}
                           alt={`Product ${index + 1}`}
                           className="w-full h-24 object-cover rounded"
                         />
@@ -801,9 +868,10 @@ export default function ProductsPage() {
                   <Label>Photos</Label>
                   <div className="grid grid-cols-3 gap-2">
                     {viewingProduct.photos.map((photo, index) => (
+                      /* Fixed photo preview URL to use /public/:provider/:url */
                       <img
                         key={photo._id || index}
-                        src={`${API_BASE_URL}/files/${photo.url}`}
+                        src={`${API_BASE_URL}/public/${photo.provider}/${photo.url}`}
                         alt={photo.name || `Product ${index + 1}`}
                         className="w-full h-32 object-cover rounded border"
                       />

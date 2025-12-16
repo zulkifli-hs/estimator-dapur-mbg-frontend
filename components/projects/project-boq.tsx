@@ -76,7 +76,6 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
 
   // Creation mode states
   const [creationMode, setCreationMode] = useState<"blank" | "template" | null>(null)
-  const [showCreationOptions, setShowCreationOptions] = useState(true) // Added state to control creation options visibility
   const [templates, setTemplates] = useState<any[]>([])
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null)
   const [showTemplatePreview, setShowTemplatePreview] = useState(false)
@@ -122,7 +121,9 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   }, [projectId])
 
   useEffect(() => {
+    console.log("[v0] Edit mode triggered:", { editingBOQ, creationMode })
     if (editingBOQ && creationMode === "blank") {
+      console.log("[v0] Populating form with BOQ data:", editingBOQ)
       // Populate preliminary items
       setPreliminary(
         editingBOQ.preliminary?.map((item: any) => ({
@@ -164,6 +165,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         })) || [],
       )
     } else if (creationMode === "blank" && !editingBOQ) {
+      console.log("[v0] Resetting form for new BOQ")
       setPreliminary([])
       setFittingOut([])
       setFurnitureWork([])
@@ -185,11 +187,8 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     setLoadingProducts(true)
     try {
       const response = await productsApi.getAll()
-      console.log("[v0] Products API response:", response)
-      if (response.success && response.data) {
-        // Extract list from paginated response
-        setProducts(response.data.list || [])
-      }
+      // API returns paginated response directly: {page, totalData, totalPage, list}
+      setProducts(response.list || [])
     } catch (error) {
       console.error("Failed to fetch products:", error)
     } finally {
@@ -447,8 +446,8 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
 
   const handleEditBOQ = (boq: any) => {
     setEditingBOQ(boq)
-    setCreationMode("blank")
-    setShowCreationOptions(false) // Hide creation options when editing
+    // In the new implementation, editing is handled by navigating to the creation form
+    // For now, we can set the state but the dialog won't be used directly for editing
   }
 
   const handleDialogClose = (open: boolean) => {
@@ -464,7 +463,6 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     setIsCreatingAdditional(true)
     // In the new implementation, this action leads to the blank creation form
     setCreationMode("blank")
-    setShowCreationOptions(false) // Hide creation options when creating additional BOQ
   }
 
   const getStatusBadge = (status: string) => {
@@ -717,7 +715,6 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       setPreliminary([])
       setFittingOut([])
       setFurnitureWork([])
-      setShowCreationOptions(true) // Show creation options again after saving
       loadBOQs()
     } catch (error: any) {
       toast({
@@ -748,7 +745,6 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         setCreationMode(null)
         setSelectedTemplate(null)
         setShowTemplatePreview(false)
-        setShowCreationOptions(true) // Show creation options again after using template
       }
     } catch (error: any) {
       toast({
@@ -945,8 +941,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     )
   }
 
-  // This is the new initial view when no main BOQ exists and creation options are shown
-  if (!mainBOQ && showCreationOptions) {
+  if (!mainBOQ && !creationMode) {
     return (
       <div className="space-y-6">
         <Card>
@@ -959,10 +954,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
               <Button
                 variant="outline"
                 className="h-32 flex flex-col items-center justify-center gap-3 bg-transparent"
-                onClick={() => {
-                  setCreationMode("blank")
-                  setShowCreationOptions(false) // Hide options after selection
-                }}
+                onClick={() => setCreationMode("blank")}
               >
                 <FileSpreadsheet className="h-8 w-8" />
                 <div className="text-center">
@@ -973,10 +965,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
               <Button
                 variant="outline"
                 className="h-32 flex flex-col items-center justify-center gap-3 bg-transparent"
-                onClick={() => {
-                  setCreationMode("template")
-                  setShowCreationOptions(false) // Hide options after selection
-                }}
+                onClick={() => setCreationMode("template")}
               >
                 <Sparkles className="h-8 w-8" />
                 <div className="text-center">
@@ -991,8 +980,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     )
   }
 
-  // If creation mode is template and main BOQ doesn't exist
-  if (creationMode === "template" && !mainBOQ) {
+  if (!mainBOQ && creationMode === "template") {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -1000,13 +988,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
             <h2 className="text-2xl font-bold">Select Template</h2>
             <p className="text-muted-foreground">Choose a template to create your BOQ</p>
           </div>
-          <Button
-            variant="outline"
-            onClick={() => {
-              setCreationMode(null)
-              setShowCreationOptions(true)
-            }}
-          >
+          <Button variant="outline" onClick={() => setCreationMode(null)}>
             <X className="h-4 w-4 mr-2" />
             Cancel
           </Button>
@@ -1050,14 +1032,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
           <Card>
             <CardContent className="py-12 text-center">
               <p className="text-muted-foreground">No templates available</p>
-              <Button
-                variant="outline"
-                className="mt-4 bg-transparent"
-                onClick={() => {
-                  setCreationMode("blank")
-                  setShowCreationOptions(false)
-                }}
-              >
+              <Button variant="outline" className="mt-4 bg-transparent" onClick={() => setCreationMode("blank")}>
                 Create from Blank Instead
               </Button>
             </CardContent>
@@ -1086,8 +1061,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     )
   }
 
-  // If creation mode is blank and main BOQ doesn't exist
-  if (creationMode === "blank" && !mainBOQ) {
+  if (!mainBOQ && creationMode === "blank") {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -1104,7 +1078,6 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                 setPreliminary([])
                 setFittingOut([])
                 setFurnitureWork([])
-                setShowCreationOptions(true) // Show creation options again on cancel
               }}
               disabled={loading}
             >
@@ -1751,13 +1724,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         </div>
         {/* This button logic is now handled by the creation mode state */}
         {!mainBOQ && !creationMode && (
-          <Button
-            onClick={() => {
-              setCreationMode("blank")
-              setShowCreationOptions(false)
-            }}
-            className="w-full sm:w-auto"
-          >
+          <Button onClick={() => setCreationMode("blank")} className="w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
             Add Main BOQ
           </Button>
@@ -1861,10 +1828,14 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                       BOQ #{mainBOQ.number} • Created: {new Date(mainBOQ.createdAt).toLocaleDateString("id-ID")}
                     </CardDescription>
                   </div>
+                  {/* Update edit button handler */}
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleEditBOQ(mainBOQ)} // Use the updated handleEditBOQ
+                    onClick={() => {
+                      setEditingBOQ(mainBOQ)
+                      setCreationMode("blank") // Navigate to blank creation form for editing
+                    }}
                     className="w-full sm:w-auto"
                   >
                     <Edit className="h-4 w-4 mr-2" />
@@ -1908,7 +1879,6 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                           setEditingBOQ(boq)
                           setCreationMode("blank") // Navigate to blank creation form for editing
                           setIsCreatingAdditional(true) // Indicate this is an additional BOQ
-                          setShowCreationOptions(false) // Hide creation options when editing additional BOQ
                         }}
                         className="flex-1 sm:flex-none"
                       >

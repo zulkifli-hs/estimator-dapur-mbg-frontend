@@ -100,8 +100,13 @@ export const templatesApi = {
     }
   },
   getById: async (id: string) => {
-    const data = await getTemplate(id)
-    return { success: true, data }
+    try {
+      const data = await getTemplate(id)
+      return { success: true, data }
+    } catch (error) {
+      console.error("Failed to fetch template:", error)
+      return { success: false, data: null }
+    }
   },
   create: async (templateData: CreateTemplateInput) => {
     const data = await createTemplate(templateData)

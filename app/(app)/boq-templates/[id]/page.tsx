@@ -51,20 +51,31 @@ export default function TemplateDetailPage() {
     setLoading(true)
     try {
       const response = await templatesApi.getById(params.id as string)
+      console.log("[v0] Template response:", response)
+
       if (response.success && response.data) {
         const template = response.data
-        setTemplateName(template.name)
+        console.log("[v0] Template data:", template)
+        setTemplateName(template.name || "")
         setPreliminary(template.preliminary || [])
         setFittingOut(template.fittingOut || [])
         setFurnitureWork(template.furnitureWork || [])
+      } else {
+        toast({
+          title: "Error",
+          description: "Template not found",
+          variant: "destructive",
+        })
+        router.push("/boq-templates")
       }
     } catch (error) {
-      console.error("Failed to fetch template:", error)
+      console.error("[v0] Failed to fetch template:", error)
       toast({
         title: "Error",
         description: "Failed to load template",
         variant: "destructive",
       })
+      router.push("/boq-templates")
     } finally {
       setLoading(false)
     }
@@ -178,7 +189,7 @@ export default function TemplateDetailPage() {
   }
 
   const handleSave = async () => {
-    if (!templateName.trim()) {
+    if (!templateName || !templateName.trim()) {
       toast({
         title: "Error",
         description: "Please enter a template name",
@@ -344,7 +355,7 @@ export default function TemplateDetailPage() {
                           <Input
                             type="number"
                             value={item.price}
-                            onChange={(e) => updatePreliminaryItem(index, "qty", Number(e.target.value))}
+                            onChange={(e) => updatePreliminaryItem(index, "price", Number(e.target.value))}
                             placeholder="0"
                           />
                         ) : (

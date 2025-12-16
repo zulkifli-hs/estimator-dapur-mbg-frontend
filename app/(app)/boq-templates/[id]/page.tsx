@@ -126,7 +126,8 @@ export default function TemplateDetailPage({ params }: { params: { id: string } 
     try {
       setLoadingProducts(true)
       const response = await productsApi.getAll()
-      setProducts(response)
+      // Handle paginated response - extract the list array
+      setProducts(response.list || [])
     } catch (error) {
       console.error("[v0] Failed to fetch products:", error)
       toast.error("Failed to load products")

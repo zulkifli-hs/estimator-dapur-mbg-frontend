@@ -20,11 +20,20 @@ interface PreliminaryItem {
   qty: number
   unit: string
   price: number
+  productId?: string // Added productId field
+}
+
+interface ProductItem {
+  name: string
+  qty: number
+  unit: string
+  price: number
+  productId?: string // Added productId field
 }
 
 interface Category {
   name: string
-  products: { name: string; qty: number; unit: string; price: number }[]
+  products: ProductItem[]
 }
 
 export default function NewTemplatePage() {
@@ -32,7 +41,9 @@ export default function NewTemplatePage() {
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const [templateName, setTemplateName] = useState("")
-  const [products, setProducts] = useState<{ name: string; qty: number; unit: string; sellingPrice: number }[]>([])
+  const [products, setProducts] = useState<
+    { _id: string; name: string; qty: number; unit: string; sellingPrice: number }[]
+  >([])
   const [loadingProducts, setLoadingProducts] = useState(false)
 
   const [preliminary, setPreliminary] = useState<PreliminaryItem[]>([{ name: "", qty: 0, unit: "", price: 0 }])
@@ -89,7 +100,7 @@ export default function NewTemplatePage() {
 
   const selectPreliminaryProduct = (
     index: number,
-    product: { name: string; qty: number; unit: string; sellingPrice: number },
+    product: { _id: string; name: string; qty: number; unit: string; sellingPrice: number }, // Added _id to product type
   ) => {
     const updated = [...preliminary]
     updated[index] = {
@@ -97,6 +108,7 @@ export default function NewTemplatePage() {
       name: product.name,
       unit: product.unit,
       price: product.sellingPrice,
+      productId: product._id, // Store the product ID
     }
     setPreliminary(updated)
 
@@ -143,7 +155,7 @@ export default function NewTemplatePage() {
   const updateFittingOutProduct = (
     categoryIndex: number,
     productIndex: number,
-    field: keyof { name: string; qty: number; unit: string; price: number },
+    field: keyof ProductItem,
     value: string | number,
   ) => {
     const updated = [...fittingOut]
@@ -157,7 +169,7 @@ export default function NewTemplatePage() {
   const selectFittingOutProduct = (
     categoryIndex: number,
     productIndex: number,
-    product: { name: string; qty: number; unit: string; sellingPrice: number },
+    product: { _id: string; name: string; qty: number; unit: string; sellingPrice: number }, // Added _id to product type
   ) => {
     const updated = [...fittingOut]
     updated[categoryIndex].products[productIndex] = {
@@ -165,6 +177,7 @@ export default function NewTemplatePage() {
       name: product.name,
       unit: product.unit,
       price: product.sellingPrice,
+      productId: product._id, // Store the product ID
     }
     setFittingOut(updated)
 
@@ -211,7 +224,7 @@ export default function NewTemplatePage() {
   const updateFurnitureWorkProduct = (
     categoryIndex: number,
     productIndex: number,
-    field: keyof { name: string; qty: number; unit: string; price: number },
+    field: keyof ProductItem,
     value: string | number,
   ) => {
     const updated = [...furnitureWork]
@@ -225,7 +238,7 @@ export default function NewTemplatePage() {
   const selectFurnitureWorkProduct = (
     categoryIndex: number,
     productIndex: number,
-    product: { name: string; qty: number; unit: string; sellingPrice: number },
+    product: { _id: string; name: string; qty: number; unit: string; sellingPrice: number }, // Added _id to product type
   ) => {
     const updated = [...furnitureWork]
     updated[categoryIndex].products[productIndex] = {
@@ -233,6 +246,7 @@ export default function NewTemplatePage() {
       name: product.name,
       unit: product.unit,
       price: product.sellingPrice,
+      productId: product._id, // Store the product ID
     }
     setFurnitureWork(updated)
 

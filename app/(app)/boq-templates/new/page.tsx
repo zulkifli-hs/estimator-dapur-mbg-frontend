@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -27,7 +27,7 @@ interface Category {
   products: { name: string; qty: number; unit: string; price: number }[]
 }
 
-export default function CreateTemplatePage() {
+export default function NewTemplatePage() {
   const router = useRouter()
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
@@ -42,6 +42,12 @@ export default function CreateTemplatePage() {
   const [furnitureWork, setFurnitureWork] = useState<Category[]>([
     { name: "", products: [{ name: "", qty: 0, unit: "", price: 0 }] },
   ])
+
+  const [openPopovers, setOpenPopovers] = useState<{ [key: string]: boolean }>({})
+
+  const preliminaryQtyRefs = useRef<{ [key: number]: HTMLInputElement | null }>({})
+  const fittingOutQtyRefs = useRef<{ [key: string]: HTMLInputElement | null }>({})
+  const furnitureWorkQtyRefs = useRef<{ [key: string]: HTMLInputElement | null }>({})
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -93,6 +99,14 @@ export default function CreateTemplatePage() {
       price: product.sellingPrice,
     }
     setPreliminary(updated)
+
+    // Close the popover
+    setOpenPopovers((prev) => ({ ...prev, [`preliminary-${index}`]: false }))
+
+    // Focus on quantity input
+    setTimeout(() => {
+      preliminaryQtyRefs.current[index]?.focus()
+    }, 100)
   }
 
   // Fitting Out functions
@@ -153,6 +167,14 @@ export default function CreateTemplatePage() {
       price: product.sellingPrice,
     }
     setFittingOut(updated)
+
+    // Close the popover
+    setOpenPopovers((prev) => ({ ...prev, [`fittingOut-${categoryIndex}-${productIndex}`]: false }))
+
+    // Focus on quantity input
+    setTimeout(() => {
+      fittingOutQtyRefs.current[`${categoryIndex}-${productIndex}`]?.focus()
+    }, 100)
   }
 
   // Furniture Work functions (similar to Fitting Out)
@@ -213,6 +235,14 @@ export default function CreateTemplatePage() {
       price: product.sellingPrice,
     }
     setFurnitureWork(updated)
+
+    // Close the popover
+    setOpenPopovers((prev) => ({ ...prev, [`furnitureWork-${categoryIndex}-${productIndex}`]: false }))
+
+    // Focus on quantity input
+    setTimeout(() => {
+      furnitureWorkQtyRefs.current[`${categoryIndex}-${productIndex}`]?.focus()
+    }, 100)
   }
 
   const handleSubmit = async () => {
@@ -306,6 +336,7 @@ export default function CreateTemplatePage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[5%]">No</TableHead>
                   <TableHead className="w-[40%]">Item Name</TableHead>
                   <TableHead className="w-[15%]">Quantity</TableHead>
                   <TableHead className="w-[15%]">Unit</TableHead>
@@ -316,8 +347,14 @@ export default function CreateTemplatePage() {
               <TableBody>
                 {preliminary.map((item, index) => (
                   <TableRow key={index}>
+                    <TableCell className="font-medium text-center">{index + 1}</TableCell>
                     <TableCell className="align-top">
-                      <Popover>
+                      <Popover
+                        open={openPopovers[`preliminary-${index}`]}
+                        onOpenChange={(open) =>
+                          setOpenPopovers((prev) => ({ ...prev, [`preliminary-${index}`]: open }))
+                        }
+                      >
                         <PopoverTrigger asChild>
                           <Button
                             variant="outline"
@@ -380,6 +417,9 @@ export default function CreateTemplatePage() {
                     </TableCell>
                     <TableCell className="align-top">
                       <Input
+                        ref={(el) => {
+                          preliminaryQtyRefs.current[index] = el
+                        }}
                         type="number"
                         value={item.qty}
                         onChange={(e) => updatePreliminaryItem(index, "qty", Number(e.target.value))}
@@ -454,6 +494,7 @@ export default function CreateTemplatePage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-[5%]">No</TableHead>
                       <TableHead className="w-[40%]">Product Name</TableHead>
                       <TableHead className="w-[15%]">Quantity</TableHead>
                       <TableHead className="w-[15%]">Unit</TableHead>
@@ -464,8 +505,17 @@ export default function CreateTemplatePage() {
                   <TableBody>
                     {category.products.map((product, productIndex) => (
                       <TableRow key={productIndex}>
+                        <TableCell className="font-medium text-center">{productIndex + 1}</TableCell>
                         <TableCell className="align-top">
-                          <Popover>
+                          <Popover
+                            open={openPopovers[`fittingOut-${categoryIndex}-${productIndex}`]}
+                            onOpenChange={(open) =>
+                              setOpenPopovers((prev) => ({
+                                ...prev,
+                                [`fittingOut-${categoryIndex}-${productIndex}`]: open,
+                              }))
+                            }
+                          >
                             <PopoverTrigger asChild>
                               <Button
                                 variant="outline"
@@ -528,6 +578,9 @@ export default function CreateTemplatePage() {
                         </TableCell>
                         <TableCell className="align-top">
                           <Input
+                            ref={(el) => {
+                              fittingOutQtyRefs.current[`${categoryIndex}-${productIndex}`] = el
+                            }}
                             type="number"
                             value={product.qty}
                             onChange={(e) =>
@@ -619,6 +672,7 @@ export default function CreateTemplatePage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-[5%]">No</TableHead>
                       <TableHead className="w-[40%]">Product Name</TableHead>
                       <TableHead className="w-[15%]">Quantity</TableHead>
                       <TableHead className="w-[15%]">Unit</TableHead>
@@ -629,8 +683,17 @@ export default function CreateTemplatePage() {
                   <TableBody>
                     {category.products.map((product, productIndex) => (
                       <TableRow key={productIndex}>
+                        <TableCell className="font-medium text-center">{productIndex + 1}</TableCell>
                         <TableCell className="align-top">
-                          <Popover>
+                          <Popover
+                            open={openPopovers[`furnitureWork-${categoryIndex}-${productIndex}`]}
+                            onOpenChange={(open) =>
+                              setOpenPopovers((prev) => ({
+                                ...prev,
+                                [`furnitureWork-${categoryIndex}-${productIndex}`]: open,
+                              }))
+                            }
+                          >
                             <PopoverTrigger asChild>
                               <Button
                                 variant="outline"
@@ -693,6 +756,9 @@ export default function CreateTemplatePage() {
                         </TableCell>
                         <TableCell className="align-top">
                           <Input
+                            ref={(el) => {
+                              furnitureWorkQtyRefs.current[`${categoryIndex}-${productIndex}`] = el
+                            }}
                             type="number"
                             value={product.qty}
                             onChange={(e) =>

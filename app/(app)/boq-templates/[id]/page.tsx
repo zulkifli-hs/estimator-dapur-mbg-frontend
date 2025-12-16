@@ -741,7 +741,9 @@ export default function TemplateDetailPage({ params }: { params: { id: string } 
                               role="combobox"
                               className="w-full justify-between min-h-[40px] h-auto text-left font-normal bg-transparent"
                             >
-                              <span className="truncate">{item.name || "Select product..."}</span>
+                              <span className="whitespace-normal break-words text-left">
+                                {item.name || "Select product..."}
+                              </span>
                               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                             </Button>
                           </PopoverTrigger>
@@ -923,7 +925,9 @@ export default function TemplateDetailPage({ params }: { params: { id: string } 
                                   role="combobox"
                                   className="w-full justify-between min-h-[40px] h-auto text-left font-normal bg-transparent"
                                 >
-                                  <span className="truncate">{product.name || "Select product..."}</span>
+                                  <span className="whitespace-normal break-words text-left">
+                                    {product.name || "Select product..."}
+                                  </span>
                                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                 </Button>
                               </PopoverTrigger>
@@ -1131,7 +1135,9 @@ export default function TemplateDetailPage({ params }: { params: { id: string } 
                                   role="combobox"
                                   className="w-full justify-between min-h-[40px] h-auto text-left font-normal bg-transparent"
                                 >
-                                  <span className="truncate">{product.name || "Select product..."}</span>
+                                  <span className="whitespace-normal break-words text-left">
+                                    {product.name || "Select product..."}
+                                  </span>
                                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                 </Button>
                               </PopoverTrigger>

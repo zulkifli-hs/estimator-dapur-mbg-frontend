@@ -534,7 +534,7 @@ export default function ProductsPage() {
                           />
                         </TableCell>
                         <TableCell className="font-mono text-xs">{product.sku}</TableCell>
-                        <TableCell className="font-medium">{product.name}</TableCell>
+                        <TableCell className="font-medium whitespace-normal break-words">{product.name}</TableCell>
                         <TableCell>{product.type}</TableCell>
                         <TableCell>{product.unit}</TableCell>
                         <TableCell>{product.brand || "-"}</TableCell>

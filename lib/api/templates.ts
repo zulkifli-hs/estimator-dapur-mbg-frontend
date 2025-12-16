@@ -31,8 +31,16 @@ export interface CreateTemplateInput {
 
 export interface TemplateListResponse {
   code: number
-  message: string
-  data: BOQTemplate[]
+  message: {
+    dev: { name: string; problems: any[] }
+    user: string
+  }
+  data: {
+    page: number
+    totalData: number
+    totalPage: number
+    list: BOQTemplate[]
+  }
 }
 
 // Get all templates
@@ -40,7 +48,7 @@ export const getTemplates = async (): Promise<BOQTemplate[]> => {
   const response = await apiRequest<TemplateListResponse>("/template", {
     method: "GET",
   })
-  return response.data || []
+  return response.data?.list || []
 }
 
 // Get single template

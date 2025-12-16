@@ -1,16 +1,19 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Plus, Trash2, X, ArrowLeft, Loader2 } from "lucide-react"
+import { Plus, Trash2, X, ArrowLeft, Loader2, Check, ChevronsUpDown } from "lucide-react"
 import { templatesApi } from "@/lib/api/templates"
+import { productsApi } from "@/lib/api/products"
 import { useToast } from "@/hooks/use-toast"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { cn } from "@/lib/utils"
 
 interface PreliminaryItem {
   name: string
@@ -19,16 +22,9 @@ interface PreliminaryItem {
   price: number
 }
 
-interface Product {
-  name: string
-  qty: number
-  unit: string
-  price: number
-}
-
 interface Category {
   name: string
-  products: Product[]
+  products: { name: string; qty: number; unit: string; price: number }[]
 }
 
 export default function CreateTemplatePage() {
@@ -36,6 +32,9 @@ export default function CreateTemplatePage() {
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const [templateName, setTemplateName] = useState("")
+  const [products, setProducts] = useState<{ name: string; qty: number; unit: string; price: number }[]>([])
+  const [loadingProducts, setLoadingProducts] = useState(false)
+
   const [preliminary, setPreliminary] = useState<PreliminaryItem[]>([{ name: "", qty: 0, unit: "", price: 0 }])
   const [fittingOut, setFittingOut] = useState<Category[]>([
     { name: "", products: [{ name: "", qty: 0, unit: "", price: 0 }] },
@@ -43,6 +42,27 @@ export default function CreateTemplatePage() {
   const [furnitureWork, setFurnitureWork] = useState<Category[]>([
     { name: "", products: [{ name: "", qty: 0, unit: "", price: 0 }] },
   ])
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setLoadingProducts(true)
+      try {
+        const response = await productsApi.getAll(1, 1000)
+        setProducts(response.list || [])
+      } catch (error) {
+        console.error("Failed to fetch products:", error)
+        toast({
+          title: "Error",
+          description: "Failed to fetch products",
+          variant: "destructive",
+        })
+      } finally {
+        setLoadingProducts(false)
+      }
+    }
+
+    fetchProducts()
+  }, [toast])
 
   // Preliminary functions
   const addPreliminaryItem = () => {
@@ -58,6 +78,20 @@ export default function CreateTemplatePage() {
   const updatePreliminaryItem = (index: number, field: keyof PreliminaryItem, value: string | number) => {
     const updated = [...preliminary]
     updated[index] = { ...updated[index], [field]: value }
+    setPreliminary(updated)
+  }
+
+  const selectPreliminaryProduct = (
+    index: number,
+    product: { name: string; qty: number; unit: string; price: number },
+  ) => {
+    const updated = [...preliminary]
+    updated[index] = {
+      ...updated[index],
+      name: product.name,
+      unit: product.unit,
+      price: product.price,
+    }
     setPreliminary(updated)
   }
 
@@ -95,13 +129,28 @@ export default function CreateTemplatePage() {
   const updateFittingOutProduct = (
     categoryIndex: number,
     productIndex: number,
-    field: keyof Product,
+    field: keyof { name: string; qty: number; unit: string; price: number },
     value: string | number,
   ) => {
     const updated = [...fittingOut]
     updated[categoryIndex].products[productIndex] = {
       ...updated[categoryIndex].products[productIndex],
       [field]: value,
+    }
+    setFittingOut(updated)
+  }
+
+  const selectFittingOutProduct = (
+    categoryIndex: number,
+    productIndex: number,
+    product: { name: string; qty: number; unit: string; price: number },
+  ) => {
+    const updated = [...fittingOut]
+    updated[categoryIndex].products[productIndex] = {
+      ...updated[categoryIndex].products[productIndex],
+      name: product.name,
+      unit: product.unit,
+      price: product.price,
     }
     setFittingOut(updated)
   }
@@ -140,13 +189,28 @@ export default function CreateTemplatePage() {
   const updateFurnitureWorkProduct = (
     categoryIndex: number,
     productIndex: number,
-    field: keyof Product,
+    field: keyof { name: string; qty: number; unit: string; price: number },
     value: string | number,
   ) => {
     const updated = [...furnitureWork]
     updated[categoryIndex].products[productIndex] = {
       ...updated[categoryIndex].products[productIndex],
       [field]: value,
+    }
+    setFurnitureWork(updated)
+  }
+
+  const selectFurnitureWorkProduct = (
+    categoryIndex: number,
+    productIndex: number,
+    product: { name: string; qty: number; unit: string; price: number },
+  ) => {
+    const updated = [...furnitureWork]
+    updated[categoryIndex].products[productIndex] = {
+      ...updated[categoryIndex].products[productIndex],
+      name: product.name,
+      unit: product.unit,
+      price: product.price,
     }
     setFurnitureWork(updated)
   }
@@ -232,85 +296,138 @@ export default function CreateTemplatePage() {
         </CardHeader>
       </Card>
 
-      <Tabs defaultValue="preliminary" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="preliminary">Preliminary</TabsTrigger>
-          <TabsTrigger value="fittingOut">Fitting Out</TabsTrigger>
-          <TabsTrigger value="furnitureWork">Furniture Work</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="preliminary" className="space-y-4">
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[40%]">Item Name</TableHead>
-                    <TableHead className="w-[15%]">Quantity</TableHead>
-                    <TableHead className="w-[15%]">Unit</TableHead>
-                    <TableHead className="w-[20%]">Price</TableHead>
-                    <TableHead className="w-[10%] text-right">Actions</TableHead>
+      <div className="space-y-6">
+        {/* Preliminary Section */}
+        <Card>
+          <CardHeader>
+            <h3 className="text-lg font-semibold">I. PRELIMINARY</h3>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[40%]">Item Name</TableHead>
+                  <TableHead className="w-[15%]">Quantity</TableHead>
+                  <TableHead className="w-[15%]">Unit</TableHead>
+                  <TableHead className="w-[20%]">Price</TableHead>
+                  <TableHead className="w-[10%] text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {preliminary.map((item, index) => (
+                  <TableRow key={index}>
+                    <TableCell className="align-top">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className="w-full justify-between min-h-[40px] h-auto text-left font-normal bg-transparent"
+                          >
+                            <span className="truncate">{item.name || "Select product..."}</span>
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[500px] p-0" align="start">
+                          <Command>
+                            <CommandInput placeholder="Search product..." />
+                            <CommandList>
+                              <CommandEmpty>
+                                {loadingProducts ? "Loading products..." : "No product found."}
+                              </CommandEmpty>
+                              <CommandGroup className="max-h-[300px] overflow-auto">
+                                {products.map((product) => (
+                                  <CommandItem
+                                    key={product._id}
+                                    value={product.name}
+                                    onSelect={() => {
+                                      selectPreliminaryProduct(index, product)
+                                    }}
+                                    className="flex flex-col items-start py-3"
+                                  >
+                                    <div className="flex items-center w-full">
+                                      <Check
+                                        className={cn(
+                                          "mr-2 h-4 w-4 shrink-0",
+                                          item.name === product.name ? "opacity-100" : "opacity-0",
+                                        )}
+                                      />
+                                      <div className="flex-1">
+                                        <div className="font-medium">{product.name}</div>
+                                        <div className="text-xs text-muted-foreground mt-1 space-x-2">
+                                          <span>SKU: {product.sku}</span>
+                                          <span>•</span>
+                                          <span>Type: {product.type}</span>
+                                          {product.brand && (
+                                            <>
+                                              <span>•</span>
+                                              <span>Brand: {product.brand}</span>
+                                            </>
+                                          )}
+                                        </div>
+                                        <div className="text-xs text-muted-foreground mt-1">
+                                          Purchase: {formatCurrency(product.price)} | Selling:{" "}
+                                          {formatCurrency(product.price)}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </TableCell>
+                    <TableCell className="align-top">
+                      <Input
+                        type="number"
+                        value={item.qty}
+                        onChange={(e) => updatePreliminaryItem(index, "qty", Number(e.target.value))}
+                        placeholder="0"
+                      />
+                    </TableCell>
+                    <TableCell className="align-top">
+                      <Input
+                        value={item.unit}
+                        onChange={(e) => updatePreliminaryItem(index, "unit", e.target.value)}
+                        placeholder="ls, m2"
+                      />
+                    </TableCell>
+                    <TableCell className="align-top">
+                      <Input
+                        type="number"
+                        value={item.price}
+                        onChange={(e) => updatePreliminaryItem(index, "price", Number(e.target.value))}
+                        placeholder="0"
+                      />
+                    </TableCell>
+                    <TableCell className="text-right align-top">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removePreliminaryItem(index)}
+                        disabled={preliminary.length === 1}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {preliminary.map((item, index) => (
-                    <TableRow key={index}>
-                      <TableCell>
-                        <Input
-                          value={item.name}
-                          onChange={(e) => updatePreliminaryItem(index, "name", e.target.value)}
-                          placeholder="Item name"
-                          className="min-h-[40px]"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Input
-                          type="number"
-                          value={item.qty}
-                          onChange={(e) => updatePreliminaryItem(index, "qty", Number(e.target.value))}
-                          placeholder="0"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Input
-                          value={item.unit}
-                          onChange={(e) => updatePreliminaryItem(index, "unit", e.target.value)}
-                          placeholder="ls, m2"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Input
-                          type="number"
-                          value={item.price}
-                          onChange={(e) => updatePreliminaryItem(index, "price", Number(e.target.value))}
-                          placeholder="0"
-                        />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removePreliminaryItem(index)}
-                          disabled={preliminary.length === 1}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              <div className="p-4 border-t">
-                <Button type="button" onClick={addPreliminaryItem} variant="outline" className="w-full bg-transparent">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Item
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                ))}
+              </TableBody>
+            </Table>
+            <div className="p-4 border-t">
+              <Button type="button" onClick={addPreliminaryItem} variant="outline" className="w-full bg-transparent">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Item
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
-        <TabsContent value="fittingOut" className="space-y-4">
+        {/* Fitting Out Section */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">II. FITTING OUT</h3>
           {fittingOut.map((category, categoryIndex) => (
             <Card key={categoryIndex}>
               <CardHeader>
@@ -348,17 +465,70 @@ export default function CreateTemplatePage() {
                   <TableBody>
                     {category.products.map((product, productIndex) => (
                       <TableRow key={productIndex}>
-                        <TableCell>
-                          <Input
-                            value={product.name}
-                            onChange={(e) =>
-                              updateFittingOutProduct(categoryIndex, productIndex, "name", e.target.value)
-                            }
-                            placeholder="Product name"
-                            className="min-h-[40px]"
-                          />
+                        <TableCell className="align-top">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                className="w-full justify-between min-h-[40px] h-auto text-left font-normal bg-transparent"
+                              >
+                                <span className="truncate">{product.name || "Select product..."}</span>
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[500px] p-0" align="start">
+                              <Command>
+                                <CommandInput placeholder="Search product..." />
+                                <CommandList>
+                                  <CommandEmpty>
+                                    {loadingProducts ? "Loading products..." : "No product found."}
+                                  </CommandEmpty>
+                                  <CommandGroup className="max-h-[300px] overflow-auto">
+                                    {products.map((prod) => (
+                                      <CommandItem
+                                        key={prod._id}
+                                        value={prod.name}
+                                        onSelect={() => {
+                                          selectFittingOutProduct(categoryIndex, productIndex, prod)
+                                        }}
+                                        className="flex flex-col items-start py-3"
+                                      >
+                                        <div className="flex items-center w-full">
+                                          <Check
+                                            className={cn(
+                                              "mr-2 h-4 w-4 shrink-0",
+                                              product.name === prod.name ? "opacity-100" : "opacity-0",
+                                            )}
+                                          />
+                                          <div className="flex-1">
+                                            <div className="font-medium">{prod.name}</div>
+                                            <div className="text-xs text-muted-foreground mt-1 space-x-2">
+                                              <span>SKU: {prod.sku}</span>
+                                              <span>•</span>
+                                              <span>Type: {prod.type}</span>
+                                              {prod.brand && (
+                                                <>
+                                                  <span>•</span>
+                                                  <span>Brand: {prod.brand}</span>
+                                                </>
+                                              )}
+                                            </div>
+                                            <div className="text-xs text-muted-foreground mt-1">
+                                              Purchase: {formatCurrency(prod.price)} | Selling:{" "}
+                                              {formatCurrency(prod.price)}
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="align-top">
                           <Input
                             type="number"
                             value={product.qty}
@@ -368,7 +538,7 @@ export default function CreateTemplatePage() {
                             placeholder="0"
                           />
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="align-top">
                           <Input
                             value={product.unit}
                             onChange={(e) =>
@@ -377,7 +547,7 @@ export default function CreateTemplatePage() {
                             placeholder="m2, unit"
                           />
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="align-top">
                           <Input
                             type="number"
                             value={product.price}
@@ -387,7 +557,7 @@ export default function CreateTemplatePage() {
                             placeholder="0"
                           />
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right align-top">
                           <Button
                             variant="ghost"
                             size="icon"
@@ -419,9 +589,11 @@ export default function CreateTemplatePage() {
             <Plus className="h-4 w-4 mr-2" />
             Add Category
           </Button>
-        </TabsContent>
+        </div>
 
-        <TabsContent value="furnitureWork" className="space-y-4">
+        {/* Furniture Work Section */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">III. FURNITURE WORK</h3>
           {furnitureWork.map((category, categoryIndex) => (
             <Card key={categoryIndex}>
               <CardHeader>
@@ -459,17 +631,70 @@ export default function CreateTemplatePage() {
                   <TableBody>
                     {category.products.map((product, productIndex) => (
                       <TableRow key={productIndex}>
-                        <TableCell>
-                          <Input
-                            value={product.name}
-                            onChange={(e) =>
-                              updateFurnitureWorkProduct(categoryIndex, productIndex, "name", e.target.value)
-                            }
-                            placeholder="Product name"
-                            className="min-h-[40px]"
-                          />
+                        <TableCell className="align-top">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                className="w-full justify-between min-h-[40px] h-auto text-left font-normal bg-transparent"
+                              >
+                                <span className="truncate">{product.name || "Select product..."}</span>
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[500px] p-0" align="start">
+                              <Command>
+                                <CommandInput placeholder="Search product..." />
+                                <CommandList>
+                                  <CommandEmpty>
+                                    {loadingProducts ? "Loading products..." : "No product found."}
+                                  </CommandEmpty>
+                                  <CommandGroup className="max-h-[300px] overflow-auto">
+                                    {products.map((prod) => (
+                                      <CommandItem
+                                        key={prod._id}
+                                        value={prod.name}
+                                        onSelect={() => {
+                                          selectFurnitureWorkProduct(categoryIndex, productIndex, prod)
+                                        }}
+                                        className="flex flex-col items-start py-3"
+                                      >
+                                        <div className="flex items-center w-full">
+                                          <Check
+                                            className={cn(
+                                              "mr-2 h-4 w-4 shrink-0",
+                                              product.name === prod.name ? "opacity-100" : "opacity-0",
+                                            )}
+                                          />
+                                          <div className="flex-1">
+                                            <div className="font-medium">{prod.name}</div>
+                                            <div className="text-xs text-muted-foreground mt-1 space-x-2">
+                                              <span>SKU: {prod.sku}</span>
+                                              <span>•</span>
+                                              <span>Type: {prod.type}</span>
+                                              {prod.brand && (
+                                                <>
+                                                  <span>•</span>
+                                                  <span>Brand: {prod.brand}</span>
+                                                </>
+                                              )}
+                                            </div>
+                                            <div className="text-xs text-muted-foreground mt-1">
+                                              Purchase: {formatCurrency(prod.price)} | Selling:{" "}
+                                              {formatCurrency(prod.price)}
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="align-top">
                           <Input
                             type="number"
                             value={product.qty}
@@ -479,7 +704,7 @@ export default function CreateTemplatePage() {
                             placeholder="0"
                           />
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="align-top">
                           <Input
                             value={product.unit}
                             onChange={(e) =>
@@ -488,7 +713,7 @@ export default function CreateTemplatePage() {
                             placeholder="unit, set"
                           />
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="align-top">
                           <Input
                             type="number"
                             value={product.price}
@@ -498,7 +723,7 @@ export default function CreateTemplatePage() {
                             placeholder="0"
                           />
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right align-top">
                           <Button
                             variant="ghost"
                             size="icon"
@@ -530,8 +755,8 @@ export default function CreateTemplatePage() {
             <Plus className="h-4 w-4 mr-2" />
             Add Category
           </Button>
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
     </div>
   )
 }

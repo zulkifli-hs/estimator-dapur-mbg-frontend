@@ -252,7 +252,18 @@ export default function ProductsPage() {
       const updateData: UpdateProductInput = {
         name: formData.name,
         unit: formData.unit,
-        price: Number.parseFloat(formData.price),
+        brand: formData.brand || undefined,
+        sellingPrice: Number.parseFloat(formData.sellingPrice) || 0,
+        purchasePrice: Number.parseFloat(formData.purchasePrice) || 0,
+        photos: uploadedPhotos.length > 0 ? uploadedPhotos : undefined,
+        details:
+          productDetails.length > 0
+            ? productDetails.map((d) => ({
+                label: d.label,
+                type: d.type,
+                value: d.value,
+              }))
+            : undefined,
       }
 
       await productsApi.update(editingProduct._id, updateData)
@@ -907,20 +918,24 @@ export default function ProductsPage() {
 
       {/* Edit Product Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Product</DialogTitle>
             <DialogDescription>Update product information</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {/* Product Name */}
             <div className="space-y-2">
               <Label htmlFor="edit-name">Product Name *</Label>
               <Input
                 id="edit-name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="e.g., Semen"
               />
             </div>
+
+            {/* Type, Unit, Brand */}
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-type">Type *</Label>
@@ -941,6 +956,7 @@ export default function ProductsPage() {
                   id="edit-unit"
                   value={formData.unit}
                   onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                  placeholder="e.g., liter"
                 />
               </div>
               <div className="space-y-2">
@@ -949,9 +965,12 @@ export default function ProductsPage() {
                   id="edit-brand"
                   value={formData.brand}
                   onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+                  placeholder="e.g., Mitsubishi"
                 />
               </div>
             </div>
+
+            {/* Purchase Price & Selling Price */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-purchase">Purchase Price (IDR) *</Label>
@@ -960,6 +979,7 @@ export default function ProductsPage() {
                   type="number"
                   value={formData.purchasePrice}
                   onChange={(e) => setFormData({ ...formData, purchasePrice: e.target.value })}
+                  placeholder="e.g., 20000"
                 />
               </div>
               <div className="space-y-2">
@@ -969,16 +989,145 @@ export default function ProductsPage() {
                   type="number"
                   value={formData.sellingPrice}
                   onChange={(e) => setFormData({ ...formData, sellingPrice: e.target.value })}
+                  placeholder="e.g., 25000"
                 />
               </div>
             </div>
+
+            {/* SKU with Generate Button */}
             <div className="space-y-2">
               <Label htmlFor="edit-sku">SKU *</Label>
-              <Input
-                id="edit-sku"
-                value={formData.sku}
-                onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="edit-sku"
+                  value={formData.sku}
+                  onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                  placeholder="e.g., DSG-GS-MIT-25"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={generateSKU}
+                  className="whitespace-nowrap bg-transparent"
+                >
+                  Generate SKU
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Click Generate SKU to create based on name, type, brand, and year
+              </p>
+            </div>
+
+            {/* Photos */}
+            <div className="space-y-2">
+              <Label>Photos</Label>
+              <div className="border-2 border-dashed rounded-lg p-4">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoUpload}
+                  disabled={uploading}
+                  className="hidden"
+                  id="edit-photo-upload"
+                />
+                <label htmlFor="edit-photo-upload" className="cursor-pointer">
+                  <div className="flex flex-col items-center justify-center py-4">
+                    {uploading ? (
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-2" />
+                    ) : (
+                      <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                    )}
+                    <p className="text-sm text-muted-foreground">
+                      {uploading ? "Uploading..." : "Click to upload photo"}
+                    </p>
+                  </div>
+                </label>
+
+                {uploadedPhotos.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2 mt-4">
+                    {uploadedPhotos.map((photo, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={`${API_BASE_URL}/public/${photo.provider}/${photo.url}`}
+                          alt={`Product ${index + 1}`}
+                          className="w-full h-24 object-cover rounded"
+                        />
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => removePhoto(index)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Product Details */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Product Details</Label>
+                <Button type="button" variant="outline" size="sm" onClick={addDetailField}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Detail
+                </Button>
+              </div>
+
+              {productDetails.map((detail, index) => (
+                <div key={index} className="grid grid-cols-12 gap-2 items-end">
+                  <div className="col-span-4 space-y-1">
+                    <Label className="text-xs">Name</Label>
+                    <Input
+                      value={detail.label}
+                      onChange={(e) => updateDetailField(index, "label", e.target.value)}
+                      placeholder="e.g., Color"
+                      className="h-9"
+                    />
+                  </div>
+                  <div className="col-span-3 space-y-1">
+                    <Label className="text-xs">Type</Label>
+                    <Select value={detail.type} onValueChange={(value: any) => updateDetailField(index, "type", value)}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="text">Text</SelectItem>
+                        <SelectItem value="number">Number</SelectItem>
+                        <SelectItem value="date">Date</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="col-span-4 space-y-1">
+                    <Label className="text-xs">Value</Label>
+                    <Input
+                      value={detail.value}
+                      onChange={(e) => updateDetailField(index, "value", e.target.value)}
+                      placeholder="e.g., Ungu"
+                      type={detail.type === "number" ? "number" : detail.type === "date" ? "date" : "text"}
+                      className="h-9"
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeDetailField(index)}
+                      className="h-9 w-9"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+
+              {productDetails.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">No details added yet</p>
+              )}
             </div>
           </div>
           <DialogFooter>

@@ -238,7 +238,7 @@ export default function BOQTemplatesPage() {
               </p>
             </div>
           ) : (
-            <div className="rounded-md border">
+            <div className="rounded-md border mx-6">
               <Table>
                 <TableHeader>
                   <TableRow>

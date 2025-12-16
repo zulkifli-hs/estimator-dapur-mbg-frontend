@@ -40,6 +40,15 @@ interface Category {
   products: Product[]
 }
 
+// Move formatCurrency outside component
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: 0,
+  }).format(value)
+}
+
 export default function TemplateDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
@@ -439,14 +448,6 @@ export default function TemplateDetailPage({ params }: { params: { id: string } 
     }
   }
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      minimumFractionDigits: 0,
-    }).format(value)
-  }
-
   const renderBOQTable = (template: any) => {
     let itemNumber = 1
     let grandTotal = 0
@@ -473,11 +474,11 @@ export default function TemplateDetailPage({ params }: { params: { id: string } 
                     PRELIMINARY
                   </TableCell>
                 </TableRow>
-                {template.preliminary.map((item: any) => {
+                {template.preliminary.map((item: any, idx: number) => {
                   const total = (item.qty || 0) * (item.price || 0)
                   grandTotal += total
                   return (
-                    <TableRow key={item._id || Math.random()}>
+                    <TableRow key={item._id || `prelim-${idx}`}>
                       <TableCell className="font-medium pl-8 pr-4">{itemNumber++}</TableCell>
                       <TableCell className="whitespace-normal break-words px-4">{item.name}</TableCell>
                       <TableCell className="text-right px-4">{item.qty}</TableCell>
@@ -511,24 +512,24 @@ export default function TemplateDetailPage({ params }: { params: { id: string } 
                     FITTING OUT
                   </TableCell>
                 </TableRow>
-                {template.fittingOut.map((category: any) => {
+                {template.fittingOut.map((category: any, catIdx: number) => {
                   const categoryTotal =
                     Array.isArray(category.products) &&
                     category.products.reduce((sum: number, p: any) => sum + (p.qty || 0) * (p.price || 0), 0)
                   grandTotal += categoryTotal || 0
 
                   return (
-                    <React.Fragment key={category._id || Math.random()}>
+                    <React.Fragment key={category._id || `fitout-cat-${catIdx}`}>
                       <TableRow className="bg-muted/50">
                         <TableCell colSpan={6} className="font-semibold pl-8 pr-4 py-2">
                           {category.name}
                         </TableCell>
                       </TableRow>
                       {Array.isArray(category.products) &&
-                        category.products.map((product: any) => {
+                        category.products.map((product: any, prodIdx: number) => {
                           const total = (product.qty || 0) * (product.price || 0)
                           return (
-                            <TableRow key={product._id || Math.random()}>
+                            <TableRow key={product._id || `fitout-prod-${catIdx}-${prodIdx}`}>
                               <TableCell className="font-medium pl-12 pr-4">{itemNumber++}</TableCell>
                               <TableCell className="whitespace-normal break-words px-4">{product.name}</TableCell>
                               <TableCell className="text-right px-4">{product.qty}</TableCell>
@@ -577,24 +578,24 @@ export default function TemplateDetailPage({ params }: { params: { id: string } 
                     FURNITURE WORK
                   </TableCell>
                 </TableRow>
-                {template.furnitureWork.map((category: any) => {
+                {template.furnitureWork.map((category: any, catIdx: number) => {
                   const categoryTotal =
                     Array.isArray(category.products) &&
                     category.products.reduce((sum: number, p: any) => sum + (p.qty || 0) * (p.price || 0), 0)
                   grandTotal += categoryTotal || 0
 
                   return (
-                    <React.Fragment key={category._id || Math.random()}>
+                    <React.Fragment key={category._id || `furniture-cat-${catIdx}`}>
                       <TableRow className="bg-muted/50">
                         <TableCell colSpan={6} className="font-semibold pl-8 pr-4 py-2">
                           {category.name}
                         </TableCell>
                       </TableRow>
                       {Array.isArray(category.products) &&
-                        category.products.map((product: any) => {
+                        category.products.map((product: any, prodIdx: number) => {
                           const total = (product.qty || 0) * (product.price || 0)
                           return (
-                            <TableRow key={product._id || Math.random()}>
+                            <TableRow key={product._id || `furniture-prod-${catIdx}-${prodIdx}`}>
                               <TableCell className="font-medium pl-12 pr-4">{itemNumber++}</TableCell>
                               <TableCell className="whitespace-normal break-words px-4">{product.name}</TableCell>
                               <TableCell className="text-right px-4">{product.qty}</TableCell>
@@ -615,14 +616,32 @@ export default function TemplateDetailPage({ params }: { params: { id: string } 
                     </React.Fragment>
                   )
                 })}
-                <TableRow className="bg-primary/20 font-bold">
-                  <TableCell colSpan={5} className="text-right text-lg px-4 py-4">
-                    GRAND TOTAL
+                <TableRow className="bg-muted/30">
+                  <TableCell colSpan={5} className="text-right font-semibold px-4 py-3">
+                    Subtotal Furniture Work
                   </TableCell>
-                  <TableCell className="text-right text-lg px-4 py-4">{formatCurrency(grandTotal)}</TableCell>
+                  <TableCell className="text-right font-semibold px-4 py-3">
+                    {formatCurrency(
+                      template.furnitureWork.reduce(
+                        (sum: number, cat: any) =>
+                          sum +
+                          (Array.isArray(cat.products)
+                            ? cat.products.reduce((s: number, p: any) => s + (p.qty || 0) * (p.price || 0), 0)
+                            : 0),
+                        0,
+                      ),
+                    )}
+                  </TableCell>
                 </TableRow>
               </>
             )}
+
+            <TableRow className="bg-primary/20 font-bold">
+              <TableCell colSpan={5} className="text-right text-lg px-4 py-4">
+                GRAND TOTAL
+              </TableCell>
+              <TableCell className="text-right text-lg px-4 py-4">{formatCurrency(grandTotal)}</TableCell>
+            </TableRow>
           </TableBody>
         </Table>
       </div>

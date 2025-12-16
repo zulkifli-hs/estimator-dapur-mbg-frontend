@@ -53,9 +53,10 @@ export const getTemplates = async (): Promise<BOQTemplate[]> => {
 
 // Get single template
 export const getTemplate = async (id: string): Promise<BOQTemplate> => {
-  return apiRequest<BOQTemplate>(`/template/${id}`, {
+  const response = await apiRequest<{ code: number; message: any; data: BOQTemplate }>(`/template/${id}`, {
     method: "GET",
   })
+  return response.data
 }
 
 // Create template

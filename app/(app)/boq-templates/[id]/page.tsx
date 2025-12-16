@@ -55,7 +55,11 @@ export default function TemplateDetailPage() {
 
       if (response.success && response.data) {
         const template = response.data
-        console.log("[v0] Template data:", template)
+        console.log("[v0] Template name:", template.name)
+        console.log("[v0] Preliminary items:", template.preliminary?.length)
+        console.log("[v0] Fitting Out categories:", template.fittingOut?.length)
+        console.log("[v0] Furniture Work categories:", template.furnitureWork?.length)
+
         setTemplateName(template.name || "")
         setPreliminary(template.preliminary || [])
         setFittingOut(template.fittingOut || [])
@@ -75,7 +79,6 @@ export default function TemplateDetailPage() {
         description: "Failed to load template",
         variant: "destructive",
       })
-      router.push("/boq-templates")
     } finally {
       setLoading(false)
     }

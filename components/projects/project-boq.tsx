@@ -70,11 +70,6 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   const { toast } = useToast() // Initialize toast here
   const [boqItems, setBoqItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [summary, setSummary] = useState({
-    totalBudget: 0,
-    totalSpent: 0,
-    progress: 0,
-  })
   const [editingBOQ, setEditingBOQ] = useState<any>(null)
   const [isCreatingAdditional, setIsCreatingAdditional] = useState(false)
   const [activeTab, setActiveTab] = useState("main")
@@ -91,13 +86,9 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   const [createProductDialogOpen, setCreateProductDialogOpen] = useState(false)
 
   // Form states for blank creation
-  const [preliminary, setPreliminary] = useState<PreliminaryItem[]>([{ name: "", qty: 0, unit: "", price: 0 }])
-  const [fittingOut, setFittingOut] = useState<Category[]>([
-    { name: "", products: [{ name: "", qty: 0, unit: "", price: 0 }] },
-  ])
-  const [furnitureWork, setFurnitureWork] = useState<Category[]>([
-    { name: "", products: [{ name: "", qty: 0, unit: "", price: 0 }] },
-  ])
+  const [preliminary, setPreliminary] = useState<PreliminaryItem[]>([])
+  const [fittingOut, setFittingOut] = useState<Category[]>([])
+  const [furnitureWork, setFurnitureWork] = useState<Category[]>([])
 
   const preliminaryQtyRefs = useRef<{ [key: number]: HTMLInputElement | null }>({})
   const fittingOutQtyRefs = useRef<{ [key: string]: HTMLInputElement | null }>({})
@@ -117,12 +108,66 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   const [uploading, setUploading] = useState(false)
   const [productDetails, setProductDetails] = useState<any[]>([])
   const [submittingProduct, setSubmittingProduct] = useState(false)
+  const [summary, setSummary] = useState({
+    totalBudget: 0,
+    totalSpent: 0,
+    progress: 0,
+  })
 
   useEffect(() => {
     loadBOQs()
     fetchTemplates()
     fetchProducts()
   }, [projectId])
+
+  useEffect(() => {
+    if (editingBOQ && creationMode === "blank") {
+      // Populate preliminary items
+      setPreliminary(
+        editingBOQ.preliminary?.map((item: any) => ({
+          name: item.name || "",
+          qty: item.qty || 0,
+          unit: item.unit || "",
+          price: item.price || 0,
+          productId: item.productId || "",
+        })) || [],
+      )
+
+      // Populate fitting out categories
+      setFittingOut(
+        editingBOQ.fittingOut?.map((category: any) => ({
+          name: category.name || "",
+          products:
+            category.products?.map((product: any) => ({
+              name: product.name || "",
+              qty: product.qty || 0,
+              unit: product.unit || "",
+              price: product.price || 0,
+              productId: product.productId || "",
+            })) || [],
+        })) || [],
+      )
+
+      // Populate furniture work categories
+      setFurnitureWork(
+        editingBOQ.furnitureWork?.map((category: any) => ({
+          name: category.name || "",
+          products:
+            category.products?.map((product: any) => ({
+              name: product.name || "",
+              qty: product.qty || 0,
+              unit: product.unit || "",
+              price: product.price || 0,
+              productId: product.productId || "",
+            })) || [],
+        })) || [],
+      )
+    } else if (creationMode === "blank" && !editingBOQ) {
+      setPreliminary([])
+      setFittingOut([])
+      setFurnitureWork([])
+    }
+  }, [editingBOQ, creationMode])
 
   const fetchTemplates = async () => {
     try {
@@ -514,6 +559,9 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   const removePreliminaryItem = (index: number) => {
     if (preliminary.length > 1) {
       setPreliminary(preliminary.filter((_, i) => i !== index))
+    } else {
+      // Clear the single item instead of removing it if it's the last one
+      setPreliminary([{ name: "", qty: 0, unit: "", price: 0 }])
     }
   }
 
@@ -543,6 +591,10 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     if (newFittingOut[categoryIndex].products.length > 1) {
       newFittingOut[categoryIndex].products = newFittingOut[categoryIndex].products.filter((_, i) => i !== productIndex)
       setFittingOut(newFittingOut)
+    } else {
+      // Clear the single product instead of removing it if it's the last one in the category
+      newFittingOut[categoryIndex].products = [{ name: "", qty: 0, unit: "", price: 0 }]
+      setFittingOut(newFittingOut)
     }
   }
 
@@ -553,6 +605,9 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   const removeFittingOutCategory = (categoryIndex: number) => {
     if (fittingOut.length > 1) {
       setFittingOut(fittingOut.filter((_, i) => i !== categoryIndex))
+    } else {
+      // Clear the single category instead of removing it if it's the last one
+      setFittingOut([{ name: "", products: [{ name: "", qty: 0, unit: "", price: 0 }] }])
     }
   }
 
@@ -584,6 +639,10 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         (_, i) => i !== productIndex,
       )
       setFurnitureWork(newFurnitureWork)
+    } else {
+      // Clear the single product instead of removing it if it's the last one in the category
+      newFurnitureWork[categoryIndex].products = [{ name: "", qty: 0, unit: "", price: 0 }]
+      setFurnitureWork(newFurnitureWork)
     }
   }
 
@@ -594,6 +653,9 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   const removeFurnitureWorkCategory = (categoryIndex: number) => {
     if (furnitureWork.length > 1) {
       setFurnitureWork(furnitureWork.filter((_, i) => i !== categoryIndex))
+    } else {
+      // Clear the single category instead of removing it if it's the last one
+      setFurnitureWork([{ name: "", products: [{ name: "", qty: 0, unit: "", price: 0 }] }])
     }
   }
 
@@ -601,29 +663,62 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   const handleCreateMainBOQ = async () => {
     try {
       setLoading(true)
-      const response = await boqApi.create(projectId, {
-        preliminary,
-        fittingOut,
-        furnitureWork,
-      })
 
-      if (response.success) {
+      const filteredPreliminary = preliminary.filter((item) => item.name && item.unit)
+      const filteredFittingOut = fittingOut
+        .map((category) => ({
+          ...category,
+          products: category.products.filter((product) => product.name && product.unit),
+        }))
+        .filter((category) => category.name && category.products.length > 0)
+      const filteredFurnitureWork = furnitureWork
+        .map((category) => ({
+          ...category,
+          products: category.products.filter((product) => product.name && product.unit),
+        }))
+        .filter((category) => category.name && category.products.length > 0)
+
+      if (filteredPreliminary.length === 0 && filteredFittingOut.length === 0 && filteredFurnitureWork.length === 0) {
+        toast({
+          title: "Validation Error",
+          description: "Please add at least one item to any section before creating BOQ",
+          variant: "destructive",
+        })
+        return
+      }
+
+      const boqData = {
+        preliminary: filteredPreliminary,
+        fittingOut: filteredFittingOut,
+        furnitureWork: filteredFurnitureWork,
+      }
+
+      if (editingBOQ) {
+        await boqApi.update(projectId, editingBOQ._id, boqData)
+        toast({
+          title: "Success",
+          description: "BOQ updated successfully",
+        })
+      } else {
+        await boqApi.create(projectId, boqData)
         toast({
           title: "Success",
           description: "Main BOQ created successfully",
         })
-        loadBOQs()
-        setCreationMode(null)
-        // Reset form
-        setPreliminary([{ name: "", qty: 0, unit: "", price: 0 }])
-        setFittingOut([{ name: "", products: [{ name: "", qty: 0, unit: "", price: 0 }] }])
-        setFurnitureWork([{ name: "", products: [{ name: "", qty: 0, unit: "", price: 0 }] }])
       }
+
+      // Reset states
+      setCreationMode(null)
+      setEditingBOQ(null)
+      setPreliminary([])
+      setFittingOut([])
+      setFurnitureWork([])
+      loadBOQs()
     } catch (error: any) {
       toast({
-        variant: "destructive",
         title: "Error",
-        description: error.message || "Failed to create main BOQ",
+        description: error.message || "Failed to save BOQ",
+        variant: "destructive",
       })
     } finally {
       setLoading(false)
@@ -833,8 +928,8 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     }
   }
 
-  const mainBOQ = boqItems.find((boq) => boq.type === "main")
-  const additionalBOQs = boqItems.filter((boq) => boq.type === "additional")
+  const mainBOQ = boqItems.find((boq) => boq.number === 1)
+  const additionalBOQs = boqItems.filter((boq) => boq.number > 1)
 
   if (loading) {
     return (
@@ -969,16 +1064,26 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold">Create Main BOQ</h2>
+            <h2 className="text-2xl font-bold">{editingBOQ ? "Edit Main BOQ" : "Create Main BOQ"}</h2>
             <p className="text-muted-foreground">Fill in the details for your Bill of Quantities</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setCreationMode(null)} disabled={loading}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setCreationMode(null)
+                setEditingBOQ(null)
+                setPreliminary([])
+                setFittingOut([])
+                setFurnitureWork([])
+              }}
+              disabled={loading}
+            >
               Cancel
             </Button>
             <Button onClick={handleCreateMainBOQ} disabled={loading}>
               {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Create BOQ
+              {editingBOQ ? "Update BOQ" : "Create BOQ"}
             </Button>
           </div>
         </div>
@@ -1001,141 +1106,150 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {preliminary.map((item, index) => (
-                  <TableRow key={index}>
-                    <TableCell className="font-medium text-center">{index + 1}</TableCell>
-                    <TableCell className="align-top">
-                      <Popover
-                        open={openPopovers[`preliminary-${index}`]}
-                        onOpenChange={(open) =>
-                          setOpenPopovers((prev) => ({ ...prev, [`preliminary-${index}`]: open }))
-                        }
-                      >
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            className="w-full justify-between min-h-[40px] h-auto text-left font-normal bg-transparent"
-                          >
-                            <span className="whitespace-normal break-words text-left">
-                              {item.name || "Select product..."}
-                            </span>
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[500px] p-0" align="start">
-                          <Command>
-                            <CommandInput
-                              placeholder="Search product..."
-                              onValueChange={(value) =>
-                                setSearchQuery({ ...searchQuery, [`preliminary-${index}`]: value })
-                              }
-                            />
-                            <CommandList>
-                              <CommandEmpty>
-                                {loadingProducts ? (
-                                  "Loading products..."
-                                ) : (
-                                  <div className="p-2">
-                                    <p className="text-sm text-muted-foreground mb-2">No product found.</p>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="w-full bg-transparent"
-                                      onClick={() => {
-                                        setOpenPopovers({ ...openPopovers, [`preliminary-${index}`]: false })
-                                        setCreateProductDialogOpen(true)
-                                      }}
-                                    >
-                                      <Plus className="mr-2 h-4 w-4" />
-                                      Create New Product
-                                    </Button>
-                                  </div>
-                                )}
-                              </CommandEmpty>
-                              <CommandGroup className="max-h-[300px] overflow-auto">
-                                {products.map((product) => (
-                                  <CommandItem
-                                    key={product._id}
-                                    value={product.name}
-                                    onSelect={() => {
-                                      selectPreliminaryProduct(index, product)
-                                    }}
-                                    className="flex flex-col items-start py-3 hover:bg-primary/30 cursor-pointer"
-                                  >
-                                    <div className="flex items-center w-full">
-                                      <Check
-                                        className={cn(
-                                          "mr-2 h-4 w-4 shrink-0",
-                                          item.name === product.name ? "opacity-100" : "opacity-0",
-                                        )}
-                                      />
-                                      <div className="flex-1">
-                                        <div className="font-medium">
-                                          {highlightText(product.name, searchQuery[`preliminary-${index}`] || "")}
-                                        </div>
-                                        <div className="text-xs text-muted-foreground mt-1 space-x-2">
-                                          <span>SKU: {product.sku}</span>
-                                          <span>•</span>
-                                          <span>Type: {product.type}</span>
-                                          {product.brand && (
-                                            <>
-                                              <span>•</span>
-                                              <span>Brand: {product.brand}</span>
-                                            </>
-                                          )}
-                                        </div>
-                                        <div className="text-xs text-muted-foreground mt-1">
-                                          Price: {formatCurrency(product.sellingPrice)}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                    </TableCell>
-                    <TableCell className="align-top">
-                      <Input
-                        ref={(el) => {
-                          preliminaryQtyRefs.current[index] = el
-                        }}
-                        type="number"
-                        value={item.qty}
-                        onChange={(e) => updatePreliminaryItem(index, "qty", Number(e.target.value))}
-                        placeholder="0"
-                      />
-                    </TableCell>
-                    <TableCell className="align-top">
-                      <Input
-                        value={item.unit}
-                        onChange={(e) => updatePreliminaryItem(index, "unit", e.target.value)}
-                        placeholder="ls, m2"
-                      />
-                    </TableCell>
-                    <TableCell className="align-top">
-                      <Input
-                        type="number"
-                        value={item.price}
-                        onChange={(e) => updatePreliminaryItem(index, "price", Number(e.target.value))}
-                        placeholder="0"
-                      />
-                    </TableCell>
-                    <TableCell className="text-right align-top">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removePreliminaryItem(index)}
-                        disabled={preliminary.length === 1}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                {preliminary.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                      No items yet. Click "Add Item" button below to start adding items.
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  preliminary.map((item, index) => (
+                    <TableRow key={index}>
+                      <TableCell className="font-medium text-center">{index + 1}</TableCell>
+                      <TableCell className="align-top">
+                        <Popover
+                          open={openPopovers[`preliminary-${index}`]}
+                          onOpenChange={(open) =>
+                            setOpenPopovers((prev) => ({ ...prev, [`preliminary-${index}`]: open }))
+                          }
+                        >
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className="w-full justify-between min-h-[40px] h-auto text-left font-normal bg-transparent"
+                            >
+                              <span className="whitespace-normal break-words text-left">
+                                {item.name || "Select product..."}
+                              </span>
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[500px] p-0" align="start">
+                            <Command>
+                              <CommandInput
+                                placeholder="Search product..."
+                                onValueChange={(value) =>
+                                  setSearchQuery({ ...searchQuery, [`preliminary-${index}`]: value })
+                                }
+                              />
+                              <CommandList>
+                                <CommandEmpty>
+                                  {loadingProducts ? (
+                                    "Loading products..."
+                                  ) : (
+                                    <div className="p-2">
+                                      <p className="text-sm text-muted-foreground mb-2">No product found.</p>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="w-full bg-transparent"
+                                        onClick={() => {
+                                          setOpenPopovers({ ...openPopovers, [`preliminary-${index}`]: false })
+                                          setCreateProductDialogOpen(true)
+                                        }}
+                                      >
+                                        <Plus className="mr-2 h-4 w-4" />
+                                        Create New Product
+                                      </Button>
+                                    </div>
+                                  )}
+                                </CommandEmpty>
+                                <CommandGroup className="max-h-[300px] overflow-auto">
+                                  {products.map((product) => (
+                                    <CommandItem
+                                      key={product._id}
+                                      value={product.name}
+                                      onSelect={() => {
+                                        selectPreliminaryProduct(index, product)
+                                      }}
+                                      className="flex flex-col items-start py-3 hover:bg-primary/30 cursor-pointer"
+                                    >
+                                      <div className="flex items-center w-full">
+                                        <Check
+                                          className={cn(
+                                            "mr-2 h-4 w-4 shrink-0",
+                                            item.name === product.name ? "opacity-100" : "opacity-0",
+                                          )}
+                                        />
+                                        <div className="flex-1">
+                                          <div className="font-medium">
+                                            {highlightText(product.name, searchQuery[`preliminary-${index}`] || "")}
+                                          </div>
+                                          <div className="text-xs text-muted-foreground mt-1 space-x-2">
+                                            <span>SKU: {product.sku}</span>
+                                            <span>•</span>
+                                            <span>Type: {product.type}</span>
+                                            {product.brand && (
+                                              <>
+                                                <span>•</span>
+                                                <span>Brand: {product.brand}</span>
+                                              </>
+                                            )}
+                                          </div>
+                                          <div className="text-xs text-muted-foreground mt-1">
+                                            Price: {formatCurrency(product.sellingPrice)}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                      </TableCell>
+                      <TableCell className="align-top">
+                        <Input
+                          ref={(el) => {
+                            preliminaryQtyRefs.current[index] = el
+                          }}
+                          type="number"
+                          value={item.qty}
+                          onChange={(e) => updatePreliminaryItem(index, "qty", Number(e.target.value))}
+                          placeholder="0"
+                        />
+                      </TableCell>
+                      <TableCell className="align-top">
+                        <Input
+                          value={item.unit}
+                          onChange={(e) => updatePreliminaryItem(index, "unit", e.target.value)}
+                          placeholder="ls, m2"
+                        />
+                      </TableCell>
+                      <TableCell className="align-top">
+                        <Input
+                          type="number"
+                          value={item.price}
+                          onChange={(e) => updatePreliminaryItem(index, "price", Number(e.target.value))}
+                          placeholder="0"
+                        />
+                      </TableCell>
+                      <TableCell className="text-right align-top">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removePreliminaryItem(index)}
+                          // Removed disabled check here as it's handled by the ternary above
+                          // disabled={preliminary.length === 1}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
             <div className="p-4 border-t">
@@ -1150,664 +1264,450 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         {/* Fitting Out Section */}
         <div className="space-y-4">
           <h3 className="text-lg font-semibold">II. FITTING OUT</h3>
-          {fittingOut.map((category, categoryIndex) => (
-            <Card key={categoryIndex}>
-              <CardHeader>
-                <div className="flex items-center gap-4">
-                  <div className="flex-1">
-                    <Label>Category Name</Label>
-                    <Input
-                      value={category.name}
-                      onChange={(e) => updateFittingOutCategory(categoryIndex, e.target.value)}
-                      placeholder="e.g., Partition Work, Wall Finishes"
-                    />
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeFittingOutCategory(categoryIndex)}
-                    disabled={fittingOut.length === 1}
-                    className="mt-6"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[5%]">No</TableHead>
-                      <TableHead className="w-[40%]">Product Name</TableHead>
-                      <TableHead className="w-[15%]">Quantity</TableHead>
-                      <TableHead className="w-[15%]">Unit</TableHead>
-                      <TableHead className="w-[20%]">Price</TableHead>
-                      <TableHead className="w-[10%] text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {category.products.map((product, productIndex) => (
-                      <TableRow key={productIndex}>
-                        <TableCell className="font-medium text-center">{productIndex + 1}</TableCell>
-                        <TableCell className="align-top">
-                          <Popover
-                            open={openPopovers[`fittingOut-${categoryIndex}-${productIndex}`]}
-                            onOpenChange={(open) =>
-                              setOpenPopovers((prev) => ({
-                                ...prev,
-                                [`fittingOut-${categoryIndex}-${productIndex}`]: open,
-                              }))
-                            }
-                          >
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="outline"
-                                role="combobox"
-                                className="w-full justify-between min-h-[40px] h-auto text-left font-normal bg-transparent"
-                              >
-                                <span className="whitespace-normal break-words text-left">
-                                  {product.name || "Select product..."}
-                                </span>
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[500px] p-0" align="start">
-                              <Command>
-                                <CommandInput
-                                  placeholder="Search product..."
-                                  onValueChange={(value) =>
-                                    setSearchQuery({
-                                      ...searchQuery,
-                                      [`fittingOut-${categoryIndex}-${productIndex}`]: value,
-                                    })
-                                  }
-                                />
-                                <CommandList>
-                                  <CommandEmpty>
-                                    {loadingProducts ? (
-                                      "Loading products..."
-                                    ) : (
-                                      <div className="p-2">
-                                        <p className="text-sm text-muted-foreground mb-2">No product found.</p>
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          className="w-full bg-transparent"
-                                          onClick={() => {
-                                            setOpenPopovers({
-                                              ...openPopovers,
-                                              [`fittingOut-${categoryIndex}-${productIndex}`]: false,
-                                            })
-                                            setCreateProductDialogOpen(true)
-                                          }}
-                                        >
-                                          <Plus className="mr-2 h-4 w-4" />
-                                          Create New Product
-                                        </Button>
-                                      </div>
-                                    )}
-                                  </CommandEmpty>
-                                  <CommandGroup className="max-h-[300px] overflow-auto">
-                                    {products.map((product) => (
-                                      <CommandItem
-                                        key={product._id}
-                                        value={product.name}
-                                        onSelect={() => {
-                                          selectFittingOutProduct(categoryIndex, productIndex, product)
-                                        }}
-                                        className="flex flex-col items-start py-3 hover:bg-primary/30 cursor-pointer"
-                                      >
-                                        <div className="flex items-center w-full">
-                                          <Check
-                                            className={cn(
-                                              "mr-2 h-4 w-4 shrink-0",
-                                              product.name === product.name ? "opacity-100" : "opacity-0",
-                                            )}
-                                          />
-                                          <div className="flex-1">
-                                            <div className="font-medium">
-                                              {highlightText(
-                                                product.name,
-                                                searchQuery[`fittingOut-${categoryIndex}-${productIndex}`] || "",
-                                              )}
-                                            </div>
-                                            <div className="text-xs text-muted-foreground mt-1 space-x-2">
-                                              <span>SKU: {product.sku}</span>
-                                              <span>•</span>
-                                              <span>Type: {product.type}</span>
-                                              {product.brand && (
-                                                <>
-                                                  <span>•</span>
-                                                  <span>Brand: {product.brand}</span>
-                                                </>
-                                              )}
-                                            </div>
-                                            <div className="text-xs text-muted-foreground mt-1">
-                                              Price: {formatCurrency(product.sellingPrice)}
-                                            </div>
-                                          </div>
-                                        </div>
-                                      </CommandItem>
-                                    ))}
-                                  </CommandGroup>
-                                </CommandList>
-                              </Command>
-                            </PopoverContent>
-                          </Popover>
-                        </TableCell>
-                        <TableCell className="align-top">
-                          <Input
-                            ref={(el) => {
-                              fittingOutQtyRefs.current[`${categoryIndex}-${productIndex}`] = el
-                            }}
-                            type="number"
-                            value={product.qty}
-                            onChange={(e) =>
-                              updateFittingOutProduct(categoryIndex, productIndex, "qty", Number(e.target.value))
-                            }
-                            placeholder="0"
-                          />
-                        </TableCell>
-                        <TableCell className="align-top">
-                          <Input
-                            value={product.unit}
-                            onChange={(e) =>
-                              updateFittingOutProduct(categoryIndex, productIndex, "unit", e.target.value)
-                            }
-                            placeholder="ls, m2"
-                          />
-                        </TableCell>
-                        <TableCell className="align-top">
-                          <Input
-                            type="number"
-                            value={product.price}
-                            onChange={(e) =>
-                              updateFittingOutProduct(categoryIndex, productIndex, "price", Number(e.target.value))
-                            }
-                            placeholder="0"
-                          />
-                        </TableCell>
-                        <TableCell className="text-right align-top">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeFittingOutProduct(categoryIndex, productIndex)}
-                            disabled={category.products.length === 1}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-                <div className="p-4 border-t">
-                  <Button
-                    type="button"
-                    onClick={() => addFittingOutProduct(categoryIndex)}
-                    variant="outline"
-                    className="w-full bg-transparent"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Product
-                  </Button>
-                </div>
+          {fittingOut.length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground">
+                No categories yet. Click "Add Category" button below to start adding fitting out categories.
               </CardContent>
             </Card>
-          ))}
+          ) : (
+            fittingOut.map((category, categoryIndex) => (
+              <Card key={categoryIndex}>
+                <CardHeader>
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1">
+                      <Label>Category Name</Label>
+                      <Input
+                        value={category.name}
+                        onChange={(e) => updateFittingOutCategory(categoryIndex, e.target.value)}
+                        placeholder="e.g., Partition Work, Wall Finishes"
+                      />
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeFittingOutCategory(categoryIndex)}
+                      // Removed disabled check here as it's handled by the ternary above
+                      // disabled={fittingOut.length === 1}
+                      className="mt-6"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[5%]">No</TableHead>
+                        <TableHead className="w-[40%]">Product Name</TableHead>
+                        <TableHead className="w-[15%]">Quantity</TableHead>
+                        <TableHead className="w-[15%]">Unit</TableHead>
+                        <TableHead className="w-[20%]">Price</TableHead>
+                        <TableHead className="w-[10%] text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {category.products.map((product, productIndex) => (
+                        <TableRow key={productIndex}>
+                          <TableCell className="font-medium text-center">{productIndex + 1}</TableCell>
+                          <TableCell className="align-top">
+                            <Popover
+                              open={openPopovers[`fittingOut-${categoryIndex}-${productIndex}`]}
+                              onOpenChange={(open) =>
+                                setOpenPopovers((prev) => ({
+                                  ...prev,
+                                  [`fittingOut-${categoryIndex}-${productIndex}`]: open,
+                                }))
+                              }
+                            >
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  role="combobox"
+                                  className="w-full justify-between min-h-[40px] h-auto text-left font-normal bg-transparent"
+                                >
+                                  <span className="whitespace-normal break-words text-left">
+                                    {product.name || "Select product..."}
+                                  </span>
+                                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-[500px] p-0" align="start">
+                                <Command>
+                                  <CommandInput
+                                    placeholder="Search product..."
+                                    onValueChange={(value) =>
+                                      setSearchQuery({
+                                        ...searchQuery,
+                                        [`fittingOut-${categoryIndex}-${productIndex}`]: value,
+                                      })
+                                    }
+                                  />
+                                  <CommandList>
+                                    <CommandEmpty>
+                                      {loadingProducts ? (
+                                        "Loading products..."
+                                      ) : (
+                                        <div className="p-2">
+                                          <p className="text-sm text-muted-foreground mb-2">No product found.</p>
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="w-full bg-transparent"
+                                            onClick={() => {
+                                              setOpenPopovers({
+                                                ...openPopovers,
+                                                [`fittingOut-${categoryIndex}-${productIndex}`]: false,
+                                              })
+                                              setCreateProductDialogOpen(true)
+                                            }}
+                                          >
+                                            <Plus className="mr-2 h-4 w-4" />
+                                            Create New Product
+                                          </Button>
+                                        </div>
+                                      )}
+                                    </CommandEmpty>
+                                    <CommandGroup className="max-h-[300px] overflow-auto">
+                                      {products.map((product) => (
+                                        <CommandItem
+                                          key={product._id}
+                                          value={product.name}
+                                          onSelect={() => {
+                                            selectFittingOutProduct(categoryIndex, productIndex, product)
+                                          }}
+                                          className="flex flex-col items-start py-3 hover:bg-primary/30 cursor-pointer"
+                                        >
+                                          <div className="flex items-center w-full">
+                                            <Check
+                                              className={cn(
+                                                "mr-2 h-4 w-4 shrink-0",
+                                                product.name === product.name ? "opacity-100" : "opacity-0",
+                                              )}
+                                            />
+                                            <div className="flex-1">
+                                              <div className="font-medium">
+                                                {highlightText(
+                                                  product.name,
+                                                  searchQuery[`fittingOut-${categoryIndex}-${productIndex}`] || "",
+                                                )}
+                                              </div>
+                                              <div className="text-xs text-muted-foreground mt-1 space-x-2">
+                                                <span>SKU: {product.sku}</span>
+                                                <span>•</span>
+                                                <span>Type: {product.type}</span>
+                                                {product.brand && (
+                                                  <>
+                                                    <span>•</span>
+                                                    <span>Brand: {product.brand}</span>
+                                                  </>
+                                                )}
+                                              </div>
+                                              <div className="text-xs text-muted-foreground mt-1">
+                                                Price: {formatCurrency(product.sellingPrice)}
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </CommandItem>
+                                      ))}
+                                    </CommandGroup>
+                                  </CommandList>
+                                </Command>
+                              </PopoverContent>
+                            </Popover>
+                          </TableCell>
+                          <TableCell className="align-top">
+                            <Input
+                              ref={(el) => {
+                                fittingOutQtyRefs.current[`${categoryIndex}-${productIndex}`] = el
+                              }}
+                              type="number"
+                              value={product.qty}
+                              onChange={(e) =>
+                                updateFittingOutProduct(categoryIndex, productIndex, "qty", Number(e.target.value))
+                              }
+                              placeholder="0"
+                            />
+                          </TableCell>
+                          <TableCell className="align-top">
+                            <Input
+                              value={product.unit}
+                              onChange={(e) =>
+                                updateFittingOutProduct(categoryIndex, productIndex, "unit", e.target.value)
+                              }
+                              placeholder="ls, m2"
+                            />
+                          </TableCell>
+                          <TableCell className="align-top">
+                            <Input
+                              type="number"
+                              value={product.price}
+                              onChange={(e) =>
+                                updateFittingOutProduct(categoryIndex, productIndex, "price", Number(e.target.value))
+                              }
+                              placeholder="0"
+                            />
+                          </TableCell>
+                          <TableCell className="text-right align-top">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeFittingOutProduct(categoryIndex, productIndex)}
+                              // Removed disabled check here as it's handled by the ternary above
+                              // disabled={category.products.length === 1}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  <div className="p-4 border-t">
+                    <Button
+                      type="button"
+                      onClick={() => addFittingOutProduct(categoryIndex)}
+                      variant="outline"
+                      className="w-full bg-transparent"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Product
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
           <Button type="button" onClick={addFittingOutCategory} variant="outline" className="w-full bg-transparent">
             <Plus className="h-4 w-4 mr-2" />
             Add Category
           </Button>
         </div>
 
-        {/* Furniture Work Section - Similar structure */}
+        {/* Furniture Work Section */}
         <div className="space-y-4">
           <h3 className="text-lg font-semibold">III. FURNITURE WORK</h3>
-          {furnitureWork.map((category, categoryIndex) => (
-            <Card key={categoryIndex}>
-              <CardHeader>
-                <div className="flex items-center gap-4">
-                  <div className="flex-1">
-                    <Label>Category Name</Label>
-                    <Input
-                      value={category.name}
-                      onChange={(e) => updateFurnitureWorkCategory(categoryIndex, e.target.value)}
-                      placeholder="e.g., Cabinet Work, Furniture Installation"
-                    />
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeFurnitureWorkCategory(categoryIndex)}
-                    disabled={furnitureWork.length === 1}
-                    className="mt-6"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[5%]">No</TableHead>
-                      <TableHead className="w-[40%]">Product Name</TableHead>
-                      <TableHead className="w-[15%]">Quantity</TableHead>
-                      <TableHead className="w-[15%]">Unit</TableHead>
-                      <TableHead className="w-[20%]">Price</TableHead>
-                      <TableHead className="w-[10%] text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {category.products.map((product, productIndex) => (
-                      <TableRow key={productIndex}>
-                        <TableCell className="font-medium text-center">{productIndex + 1}</TableCell>
-                        <TableCell className="align-top">
-                          <Popover
-                            open={openPopovers[`furnitureWork-${categoryIndex}-${productIndex}`]}
-                            onOpenChange={(open) =>
-                              setOpenPopovers((prev) => ({
-                                ...prev,
-                                [`furnitureWork-${categoryIndex}-${productIndex}`]: open,
-                              }))
-                            }
-                          >
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="outline"
-                                role="combobox"
-                                className="w-full justify-between min-h-[40px] h-auto text-left font-normal bg-transparent"
-                              >
-                                <span className="whitespace-normal break-words text-left">
-                                  {product.name || "Select product..."}
-                                </span>
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[500px] p-0" align="start">
-                              <Command>
-                                <CommandInput
-                                  placeholder="Search product..."
-                                  onValueChange={(value) =>
-                                    setSearchQuery({
-                                      ...searchQuery,
-                                      [`furnitureWork-${categoryIndex}-${productIndex}`]: value,
-                                    })
-                                  }
-                                />
-                                <CommandList>
-                                  <CommandEmpty>
-                                    {loadingProducts ? (
-                                      "Loading products..."
-                                    ) : (
-                                      <div className="p-2">
-                                        <p className="text-sm text-muted-foreground mb-2">No product found.</p>
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          className="w-full bg-transparent"
-                                          onClick={() => {
-                                            setOpenPopovers({
-                                              ...openPopovers,
-                                              [`furnitureWork-${categoryIndex}-${productIndex}`]: false,
-                                            })
-                                            setCreateProductDialogOpen(true)
-                                          }}
-                                        >
-                                          <Plus className="mr-2 h-4 w-4" />
-                                          Create New Product
-                                        </Button>
-                                      </div>
-                                    )}
-                                  </CommandEmpty>
-                                  <CommandGroup className="max-h-[300px] overflow-auto">
-                                    {products.map((product) => (
-                                      <CommandItem
-                                        key={product._id}
-                                        value={product.name}
-                                        onSelect={() => {
-                                          selectFurnitureWorkProduct(categoryIndex, productIndex, product)
-                                        }}
-                                        className="flex flex-col items-start py-3 hover:bg-primary/30 cursor-pointer"
-                                      >
-                                        <div className="flex items-center w-full">
-                                          <Check
-                                            className={cn(
-                                              "mr-2 h-4 w-4 shrink-0",
-                                              product.name === product.name ? "opacity-100" : "opacity-0",
-                                            )}
-                                          />
-                                          <div className="flex-1">
-                                            <div className="font-medium">
-                                              {highlightText(
-                                                product.name,
-                                                searchQuery[`furnitureWork-${categoryIndex}-${productIndex}`] || "",
-                                              )}
-                                            </div>
-                                            <div className="text-xs text-muted-foreground mt-1 space-x-2">
-                                              <span>SKU: {product.sku}</span>
-                                              <span>•</span>
-                                              <span>Type: {product.type}</span>
-                                              {product.brand && (
-                                                <>
-                                                  <span>•</span>
-                                                  <span>Brand: {product.brand}</span>
-                                                </>
-                                              )}
-                                            </div>
-                                            <div className="text-xs text-muted-foreground mt-1">
-                                              Price: {formatCurrency(product.sellingPrice)}
-                                            </div>
-                                          </div>
-                                        </div>
-                                      </CommandItem>
-                                    ))}
-                                  </CommandGroup>
-                                </CommandList>
-                              </Command>
-                            </PopoverContent>
-                          </Popover>
-                        </TableCell>
-                        <TableCell className="align-top">
-                          <Input
-                            ref={(el) => {
-                              furnitureWorkQtyRefs.current[`${categoryIndex}-${productIndex}`] = el
-                            }}
-                            type="number"
-                            value={product.qty}
-                            onChange={(e) =>
-                              updateFurnitureWorkProduct(categoryIndex, productIndex, "qty", Number(e.target.value))
-                            }
-                            placeholder="0"
-                          />
-                        </TableCell>
-                        <TableCell className="align-top">
-                          <Input
-                            value={product.unit}
-                            onChange={(e) =>
-                              updateFurnitureWorkProduct(categoryIndex, productIndex, "unit", e.target.value)
-                            }
-                            placeholder="ls, m2"
-                          />
-                        </TableCell>
-                        <TableCell className="align-top">
-                          <Input
-                            type="number"
-                            value={product.price}
-                            onChange={(e) =>
-                              updateFurnitureWorkProduct(categoryIndex, productIndex, "price", Number(e.target.value))
-                            }
-                            placeholder="0"
-                          />
-                        </TableCell>
-                        <TableCell className="text-right align-top">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeFurnitureWorkProduct(categoryIndex, productIndex)}
-                            disabled={category.products.length === 1}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-                <div className="p-4 border-t">
-                  <Button
-                    type="button"
-                    onClick={() => addFurnitureWorkProduct(categoryIndex)}
-                    variant="outline"
-                    className="w-full bg-transparent"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Product
-                  </Button>
-                </div>
+          {furnitureWork.length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground">
+                No categories yet. Click "Add Category" button below to start adding furniture work categories.
               </CardContent>
             </Card>
-          ))}
+          ) : (
+            furnitureWork.map((category, categoryIndex) => (
+              <Card key={categoryIndex}>
+                <CardHeader>
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1">
+                      <Label>Category Name</Label>
+                      <Input
+                        value={category.name}
+                        onChange={(e) => updateFurnitureWorkCategory(categoryIndex, e.target.value)}
+                        placeholder="e.g., Cabinet Work, Furniture Installation"
+                      />
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeFurnitureWorkCategory(categoryIndex)}
+                      // Removed disabled check here as it's handled by the ternary above
+                      // disabled={furnitureWork.length === 1}
+                      className="mt-6"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[5%]">No</TableHead>
+                        <TableHead className="w-[40%]">Product Name</TableHead>
+                        <TableHead className="w-[15%]">Quantity</TableHead>
+                        <TableHead className="w-[15%]">Unit</TableHead>
+                        <TableHead className="w-[20%]">Price</TableHead>
+                        <TableHead className="w-[10%] text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {category.products.map((product, productIndex) => (
+                        <TableRow key={productIndex}>
+                          <TableCell className="font-medium text-center">{productIndex + 1}</TableCell>
+                          <TableCell className="align-top">
+                            <Popover
+                              open={openPopovers[`furnitureWork-${categoryIndex}-${productIndex}`]}
+                              onOpenChange={(open) =>
+                                setOpenPopovers((prev) => ({
+                                  ...prev,
+                                  [`furnitureWork-${categoryIndex}-${productIndex}`]: open,
+                                }))
+                              }
+                            >
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  role="combobox"
+                                  className="w-full justify-between min-h-[40px] h-auto text-left font-normal bg-transparent"
+                                >
+                                  <span className="whitespace-normal break-words text-left">
+                                    {product.name || "Select product..."}
+                                  </span>
+                                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-[500px] p-0" align="start">
+                                <Command>
+                                  <CommandInput
+                                    placeholder="Search product..."
+                                    onValueChange={(value) =>
+                                      setSearchQuery({
+                                        ...searchQuery,
+                                        [`furnitureWork-${categoryIndex}-${productIndex}`]: value,
+                                      })
+                                    }
+                                  />
+                                  <CommandList>
+                                    <CommandEmpty>
+                                      {loadingProducts ? (
+                                        "Loading products..."
+                                      ) : (
+                                        <div className="p-2">
+                                          <p className="text-sm text-muted-foreground mb-2">No product found.</p>
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="w-full bg-transparent"
+                                            onClick={() => {
+                                              setOpenPopovers({
+                                                ...openPopovers,
+                                                [`furnitureWork-${categoryIndex}-${productIndex}`]: false,
+                                              })
+                                              setCreateProductDialogOpen(true)
+                                            }}
+                                          >
+                                            <Plus className="mr-2 h-4 w-4" />
+                                            Create New Product
+                                          </Button>
+                                        </div>
+                                      )}
+                                    </CommandEmpty>
+                                    <CommandGroup className="max-h-[300px] overflow-auto">
+                                      {products.map((product) => (
+                                        <CommandItem
+                                          key={product._id}
+                                          value={product.name}
+                                          onSelect={() => {
+                                            selectFurnitureWorkProduct(categoryIndex, productIndex, product)
+                                          }}
+                                          className="flex flex-col items-start py-3 hover:bg-primary/30 cursor-pointer"
+                                        >
+                                          <div className="flex items-center w-full">
+                                            <Check
+                                              className={cn(
+                                                "mr-2 h-4 w-4 shrink-0",
+                                                product.name === product.name ? "opacity-100" : "opacity-0",
+                                              )}
+                                            />
+                                            <div className="flex-1">
+                                              <div className="font-medium">
+                                                {highlightText(
+                                                  product.name,
+                                                  searchQuery[`furnitureWork-${categoryIndex}-${productIndex}`] || "",
+                                                )}
+                                              </div>
+                                              <div className="text-xs text-muted-foreground mt-1 space-x-2">
+                                                <span>SKU: {product.sku}</span>
+                                                <span>•</span>
+                                                <span>Type: {product.type}</span>
+                                                {product.brand && (
+                                                  <>
+                                                    <span>•</span>
+                                                    <span>Brand: {product.brand}</span>
+                                                  </>
+                                                )}
+                                              </div>
+                                              <div className="text-xs text-muted-foreground mt-1">
+                                                Price: {formatCurrency(product.sellingPrice)}
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </CommandItem>
+                                      ))}
+                                    </CommandGroup>
+                                  </CommandList>
+                                </Command>
+                              </PopoverContent>
+                            </Popover>
+                          </TableCell>
+                          <TableCell className="align-top">
+                            <Input
+                              ref={(el) => {
+                                furnitureWorkQtyRefs.current[`${categoryIndex}-${productIndex}`] = el
+                              }}
+                              type="number"
+                              value={product.qty}
+                              onChange={(e) =>
+                                updateFurnitureWorkProduct(categoryIndex, productIndex, "qty", Number(e.target.value))
+                              }
+                              placeholder="0"
+                            />
+                          </TableCell>
+                          <TableCell className="align-top">
+                            <Input
+                              value={product.unit}
+                              onChange={(e) =>
+                                updateFurnitureWorkProduct(categoryIndex, productIndex, "unit", e.target.value)
+                              }
+                              placeholder="ls, m2"
+                            />
+                          </TableCell>
+                          <TableCell className="align-top">
+                            <Input
+                              type="number"
+                              value={product.price}
+                              onChange={(e) =>
+                                updateFurnitureWorkProduct(categoryIndex, productIndex, "price", Number(e.target.value))
+                              }
+                              placeholder="0"
+                            />
+                          </TableCell>
+                          <TableCell className="text-right align-top">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeFurnitureWorkProduct(categoryIndex, productIndex)}
+                              // Removed disabled check here as it's handled by the ternary above
+                              // disabled={category.products.length === 1}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  <div className="p-4 border-t">
+                    <Button
+                      type="button"
+                      onClick={() => addFurnitureWorkProduct(categoryIndex)}
+                      variant="outline"
+                      className="w-full bg-transparent"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Product
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
           <Button type="button" onClick={addFurnitureWorkCategory} variant="outline" className="w-full bg-transparent">
             <Plus className="h-4 w-4 mr-2" />
             Add Category
           </Button>
         </div>
-
-        {/* Create Product Dialog - Same as in template creation */}
-        <Dialog open={createProductDialogOpen} onOpenChange={setCreateProductDialogOpen}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Create Product</DialogTitle>
-              <DialogDescription>Add a new product to the system</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="create-name">Product Name *</Label>
-                <Input
-                  id="create-name"
-                  value={productFormData.name}
-                  onChange={(e) => setProductFormData({ ...productFormData, name: e.target.value })}
-                  placeholder="e.g., Semen"
-                />
-              </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="create-type">Type *</Label>
-                  <Select
-                    value={productFormData.type}
-                    onValueChange={(value: any) => setProductFormData({ ...productFormData, type: value })}
-                  >
-                    <SelectTrigger id="create-type">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Goods">Goods</SelectItem>
-                      <SelectItem value="Services">Services</SelectItem>
-                      <SelectItem value="Goods and Services">Goods and Services</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="create-unit">Unit *</Label>
-                  <Input
-                    id="create-unit"
-                    value={productFormData.unit}
-                    onChange={(e) => setProductFormData({ ...productFormData, unit: e.target.value })}
-                    placeholder="e.g., liter"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="create-brand">Brand</Label>
-                  <Input
-                    id="create-brand"
-                    value={productFormData.brand}
-                    onChange={(e) => setProductFormData({ ...productFormData, brand: e.target.value })}
-                    placeholder="e.g., Mitsubishi"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="create-purchase">Purchase Price (IDR) *</Label>
-                  <Input
-                    id="create-purchase"
-                    type="number"
-                    value={productFormData.purchasePrice}
-                    onChange={(e) => setProductFormData({ ...productFormData, purchasePrice: e.target.value })}
-                    placeholder="e.g., 20000"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="create-selling">Selling Price (IDR) *</Label>
-                  <Input
-                    id="create-selling"
-                    type="number"
-                    value={productFormData.sellingPrice}
-                    onChange={(e) => setProductFormData({ ...productFormData, sellingPrice: e.target.value })}
-                    placeholder="e.g., 25000"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="create-sku">SKU *</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="create-sku"
-                    value={productFormData.sku}
-                    onChange={(e) => setProductFormData({ ...productFormData, sku: e.target.value })}
-                    placeholder="e.g., DSG-GS-MIT-25"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={generateSKU}
-                    className="whitespace-nowrap bg-transparent"
-                  >
-                    Generate SKU
-                  </Button>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Photos</Label>
-                <div className="border-2 border-dashed rounded-lg p-4">
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoUpload}
-                    disabled={uploading}
-                    className="hidden"
-                    id="photo-upload"
-                  />
-                  <label htmlFor="photo-upload" className="cursor-pointer">
-                    <div className="flex flex-col items-center justify-center py-4">
-                      {uploading ? (
-                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-2" />
-                      ) : (
-                        <Upload className="h-8 w-8 text-muted-foreground mb-2" />
-                      )}
-                      <p className="text-sm text-muted-foreground">
-                        {uploading ? "Uploading..." : "Click to upload photo"}
-                      </p>
-                    </div>
-                  </label>
-
-                  {uploadedPhotos.length > 0 && (
-                    <div className="grid grid-cols-3 gap-2 mt-4">
-                      {uploadedPhotos.map((photo, index) => (
-                        <div key={index} className="relative group">
-                          <img
-                            src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${photo.provider}/${photo.url}`}
-                            alt={`Product ${index + 1}`}
-                            className="w-full h-24 object-cover rounded"
-                          />
-                          <Button
-                            variant="destructive"
-                            size="icon"
-                            className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={() => removePhoto(index)}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label>Product Details</Label>
-                  <Button type="button" variant="outline" size="sm" onClick={addDetailField}>
-                    <Plus className="h-4 w-4 mr-1" />
-                    Add Detail
-                  </Button>
-                </div>
-
-                {productDetails.map((detail, index) => (
-                  <div key={index} className="grid grid-cols-12 gap-2 items-end">
-                    <div className="col-span-4 space-y-1">
-                      <Label className="text-xs">Name</Label>
-                      <Input
-                        value={detail.label}
-                        onChange={(e) => updateDetailField(index, "label", e.target.value)}
-                        placeholder="e.g., Color"
-                        className="h-9"
-                      />
-                    </div>
-                    <div className="col-span-3 space-y-1">
-                      <Label className="text-xs">Type</Label>
-                      <Select
-                        value={detail.type}
-                        onValueChange={(value: any) => updateDetailField(index, "type", value)}
-                      >
-                        <SelectTrigger className="h-9">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="text">Text</SelectItem>
-                          <SelectItem value="number">Number</SelectItem>
-                          <SelectItem value="date">Date</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="col-span-4 space-y-1">
-                      <Label className="text-xs">Value</Label>
-                      <Input
-                        value={detail.value}
-                        onChange={(e) => updateDetailField(index, "value", e.target.value)}
-                        placeholder="e.g., Ungu"
-                        type={detail.type === "number" ? "number" : detail.type === "date" ? "date" : "text"}
-                        className="h-9"
-                      />
-                    </div>
-                    <div className="col-span-1">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeDetailField(index)}
-                        className="h-9 w-9"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-
-                {productDetails.length === 0 && (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    No details added yet. Click "Add Detail" to add product specifications.
-                  </p>
-                )}
-              </div>
-            </div>
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setCreateProductDialogOpen(false)
-                  resetProductForm()
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleCreateProduct}
-                disabled={submittingProduct || !productFormData.name || !productFormData.unit || !productFormData.sku}
-              >
-                {submittingProduct && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Create Product
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </div>
     )
   }
@@ -2009,6 +1909,237 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         boq={editingBOQ}
         isAdditional={isCreatingAdditional}
       />
+
+      {/* Create Product Dialog */}
+      <Dialog open={createProductDialogOpen} onOpenChange={setCreateProductDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create Product</DialogTitle>
+            <DialogDescription>Add a new product to the system</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="create-name">Product Name *</Label>
+              <Input
+                id="create-name"
+                value={productFormData.name}
+                onChange={(e) => setProductFormData({ ...productFormData, name: e.target.value })}
+                placeholder="e.g., Semen"
+              />
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="create-type">Type *</Label>
+                <Select
+                  value={productFormData.type}
+                  onValueChange={(value: any) => setProductFormData({ ...productFormData, type: value })}
+                >
+                  <SelectTrigger id="create-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Goods">Goods</SelectItem>
+                    <SelectItem value="Services">Services</SelectItem>
+                    <SelectItem value="Goods and Services">Goods and Services</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="create-unit">Unit *</Label>
+                <Input
+                  id="create-unit"
+                  value={productFormData.unit}
+                  onChange={(e) => setProductFormData({ ...productFormData, unit: e.target.value })}
+                  placeholder="e.g., liter"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="create-brand">Brand</Label>
+                <Input
+                  id="create-brand"
+                  value={productFormData.brand}
+                  onChange={(e) => setProductFormData({ ...productFormData, brand: e.target.value })}
+                  placeholder="e.g., Mitsubishi"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="create-purchase">Purchase Price (IDR) *</Label>
+                <Input
+                  id="create-purchase"
+                  type="number"
+                  value={productFormData.purchasePrice}
+                  onChange={(e) => setProductFormData({ ...productFormData, purchasePrice: e.target.value })}
+                  placeholder="e.g., 20000"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="create-selling">Selling Price (IDR) *</Label>
+                <Input
+                  id="create-selling"
+                  type="number"
+                  value={productFormData.sellingPrice}
+                  onChange={(e) => setProductFormData({ ...productFormData, sellingPrice: e.target.value })}
+                  placeholder="e.g., 25000"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="create-sku">SKU *</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="create-sku"
+                  value={productFormData.sku}
+                  onChange={(e) => setProductFormData({ ...productFormData, sku: e.target.value })}
+                  placeholder="e.g., DSG-GS-MIT-25"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={generateSKU}
+                  className="whitespace-nowrap bg-transparent"
+                >
+                  Generate SKU
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Photos</Label>
+              <div className="border-2 border-dashed rounded-lg p-4">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoUpload}
+                  disabled={uploading}
+                  className="hidden"
+                  id="photo-upload"
+                />
+                <label htmlFor="photo-upload" className="cursor-pointer">
+                  <div className="flex flex-col items-center justify-center py-4">
+                    {uploading ? (
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-2" />
+                    ) : (
+                      <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                    )}
+                    <p className="text-sm text-muted-foreground">
+                      {uploading ? "Uploading..." : "Click to upload photo"}
+                    </p>
+                  </div>
+                </label>
+
+                {uploadedPhotos.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2 mt-4">
+                    {uploadedPhotos.map((photo, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${photo.provider}/${photo.url}`}
+                          alt={`Product ${index + 1}`}
+                          className="w-full h-24 object-cover rounded"
+                        />
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => removePhoto(index)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Product Details</Label>
+                <Button type="button" variant="outline" size="sm" onClick={addDetailField}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Detail
+                </Button>
+              </div>
+
+              {productDetails.map((detail, index) => (
+                <div key={index} className="grid grid-cols-12 gap-2 items-end">
+                  <div className="col-span-4 space-y-1">
+                    <Label className="text-xs">Name</Label>
+                    <Input
+                      value={detail.label}
+                      onChange={(e) => updateDetailField(index, "label", e.target.value)}
+                      placeholder="e.g., Color"
+                      className="h-9"
+                    />
+                  </div>
+                  <div className="col-span-3 space-y-1">
+                    <Label className="text-xs">Type</Label>
+                    <Select value={detail.type} onValueChange={(value: any) => updateDetailField(index, "type", value)}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="text">Text</SelectItem>
+                        <SelectItem value="number">Number</SelectItem>
+                        <SelectItem value="date">Date</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="col-span-4 space-y-1">
+                    <Label className="text-xs">Value</Label>
+                    <Input
+                      value={detail.value}
+                      onChange={(e) => updateDetailField(index, "value", e.target.value)}
+                      placeholder="e.g., Ungu"
+                      type={detail.type === "number" ? "number" : detail.type === "date" ? "date" : "text"}
+                      className="h-9"
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeDetailField(index)}
+                      className="h-9 w-9"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+
+              {productDetails.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No details added yet. Click "Add Detail" to add product specifications.
+                </p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setCreateProductDialogOpen(false)
+                resetProductForm()
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreateProduct}
+              disabled={submittingProduct || !productFormData.name || !productFormData.unit || !productFormData.sku}
+            >
+              {submittingProduct && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Create Product
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

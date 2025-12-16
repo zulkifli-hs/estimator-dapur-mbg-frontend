@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Plus, Trash2, X, ArrowLeft, Loader2, Edit, Save } from "lucide-react"
 import { templatesApi } from "@/lib/api/templates"
 import { useToast } from "@/hooks/use-toast"
@@ -478,333 +477,315 @@ export default function TemplateDetailPage() {
         </CardHeader>
       </Card>
 
-      <Tabs defaultValue="preliminary" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="preliminary">Preliminary</TabsTrigger>
-          <TabsTrigger value="fittingOut">Fitting Out</TabsTrigger>
-          <TabsTrigger value="furnitureWork">Furniture Work</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="preliminary" className="space-y-4">
-          {isEditMode && (
-            <Card>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[40%]">Item Name</TableHead>
-                      <TableHead className="w-[15%]">Quantity</TableHead>
-                      <TableHead className="w-[15%]">Unit</TableHead>
-                      <TableHead className="w-[20%]">Price</TableHead>
-                      <TableHead className="w-[10%] text-right">Actions</TableHead>
+      {isEditMode ? (
+        <div className="space-y-6">
+          {/* Preliminary Section */}
+          <Card>
+            <CardHeader>
+              <h3 className="text-lg font-semibold">I. PRELIMINARY</h3>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[40%]">Item Name</TableHead>
+                    <TableHead className="w-[15%]">Quantity</TableHead>
+                    <TableHead className="w-[15%]">Unit</TableHead>
+                    <TableHead className="w-[20%]">Price</TableHead>
+                    <TableHead className="w-[10%] text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {preliminary.map((item, index) => (
+                    <TableRow key={index}>
+                      <TableCell className="align-top">
+                        <Input
+                          value={item.name}
+                          onChange={(e) => updatePreliminaryItem(index, "name", e.target.value)}
+                          placeholder="Item name"
+                          className="min-h-[40px]"
+                        />
+                      </TableCell>
+                      <TableCell className="align-top">
+                        <Input
+                          type="number"
+                          value={item.qty}
+                          onChange={(e) => updatePreliminaryItem(index, "qty", Number(e.target.value))}
+                          placeholder="0"
+                        />
+                      </TableCell>
+                      <TableCell className="align-top">
+                        <Input
+                          value={item.unit}
+                          onChange={(e) => updatePreliminaryItem(index, "unit", e.target.value)}
+                          placeholder="ls, m2"
+                        />
+                      </TableCell>
+                      <TableCell className="align-top">
+                        <Input
+                          type="number"
+                          value={item.price}
+                          onChange={(e) => updatePreliminaryItem(index, "price", Number(e.target.value))}
+                          placeholder="0"
+                        />
+                      </TableCell>
+                      <TableCell className="text-right align-top">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removePreliminaryItem(index)}
+                          disabled={preliminary.length === 1}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {preliminary.map((item, index) => (
-                      <TableRow key={index}>
-                        <TableCell className="align-top">
-                          <Input
-                            value={item.name}
-                            onChange={(e) => updatePreliminaryItem(index, "name", e.target.value)}
-                            placeholder="Item name"
-                            className="min-h-[40px]"
-                          />
-                        </TableCell>
-                        <TableCell className="align-top">
-                          <Input
-                            type="number"
-                            value={item.qty}
-                            onChange={(e) => updatePreliminaryItem(index, "qty", Number(e.target.value))}
-                            placeholder="0"
-                          />
-                        </TableCell>
-                        <TableCell className="align-top">
-                          <Input
-                            value={item.unit}
-                            onChange={(e) => updatePreliminaryItem(index, "unit", e.target.value)}
-                            placeholder="ls, m2"
-                          />
-                        </TableCell>
-                        <TableCell className="align-top">
-                          <Input
-                            type="number"
-                            value={item.price}
-                            onChange={(e) => updatePreliminaryItem(index, "price", Number(e.target.value))}
-                            placeholder="0"
-                          />
-                        </TableCell>
-                        <TableCell className="text-right align-top">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removePreliminaryItem(index)}
-                            disabled={preliminary.length === 1}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
+                  ))}
+                </TableBody>
+              </Table>
+              <div className="p-4 border-t">
+                <Button type="button" onClick={addPreliminaryItem} variant="outline" className="w-full bg-transparent">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Item
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Fitting Out Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">II. FITTING OUT</h3>
+            {fittingOut.map((category, categoryIndex) => (
+              <Card key={categoryIndex}>
+                <CardHeader>
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1">
+                      <Label>Category Name</Label>
+                      <Input
+                        value={category.name}
+                        onChange={(e) => updateFittingOutCategory(categoryIndex, e.target.value)}
+                        placeholder="e.g., Partition Work, Wall Finishes"
+                      />
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeFittingOutCategory(categoryIndex)}
+                      disabled={fittingOut.length === 1}
+                      className="mt-6"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[40%]">Product Name</TableHead>
+                        <TableHead className="w-[15%]">Quantity</TableHead>
+                        <TableHead className="w-[15%]">Unit</TableHead>
+                        <TableHead className="w-[20%]">Price</TableHead>
+                        <TableHead className="w-[10%] text-right">Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-                <div className="p-4 border-t">
-                  <Button
-                    type="button"
-                    onClick={addPreliminaryItem}
-                    variant="outline"
-                    className="w-full bg-transparent"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Item
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-
-        <TabsContent value="fittingOut" className="space-y-4">
-          {isEditMode && (
-            <>
-              {fittingOut.map((category, categoryIndex) => (
-                <Card key={categoryIndex}>
-                  <CardHeader>
-                    <div className="flex items-center gap-4">
-                      <div className="flex-1">
-                        <Label>Category Name</Label>
-                        <Input
-                          value={category.name}
-                          onChange={(e) => updateFittingOutCategory(categoryIndex, e.target.value)}
-                          placeholder="e.g., Partition Work, Wall Finishes"
-                        />
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeFittingOutCategory(categoryIndex)}
-                        disabled={fittingOut.length === 1}
-                        className="mt-6"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-[40%]">Product Name</TableHead>
-                          <TableHead className="w-[15%]">Quantity</TableHead>
-                          <TableHead className="w-[15%]">Unit</TableHead>
-                          <TableHead className="w-[20%]">Price</TableHead>
-                          <TableHead className="w-[10%] text-right">Actions</TableHead>
+                    </TableHeader>
+                    <TableBody>
+                      {category.products.map((product, productIndex) => (
+                        <TableRow key={productIndex}>
+                          <TableCell className="align-top">
+                            <Input
+                              value={product.name}
+                              onChange={(e) =>
+                                updateFittingOutProduct(categoryIndex, productIndex, "name", e.target.value)
+                              }
+                              placeholder="Product name"
+                              className="min-h-[40px]"
+                            />
+                          </TableCell>
+                          <TableCell className="align-top">
+                            <Input
+                              type="number"
+                              value={product.qty}
+                              onChange={(e) =>
+                                updateFittingOutProduct(categoryIndex, productIndex, "qty", Number(e.target.value))
+                              }
+                              placeholder="0"
+                            />
+                          </TableCell>
+                          <TableCell className="align-top">
+                            <Input
+                              value={product.unit}
+                              onChange={(e) =>
+                                updateFittingOutProduct(categoryIndex, productIndex, "unit", e.target.value)
+                              }
+                              placeholder="m2, unit"
+                            />
+                          </TableCell>
+                          <TableCell className="align-top">
+                            <Input
+                              type="number"
+                              value={product.price}
+                              onChange={(e) =>
+                                updateFittingOutProduct(categoryIndex, productIndex, "price", Number(e.target.value))
+                              }
+                              placeholder="0"
+                            />
+                          </TableCell>
+                          <TableCell className="text-right align-top">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeFittingOutProduct(categoryIndex, productIndex)}
+                              disabled={category.products.length === 1}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
                         </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {category.products.map((product, productIndex) => (
-                          <TableRow key={productIndex}>
-                            <TableCell className="align-top">
-                              <Input
-                                value={product.name}
-                                onChange={(e) =>
-                                  updateFittingOutProduct(categoryIndex, productIndex, "name", e.target.value)
-                                }
-                                placeholder="Product name"
-                                className="min-h-[40px]"
-                              />
-                            </TableCell>
-                            <TableCell className="align-top">
-                              <Input
-                                type="number"
-                                value={product.qty}
-                                onChange={(e) =>
-                                  updateFittingOutProduct(categoryIndex, productIndex, "qty", Number(e.target.value))
-                                }
-                                placeholder="0"
-                              />
-                            </TableCell>
-                            <TableCell className="align-top">
-                              <Input
-                                value={product.unit}
-                                onChange={(e) =>
-                                  updateFittingOutProduct(categoryIndex, productIndex, "unit", e.target.value)
-                                }
-                                placeholder="m2, unit"
-                              />
-                            </TableCell>
-                            <TableCell className="align-top">
-                              <Input
-                                type="number"
-                                value={product.price}
-                                onChange={(e) =>
-                                  updateFittingOutProduct(categoryIndex, productIndex, "price", Number(e.target.value))
-                                }
-                                placeholder="0"
-                              />
-                            </TableCell>
-                            <TableCell className="text-right align-top">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => removeFittingOutProduct(categoryIndex, productIndex)}
-                                disabled={category.products.length === 1}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                    <div className="p-4 border-t">
-                      <Button
-                        type="button"
-                        onClick={() => addFittingOutProduct(categoryIndex)}
-                        variant="outline"
-                        className="w-full"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Product
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-              <Button type="button" onClick={addFittingOutCategory} variant="outline" className="w-full bg-transparent">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Category
-              </Button>
-            </>
-          )}
-        </TabsContent>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  <div className="p-4 border-t">
+                    <Button
+                      type="button"
+                      onClick={() => addFittingOutProduct(categoryIndex)}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Product
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+            <Button type="button" onClick={addFittingOutCategory} variant="outline" className="w-full bg-transparent">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Category
+            </Button>
+          </div>
 
-        <TabsContent value="furnitureWork" className="space-y-4">
-          {isEditMode && (
-            <>
-              {furnitureWork.map((category, categoryIndex) => (
-                <Card key={categoryIndex}>
-                  <CardHeader>
-                    <div className="flex items-center gap-4">
-                      <div className="flex-1">
-                        <Label>Category Name</Label>
-                        <Input
-                          value={category.name}
-                          onChange={(e) => updateFurnitureWorkCategory(categoryIndex, e.target.value)}
-                          placeholder="e.g., STAFF AREA, MEETING ROOM"
-                        />
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeFurnitureWorkCategory(categoryIndex)}
-                        disabled={furnitureWork.length === 1}
-                        className="mt-6"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
+          {/* Furniture Work Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">III. FURNITURE WORK</h3>
+            {furnitureWork.map((category, categoryIndex) => (
+              <Card key={categoryIndex}>
+                <CardHeader>
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1">
+                      <Label>Category Name</Label>
+                      <Input
+                        value={category.name}
+                        onChange={(e) => updateFurnitureWorkCategory(categoryIndex, e.target.value)}
+                        placeholder="e.g., STAFF AREA, MEETING ROOM"
+                      />
                     </div>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-[40%]">Product Name</TableHead>
-                          <TableHead className="w-[15%]">Quantity</TableHead>
-                          <TableHead className="w-[15%]">Unit</TableHead>
-                          <TableHead className="w-[20%]">Price</TableHead>
-                          <TableHead className="w-[10%] text-right">Actions</TableHead>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeFurnitureWorkCategory(categoryIndex)}
+                      disabled={furnitureWork.length === 1}
+                      className="mt-6"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[40%]">Product Name</TableHead>
+                        <TableHead className="w-[15%]">Quantity</TableHead>
+                        <TableHead className="w-[15%]">Unit</TableHead>
+                        <TableHead className="w-[20%]">Price</TableHead>
+                        <TableHead className="w-[10%] text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {category.products.map((product, productIndex) => (
+                        <TableRow key={productIndex}>
+                          <TableCell className="align-top">
+                            <Input
+                              value={product.name}
+                              onChange={(e) =>
+                                updateFurnitureWorkProduct(categoryIndex, productIndex, "name", e.target.value)
+                              }
+                              placeholder="Product name"
+                              className="min-h-[40px]"
+                            />
+                          </TableCell>
+                          <TableCell className="align-top">
+                            <Input
+                              type="number"
+                              value={product.qty}
+                              onChange={(e) =>
+                                updateFurnitureWorkProduct(categoryIndex, productIndex, "qty", Number(e.target.value))
+                              }
+                              placeholder="0"
+                            />
+                          </TableCell>
+                          <TableCell className="align-top">
+                            <Input
+                              value={product.unit}
+                              onChange={(e) =>
+                                updateFurnitureWorkProduct(categoryIndex, productIndex, "unit", e.target.value)
+                              }
+                              placeholder="unit, set"
+                            />
+                          </TableCell>
+                          <TableCell className="align-top">
+                            <Input
+                              type="number"
+                              value={product.price}
+                              onChange={(e) =>
+                                updateFurnitureWorkProduct(categoryIndex, productIndex, "price", Number(e.target.value))
+                              }
+                              placeholder="0"
+                            />
+                          </TableCell>
+                          <TableCell className="text-right align-top">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeFurnitureWorkProduct(categoryIndex, productIndex)}
+                              disabled={category.products.length === 1}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
                         </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {category.products.map((product, productIndex) => (
-                          <TableRow key={productIndex}>
-                            <TableCell className="align-top">
-                              <Input
-                                value={product.name}
-                                onChange={(e) =>
-                                  updateFurnitureWorkProduct(categoryIndex, productIndex, "name", e.target.value)
-                                }
-                                placeholder="Product name"
-                                className="min-h-[40px]"
-                              />
-                            </TableCell>
-                            <TableCell className="align-top">
-                              <Input
-                                type="number"
-                                value={product.qty}
-                                onChange={(e) =>
-                                  updateFurnitureWorkProduct(categoryIndex, productIndex, "qty", Number(e.target.value))
-                                }
-                                placeholder="0"
-                              />
-                            </TableCell>
-                            <TableCell className="align-top">
-                              <Input
-                                value={product.unit}
-                                onChange={(e) =>
-                                  updateFurnitureWorkProduct(categoryIndex, productIndex, "unit", e.target.value)
-                                }
-                                placeholder="unit, set"
-                              />
-                            </TableCell>
-                            <TableCell className="align-top">
-                              <Input
-                                type="number"
-                                value={product.price}
-                                onChange={(e) =>
-                                  updateFurnitureWorkProduct(
-                                    categoryIndex,
-                                    productIndex,
-                                    "price",
-                                    Number(e.target.value),
-                                  )
-                                }
-                                placeholder="0"
-                              />
-                            </TableCell>
-                            <TableCell className="text-right align-top">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => removeFurnitureWorkProduct(categoryIndex, productIndex)}
-                                disabled={category.products.length === 1}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                    <div className="p-4 border-t">
-                      <Button
-                        type="button"
-                        onClick={() => addFurnitureWorkProduct(categoryIndex)}
-                        variant="outline"
-                        className="w-full"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Product
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-              <Button
-                type="button"
-                onClick={addFurnitureWorkCategory}
-                variant="outline"
-                className="w-full bg-transparent"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Category
-              </Button>
-            </>
-          )}
-        </TabsContent>
-      </Tabs>
-
-      {!isEditMode && <div className="space-y-4">{renderBOQTable({ preliminary, fittingOut, furnitureWork })}</div>}
+                      ))}
+                    </TableBody>
+                  </Table>
+                  <div className="p-4 border-t">
+                    <Button
+                      type="button"
+                      onClick={() => addFurnitureWorkProduct(categoryIndex)}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Product
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+            <Button
+              type="button"
+              onClick={addFurnitureWorkCategory}
+              variant="outline"
+              className="w-full bg-transparent"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Category
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4">{renderBOQTable({ preliminary, fittingOut, furnitureWork })}</div>
+      )}
     </div>
   )
 }

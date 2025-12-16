@@ -41,6 +41,9 @@ importers:
       '@radix-ui/react-hover-card':
         specifier: 1.1.4
         version: 1.1.4(@types/react-dom@19.0.0)(@types/react@19.0.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@radix-ui/react-id':
+        specifier: 1.1.1
+        version: 1.1.1(@types/react@19.0.0)(react@19.2.0)
       '@radix-ui/react-label':
         specifier: latest
         version: 2.1.8(@types/react-dom@19.0.0)(@types/react@19.0.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)

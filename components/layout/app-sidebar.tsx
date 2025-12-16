@@ -9,7 +9,17 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
-import { LayoutDashboard, FolderKanban, MessageSquare, Users, Settings, HelpCircle, Package, User } from "lucide-react"
+import {
+  LayoutDashboard,
+  FolderKanban,
+  MessageSquare,
+  Users,
+  Settings,
+  HelpCircle,
+  Package,
+  User,
+  FileText,
+} from "lucide-react"
 import { getProfile, type UserProfile } from "@/lib/api/auth"
 
 interface NavItem {
@@ -32,6 +42,7 @@ const mainNavigation: NavItem[] = [
   { name: "AI Assistant", href: "/ai-assistant", icon: MessageSquare },
   { name: "User Management", href: "/users", icon: Users, adminOnly: true }, // Marked as admin only
   { name: "Product Management", href: "/products", icon: Package, adminOnly: true }, // Marked as admin only
+  { name: "BOQ Templates", href: "/boq-templates", icon: FileText, adminOnly: true }, // Added BOQ Templates menu
 ]
 
 const secondaryNavigation: NavItem[] = [

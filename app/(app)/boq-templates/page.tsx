@@ -269,9 +269,9 @@ export default function BOQTemplatesPage() {
                           <Button variant="ghost" size="icon" onClick={() => handleView(template)}>
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleEdit(template)}>
+                          {/* <Button variant="ghost" size="icon" onClick={() => handleEdit(template)}>
                             <Edit className="h-4 w-4" />
-                          </Button>
+                          </Button> */}
                           <Button variant="ghost" size="icon" onClick={() => handleDelete(template._id)}>
                             <Trash2 className="h-4 w-4" />
                           </Button>

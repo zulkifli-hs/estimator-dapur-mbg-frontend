@@ -18,23 +18,20 @@ export const uploadPhoto = async (file: File): Promise<UploadResponse> => {
     throw new Error("Basic Auth credentials not configured")
   }
 
-  console.log("[v0] Uploading photo to:", `${API_BASE_URL}/upload/photos`)
-  console.log("[v0] Has auth header:", !!headers["Authorization"])
-
-  const response = await fetch(`${API_BASE_URL}/upload/photos`, {
+  const response = await fetch(`${API_BASE_URL}/upload`, {
     method: "POST",
     headers,
     body: formData,
   })
 
-  console.log("[v0] Upload response status:", response.status, response.ok)
+  if (!response.ok) {
+    throw new Error(`Upload failed with status ${response.status}`)
+  }
 
   const jsonResponse = await response.json()
-  console.log("[v0] Upload response data:", JSON.stringify(jsonResponse, null, 2))
 
-  if (!response.ok || (jsonResponse.code !== 200 && jsonResponse.code !== 201)) {
+  if (jsonResponse.code !== 200 && jsonResponse.code !== 201) {
     const errorMsg = jsonResponse.message?.user || jsonResponse.message || "Upload failed"
-    console.error("[v0] Upload error:", errorMsg)
     throw new Error(errorMsg)
   }
 

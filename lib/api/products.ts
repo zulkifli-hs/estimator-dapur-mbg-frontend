@@ -1,54 +1,65 @@
 import { apiRequest } from "./config"
 
-export interface ProductPhoto {
+export interface Photo {
+  _id?: string
+  name?: string
   url: string
   provider: string
+  version?: number
+  createdBy?: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 export interface ProductDetail {
-  name: string
-  value: string
+  _id?: string
   label: string
-  type: string
+  type: "text" | "number" | "date"
+  value: string
+  name?: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 export interface Product {
   _id: string
   sku: string
-  type: "Goods" | "Services" | "Goods and Services"
   name: string
+  type: "Goods" | "Services" | "Goods and Services"
   unit: string
+  price: number
   sellingPrice: number
   purchasePrice: number
-  photos: ProductPhoto[]
-  details: ProductDetail[]
-  brand: string
+  brand?: string
+  photos?: Photo[]
+  details?: ProductDetail[]
+  sellingPriceHistory?: any[]
   createdAt: string
   updatedAt: string
+  __v?: number
 }
 
 export interface CreateProductInput {
-  sku: string
-  type: "Goods" | "Services" | "Goods and Services"
   name: string
+  type: "Goods" | "Services" | "Goods and Services"
   unit: string
   sellingPrice: number
   purchasePrice: number
-  photos?: ProductPhoto[]
-  details?: ProductDetail[]
+  sku: string
   brand?: string
+  photos?: Array<{ url: string; provider: string }>
+  details?: Array<{ label: string; type: "text" | "number" | "date"; value: string }>
 }
 
 export interface UpdateProductInput {
-  sku?: string
-  type?: "Goods" | "Services" | "Goods and Services"
   name?: string
   unit?: string
+  price?: number
   sellingPrice?: number
   purchasePrice?: number
-  photos?: ProductPhoto[]
-  details?: ProductDetail[]
   brand?: string
+  photos?: Photo[]
+  details?: ProductDetail[]
 }
 
 export const productsApi = {

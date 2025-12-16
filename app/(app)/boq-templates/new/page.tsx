@@ -32,7 +32,7 @@ export default function CreateTemplatePage() {
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const [templateName, setTemplateName] = useState("")
-  const [products, setProducts] = useState<{ name: string; qty: number; unit: string; price: number }[]>([])
+  const [products, setProducts] = useState<{ name: string; qty: number; unit: string; sellingPrice: number }[]>([])
   const [loadingProducts, setLoadingProducts] = useState(false)
 
   const [preliminary, setPreliminary] = useState<PreliminaryItem[]>([{ name: "", qty: 0, unit: "", price: 0 }])
@@ -83,14 +83,14 @@ export default function CreateTemplatePage() {
 
   const selectPreliminaryProduct = (
     index: number,
-    product: { name: string; qty: number; unit: string; price: number },
+    product: { name: string; qty: number; unit: string; sellingPrice: number },
   ) => {
     const updated = [...preliminary]
     updated[index] = {
       ...updated[index],
       name: product.name,
       unit: product.unit,
-      price: product.price,
+      price: product.sellingPrice,
     }
     setPreliminary(updated)
   }
@@ -143,14 +143,14 @@ export default function CreateTemplatePage() {
   const selectFittingOutProduct = (
     categoryIndex: number,
     productIndex: number,
-    product: { name: string; qty: number; unit: string; price: number },
+    product: { name: string; qty: number; unit: string; sellingPrice: number },
   ) => {
     const updated = [...fittingOut]
     updated[categoryIndex].products[productIndex] = {
       ...updated[categoryIndex].products[productIndex],
       name: product.name,
       unit: product.unit,
-      price: product.price,
+      price: product.sellingPrice,
     }
     setFittingOut(updated)
   }
@@ -203,14 +203,14 @@ export default function CreateTemplatePage() {
   const selectFurnitureWorkProduct = (
     categoryIndex: number,
     productIndex: number,
-    product: { name: string; qty: number; unit: string; price: number },
+    product: { name: string; qty: number; unit: string; sellingPrice: number },
   ) => {
     const updated = [...furnitureWork]
     updated[categoryIndex].products[productIndex] = {
       ...updated[categoryIndex].products[productIndex],
       name: product.name,
       unit: product.unit,
-      price: product.price,
+      price: product.sellingPrice,
     }
     setFurnitureWork(updated)
   }
@@ -343,7 +343,7 @@ export default function CreateTemplatePage() {
                                     onSelect={() => {
                                       selectPreliminaryProduct(index, product)
                                     }}
-                                    className="flex flex-col items-start py-3"
+                                    className="flex flex-col items-start py-3 hover:bg-primary/30 cursor-pointer"
                                   >
                                     <div className="flex items-center w-full">
                                       <Check
@@ -366,8 +366,7 @@ export default function CreateTemplatePage() {
                                           )}
                                         </div>
                                         <div className="text-xs text-muted-foreground mt-1">
-                                          Purchase: {formatCurrency(product.price)} | Selling:{" "}
-                                          {formatCurrency(product.price)}
+                                          Price: {formatCurrency(product.sellingPrice)}
                                         </div>
                                       </div>
                                     </div>
@@ -492,7 +491,7 @@ export default function CreateTemplatePage() {
                                         onSelect={() => {
                                           selectFittingOutProduct(categoryIndex, productIndex, prod)
                                         }}
-                                        className="flex flex-col items-start py-3"
+                                        className="flex flex-col items-start py-3 hover:bg-primary/30 cursor-pointer"
                                       >
                                         <div className="flex items-center w-full">
                                           <Check
@@ -515,8 +514,7 @@ export default function CreateTemplatePage() {
                                               )}
                                             </div>
                                             <div className="text-xs text-muted-foreground mt-1">
-                                              Purchase: {formatCurrency(prod.price)} | Selling:{" "}
-                                              {formatCurrency(prod.price)}
+                                              Price: {formatCurrency(prod.sellingPrice)}
                                             </div>
                                           </div>
                                         </div>
@@ -658,7 +656,7 @@ export default function CreateTemplatePage() {
                                         onSelect={() => {
                                           selectFurnitureWorkProduct(categoryIndex, productIndex, prod)
                                         }}
-                                        className="flex flex-col items-start py-3"
+                                        className="flex flex-col items-start py-3 hover:bg-primary/30 cursor-pointer"
                                       >
                                         <div className="flex items-center w-full">
                                           <Check
@@ -681,8 +679,7 @@ export default function CreateTemplatePage() {
                                               )}
                                             </div>
                                             <div className="text-xs text-muted-foreground mt-1">
-                                              Purchase: {formatCurrency(prod.price)} | Selling:{" "}
-                                              {formatCurrency(prod.price)}
+                                              Price: {formatCurrency(prod.sellingPrice)}
                                             </div>
                                           </div>
                                         </div>

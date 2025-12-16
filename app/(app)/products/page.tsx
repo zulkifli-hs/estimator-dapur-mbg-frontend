@@ -520,7 +520,7 @@ export default function ProductsPage() {
                       <TableHead>Brand</TableHead>
                       <TableHead>Selling Price</TableHead>
                       <TableHead>Purchase Price</TableHead>
-                      <TableHead>Created</TableHead>
+                      {/* <TableHead>Created</TableHead> */}
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -540,7 +540,7 @@ export default function ProductsPage() {
                         <TableCell>{product.brand || "-"}</TableCell>
                         <TableCell>{formatCurrency(product.sellingPrice)}</TableCell>
                         <TableCell>{formatCurrency(product.purchasePrice)}</TableCell>
-                        <TableCell>{new Date(product.createdAt).toLocaleDateString()}</TableCell>
+                        {/* <TableCell>{new Date(product.createdAt).toLocaleDateString()}</TableCell> */}
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
                             <Button

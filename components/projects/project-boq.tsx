@@ -16,9 +16,12 @@ import {
   ChevronsUpDown,
   Loader2,
   Upload,
+  Save,
+  RefreshCw,
+  AlertCircle,
 } from "lucide-react"
 import { boqApi } from "@/lib/api/boq"
-import { templatesApi } from "@/lib/api/templates"
+import { templatesApi, type CreateTemplateInput } from "@/lib/api/templates" // Imported CreateTemplateInput
 import { productsApi } from "@/lib/api/products"
 import { useToast } from "@/hooks/use-toast"
 import { Input } from "@/components/ui/input"
@@ -48,6 +51,8 @@ interface PreliminaryItem {
   unit: string
   price: number
   productId?: string
+  startDate?: string // Added startDate
+  endDate?: string // Added endDate
 }
 
 interface ProductItem {
@@ -56,6 +61,8 @@ interface ProductItem {
   unit: string
   price: number
   productId?: string
+  startDate?: string // Added startDate
+  endDate?: string // Added endDate
 }
 
 interface Category {
@@ -115,8 +122,33 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     progress: 0,
   })
 
+  const [saveAsTemplateOpen, setSaveAsTemplateOpen] = useState(false)
+  const [templateName, setTemplateName] = useState("")
+  const [replaceTemplateOpen, setReplaceTemplateOpen] = useState(false)
+  const [selectedReplaceTemplate, setSelectedReplaceTemplate] = useState<any>(null)
+  const [replaceTemplatePreviewOpen, setReplaceTemplatePreviewOpen] = useState(false)
+
+  // Renamed loadBOQs to fetchBOQ for clarity with the update function below
+  const fetchBOQ = async () => {
+    try {
+      const response = await boqApi.getByProject(projectId)
+
+      if (response.success && response.data) {
+        setBoqItems(response.data)
+        calculateSummary(response.data)
+      } else {
+        setBoqItems([])
+      }
+    } catch (error) {
+      console.error("Failed to load BOQ:", error)
+      setBoqItems([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
-    loadBOQs()
+    fetchBOQ() // Use the renamed function
     fetchTemplates()
     fetchProducts()
   }, [projectId])
@@ -133,6 +165,8 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
           unit: item.unit || "",
           price: item.price || 0,
           productId: item.productId || "",
+          startDate: item.startDate ? new Date(item.startDate).toISOString().split("T")[0] : "", // Format date
+          endDate: item.endDate ? new Date(item.endDate).toISOString().split("T")[0] : "", // Format date
         })) || [],
       )
 
@@ -147,6 +181,8 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
               unit: product.unit || "",
               price: product.price || 0,
               productId: product.productId || "",
+              startDate: product.startDate ? new Date(product.startDate).toISOString().split("T")[0] : "", // Format date
+              endDate: product.endDate ? new Date(product.endDate).toISOString().split("T")[0] : "", // Format date
             })) || [],
         })) || [],
       )
@@ -162,6 +198,8 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
               unit: product.unit || "",
               price: product.price || 0,
               productId: product.productId || "",
+              startDate: product.startDate ? new Date(product.startDate).toISOString().split("T")[0] : "", // Format date
+              endDate: product.endDate ? new Date(product.endDate).toISOString().split("T")[0] : "", // Format date
             })) || [],
         })) || [],
       )
@@ -197,23 +235,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     }
   }
 
-  const loadBOQs = async () => {
-    try {
-      const response = await boqApi.getByProject(projectId)
-
-      if (response.success && response.data) {
-        setBoqItems(response.data)
-        calculateSummary(response.data)
-      } else {
-        setBoqItems([])
-      }
-    } catch (error) {
-      console.error("Failed to load BOQ:", error)
-      setBoqItems([])
-    } finally {
-      setLoading(false)
-    }
-  }
+  // Removed loadBOQs as it's renamed to fetchBOQ and called in useEffect
 
   const calculateSummary = (items: any[]) => {
     if (!Array.isArray(items) || items.length === 0) {
@@ -508,6 +530,8 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       unit: product.unit,
       price: product.sellingPrice,
       productId: product._id,
+      startDate: newPreliminary[index].startDate || "", // Preserve existing dates
+      endDate: newPreliminary[index].endDate || "", // Preserve existing dates
     }
     setPreliminary(newPreliminary)
     setOpenPopovers({ ...openPopovers, [`preliminary-${index}`]: false })
@@ -524,6 +548,8 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       unit: product.unit,
       price: product.sellingPrice,
       productId: product._id,
+      startDate: newFittingOut[categoryIndex].products[productIndex].startDate || "", // Preserve existing dates
+      endDate: newFittingOut[categoryIndex].products[productIndex].endDate || "", // Preserve existing dates
     }
     setFittingOut(newFittingOut)
     setOpenPopovers({ ...openPopovers, [`fittingOut-${categoryIndex}-${productIndex}`]: false })
@@ -540,6 +566,8 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       unit: product.unit,
       price: product.sellingPrice,
       productId: product._id,
+      startDate: newFurnitureWork[categoryIndex].products[productIndex].startDate || "", // Preserve existing dates
+      endDate: newFurnitureWork[categoryIndex].products[productIndex].endDate || "", // Preserve existing dates
     }
     setFurnitureWork(newFurnitureWork)
     setOpenPopovers({ ...openPopovers, [`furnitureWork-${categoryIndex}-${productIndex}`]: false })
@@ -556,7 +584,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   }
 
   const addPreliminaryItem = () => {
-    setPreliminary([...preliminary, { name: "", qty: 0, unit: "", price: 0 }])
+    setPreliminary([...preliminary, { name: "", qty: 0, unit: "", price: 0, startDate: "", endDate: "" }])
   }
 
   const removePreliminaryItem = (index: number) => {
@@ -564,7 +592,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       setPreliminary(preliminary.filter((_, i) => i !== index))
     } else {
       // Clear the single item instead of removing it if it's the last one
-      setPreliminary([{ name: "", qty: 0, unit: "", price: 0 }])
+      setPreliminary([{ name: "", qty: 0, unit: "", price: 0, startDate: "", endDate: "" }])
     }
   }
 
@@ -585,7 +613,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
 
   const addFittingOutProduct = (categoryIndex: number) => {
     const newFittingOut = [...fittingOut]
-    newFittingOut[categoryIndex].products.push({ name: "", qty: 0, unit: "", price: 0 })
+    newFittingOut[categoryIndex].products.push({ name: "", qty: 0, unit: "", price: 0, startDate: "", endDate: "" })
     setFittingOut(newFittingOut)
   }
 
@@ -596,13 +624,16 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       setFittingOut(newFittingOut)
     } else {
       // Clear the single product instead of removing it if it's the last one in the category
-      newFittingOut[categoryIndex].products = [{ name: "", qty: 0, unit: "", price: 0 }]
+      newFittingOut[categoryIndex].products = [{ name: "", qty: 0, unit: "", price: 0, startDate: "", endDate: "" }]
       setFittingOut(newFittingOut)
     }
   }
 
   const addFittingOutCategory = () => {
-    setFittingOut([...fittingOut, { name: "", products: [{ name: "", qty: 0, unit: "", price: 0 }] }])
+    setFittingOut([
+      ...fittingOut,
+      { name: "", products: [{ name: "", qty: 0, unit: "", price: 0, startDate: "", endDate: "" }] },
+    ])
   }
 
   const removeFittingOutCategory = (categoryIndex: number) => {
@@ -610,7 +641,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       setFittingOut(fittingOut.filter((_, i) => i !== categoryIndex))
     } else {
       // Clear the single category instead of removing it if it's the last one
-      setFittingOut([{ name: "", products: [{ name: "", qty: 0, unit: "", price: 0 }] }])
+      setFittingOut([{ name: "", products: [{ name: "", qty: 0, unit: "", price: 0, startDate: "", endDate: "" }] }])
     }
   }
 
@@ -631,7 +662,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
 
   const addFurnitureWorkProduct = (categoryIndex: number) => {
     const newFurnitureWork = [...furnitureWork]
-    newFurnitureWork[categoryIndex].products.push({ name: "", qty: 0, unit: "", price: 0 })
+    newFurnitureWork[categoryIndex].products.push({ name: "", qty: 0, unit: "", price: 0, startDate: "", endDate: "" })
     setFurnitureWork(newFurnitureWork)
   }
 
@@ -644,13 +675,16 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       setFurnitureWork(newFurnitureWork)
     } else {
       // Clear the single product instead of removing it if it's the last one in the category
-      newFurnitureWork[categoryIndex].products = [{ name: "", qty: 0, unit: "", price: 0 }]
+      newFurnitureWork[categoryIndex].products = [{ name: "", qty: 0, unit: "", price: 0, startDate: "", endDate: "" }]
       setFurnitureWork(newFurnitureWork)
     }
   }
 
   const addFurnitureWorkCategory = () => {
-    setFurnitureWork([...furnitureWork, { name: "", products: [{ name: "", qty: 0, unit: "", price: 0 }] }])
+    setFurnitureWork([
+      ...furnitureWork,
+      { name: "", products: [{ name: "", qty: 0, unit: "", price: 0, startDate: "", endDate: "" }] },
+    ])
   }
 
   const removeFurnitureWorkCategory = (categoryIndex: number) => {
@@ -658,7 +692,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       setFurnitureWork(furnitureWork.filter((_, i) => i !== categoryIndex))
     } else {
       // Clear the single category instead of removing it if it's the last one
-      setFurnitureWork([{ name: "", products: [{ name: "", qty: 0, unit: "", price: 0 }] }])
+      setFurnitureWork([{ name: "", products: [{ name: "", qty: 0, unit: "", price: 0, startDate: "", endDate: "" }] }])
     }
   }
 
@@ -667,17 +701,66 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     try {
       setLoading(true)
 
-      const filteredPreliminary = preliminary.filter((item) => item.name && item.unit)
+      const formatDateToYYYYMMDD = (dateString: string) => {
+        const date = new Date(dateString)
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, "0")
+        const day = String(date.getDate()).padStart(2, "0")
+        return `${year}-${month}-${day}`
+      }
+
+      const filteredPreliminary = preliminary
+        .filter((item) => item.name && item.unit)
+        .map((item) => {
+          const filtered: any = {
+            productId: item.productId,
+            qty: item.qty,
+            name: item.name,
+            unit: item.unit,
+            price: item.price,
+          }
+          if (item.startDate) filtered.startDate = formatDateToYYYYMMDD(item.startDate)
+          if (item.endDate) filtered.endDate = formatDateToYYYYMMDD(item.endDate)
+          return filtered
+        })
+
       const filteredFittingOut = fittingOut
         .map((category) => ({
-          ...category,
-          products: category.products.filter((product) => product.name && product.unit),
+          name: category.name,
+          products: category.products
+            .filter((product) => product.name && product.unit)
+            .map((product) => {
+              const filtered: any = {
+                productId: product.productId,
+                qty: product.qty,
+                name: product.name,
+                unit: product.unit,
+                price: product.price,
+              }
+              if (product.startDate) filtered.startDate = formatDateToYYYYMMDD(product.startDate)
+              if (product.endDate) filtered.endDate = formatDateToYYYYMMDD(product.endDate)
+              return filtered
+            }),
         }))
         .filter((category) => category.name && category.products.length > 0)
+
       const filteredFurnitureWork = furnitureWork
         .map((category) => ({
-          ...category,
-          products: category.products.filter((product) => product.name && product.unit),
+          name: category.name,
+          products: category.products
+            .filter((product) => product.name && product.unit)
+            .map((product) => {
+              const filtered: any = {
+                productId: product.productId,
+                qty: product.qty,
+                name: product.name,
+                unit: product.unit,
+                price: product.price,
+              }
+              if (product.startDate) filtered.startDate = formatDateToYYYYMMDD(product.startDate)
+              if (product.endDate) filtered.endDate = formatDateToYYYYMMDD(product.endDate)
+              return filtered
+            }),
         }))
         .filter((category) => category.name && category.products.length > 0)
 
@@ -716,7 +799,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       setPreliminary([])
       setFittingOut([])
       setFurnitureWork([])
-      loadBOQs()
+      fetchBOQ() // Use renamed function
     } catch (error: any) {
       toast({
         title: "Error",
@@ -742,7 +825,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
           title: "Success",
           description: "Main BOQ created from template successfully",
         })
-        loadBOQs()
+        fetchBOQ() // Use renamed function
         setCreationMode(null)
         setSelectedTemplate(null)
         setShowTemplatePreview(false)
@@ -921,7 +1004,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         title: "Success",
         description: "BOQ deleted successfully",
       })
-      loadBOQs()
+      fetchBOQ() // Use renamed function
     } catch (error) {
       toast({
         variant: "destructive",
@@ -929,6 +1012,178 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         description: "Failed to delete BOQ",
       })
     }
+  }
+
+  const handleSaveAsTemplate = async () => {
+    if (!templateName.trim() || !mainBOQ) {
+      toast({
+        title: "Error",
+        description: "Please enter a template name",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      // Prepare template data from mainBOQ
+      const templateData: CreateTemplateInput = {
+        name: templateName.trim(),
+        preliminary: mainBOQ.preliminary.map((item: any) => ({
+          productId: item.productId,
+          qty: item.qty,
+          name: item.name,
+          unit: item.unit,
+          price: item.price,
+        })),
+        fittingOut: mainBOQ.fittingOut.map((category: any) => ({
+          name: category.name,
+          products: category.products.map((product: any) => ({
+            productId: product.productId,
+            qty: product.qty,
+            name: product.name,
+            unit: product.unit,
+            price: product.price,
+          })),
+        })),
+        furnitureWork: mainBOQ.furnitureWork.map((category: any) => ({
+          name: category.name,
+          products: category.products.map((product: any) => ({
+            productId: product.productId,
+            qty: product.qty,
+            name: product.name,
+            unit: product.unit,
+            price: product.price,
+          })),
+        })),
+      }
+
+      await templatesApi.create(templateData)
+
+      toast({
+        title: "Success",
+        description: "BOQ saved as template successfully",
+      })
+
+      setSaveAsTemplateOpen(false)
+      setTemplateName("")
+    } catch (error) {
+      console.error("Failed to save as template:", error)
+      toast({
+        title: "Error",
+        description: "Failed to save BOQ as template",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleReplaceWithTemplate = async () => {
+    if (!selectedReplaceTemplate || !mainBOQ) return
+
+    try {
+      // Prepare BOQ data from template
+      const boqData = {
+        preliminary: selectedReplaceTemplate.preliminary.map((item: any) => ({
+          productId: item.productId,
+          qty: item.qty,
+          name: item.name,
+          unit: item.unit,
+          price: item.price,
+        })),
+        fittingOut: selectedReplaceTemplate.fittingOut.map((category: any) => ({
+          name: category.name,
+          products: category.products.map((product: any) => ({
+            productId: product.productId,
+            qty: product.qty,
+            name: product.name,
+            unit: product.unit,
+            price: product.price,
+          })),
+        })),
+        furnitureWork: selectedReplaceTemplate.furnitureWork.map((category: any) => ({
+          name: category.name,
+          products: category.products.map((product: any) => ({
+            productId: product.productId,
+            qty: product.qty,
+            name: product.name,
+            unit: product.unit,
+            price: product.price,
+          })),
+        })),
+      }
+
+      await boqApi.update(projectId, mainBOQ._id, boqData)
+
+      toast({
+        title: "Success",
+        description: "BOQ replaced with template successfully",
+      })
+
+      setReplaceTemplateOpen(false)
+      setSelectedReplaceTemplate(null)
+      setReplaceTemplatePreviewOpen(false)
+
+      // Refresh BOQ data
+      fetchBOQ()
+    } catch (error) {
+      console.error("Failed to replace with template:", error)
+      toast({
+        title: "Error",
+        description: "Failed to replace BOQ with template",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const hasGanttData = (boq: any) => {
+    const hasPreliminDates = boq.preliminary?.some((item: any) => item.startDate || item.endDate)
+    const hasFittingDates = boq.fittingOut?.some((cat: any) => cat.products?.some((p: any) => p.startDate || p.endDate))
+    const hasFurnitureDates = boq.furnitureWork?.some((cat: any) =>
+      cat.products?.some((p: any) => p.startDate || p.endDate),
+    )
+    return hasPreliminDates || hasFittingDates || hasFurnitureDates
+  }
+
+  const getGanttDataDetails = (boq: any) => {
+    const details: any[] = []
+
+    boq.preliminary?.forEach((item: any) => {
+      if (item.startDate || item.endDate) {
+        details.push({
+          name: item.name,
+          startDate: item.startDate,
+          endDate: item.endDate,
+          section: "Preliminary",
+        })
+      }
+    })
+
+    boq.fittingOut?.forEach((cat: any) => {
+      cat.products?.forEach((product: any) => {
+        if (product.startDate || product.endDate) {
+          details.push({
+            name: product.name,
+            startDate: product.startDate,
+            endDate: product.endDate,
+            section: `Fitting Out - ${cat.name}`,
+          })
+        }
+      })
+    })
+
+    boq.furnitureWork?.forEach((cat: any) => {
+      cat.products?.forEach((product: any) => {
+        if (product.startDate || product.endDate) {
+          details.push({
+            name: product.name,
+            startDate: product.startDate,
+            endDate: product.endDate,
+            section: `Furniture Work - ${cat.name}`,
+          })
+        }
+      })
+    })
+
+    return details
   }
 
   const mainBOQ = boqItems.find((boq) => boq.number === 1)
@@ -1817,9 +2072,10 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
             // This part is now handled by the initial render logic when !mainBOQ && !creationMode
             <></>
           ) : (
+            // Main BOQ Display
             <Card>
               <CardHeader>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div className="space-y-2">
                     <div className="flex items-center gap-3 flex-wrap">
                       <CardTitle>Main BOQ</CardTitle>
@@ -1829,19 +2085,40 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                       BOQ #{mainBOQ.number} • Created: {new Date(mainBOQ.createdAt).toLocaleDateString("id-ID")}
                     </CardDescription>
                   </div>
-                  {/* Update edit button handler */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setEditingBOQ(mainBOQ)
-                      setCreationMode("blank") // Navigate to blank creation form for editing
-                    }}
-                    className="w-full sm:w-auto"
-                  >
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit
-                  </Button>
+                  {mainBOQ.status.toLowerCase() === "draft" && (
+                    <div className="flex gap-2 w-full sm:w-auto">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setEditingBOQ(mainBOQ)
+                          setCreationMode("blank")
+                        }}
+                        className="flex-1 sm:flex-initial"
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSaveAsTemplateOpen(true)}
+                        className="flex-1 sm:flex-initial"
+                      >
+                        <Save className="h-4 w-4 mr-2" />
+                        Save as Template
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setReplaceTemplateOpen(true)}
+                        className="flex-1 sm:flex-initial"
+                      >
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Replace with Template
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </CardHeader>
               <CardContent>{renderBOQTable(mainBOQ)}</CardContent>
@@ -1909,7 +2186,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         projectId={projectId}
         open={false} // This dialog is no longer the primary way of creating/editing BOQs
         onOpenChange={handleDialogClose}
-        onSuccess={loadBOQs} // Corrected: use loadBOQs instead of loadBOQ
+        onSuccess={fetchBOQ} // Use renamed function
         boq={editingBOQ}
         isAdditional={isCreatingAdditional}
       />
@@ -2140,6 +2417,154 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
             >
               {submittingProduct && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Create Product
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={saveAsTemplateOpen} onOpenChange={setSaveAsTemplateOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Save BOQ as Template</DialogTitle>
+            <DialogDescription>
+              Enter a name for this template. It will be saved without timeline data.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label htmlFor="templateName" className="text-sm font-medium">
+                Template Name
+              </label>
+              <Input
+                id="templateName"
+                placeholder="e.g., Office Renovation Template"
+                value={templateName}
+                onChange={(e) => setTemplateName(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSaveAsTemplateOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveAsTemplate}>Save Template</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={replaceTemplateOpen} onOpenChange={setReplaceTemplateOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Replace BOQ with Template</DialogTitle>
+            <DialogDescription>
+              Select a template to replace the current BOQ.
+              {hasGanttData(mainBOQ) && (
+                <span className="text-destructive font-medium">
+                  {" "}
+                  Warning: This will remove all Gantt chart timeline data.
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Show Gantt chart warning if data exists */}
+          {hasGanttData(mainBOQ) && (
+            <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 space-y-3">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-5 w-5 text-destructive mt-0.5" />
+                <div>
+                  <h4 className="font-semibold text-destructive">Gantt Chart Data Will Be Lost</h4>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    The following items have timeline data that will be removed:
+                  </p>
+                </div>
+              </div>
+              <div className="max-h-40 overflow-y-auto space-y-2">
+                {getGanttDataDetails(mainBOQ).map((detail, idx) => (
+                  <div key={idx} className="text-sm bg-background rounded p-2 space-y-1">
+                    <div className="font-medium">{detail.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {detail.section} • {new Date(detail.startDate).toLocaleDateString("id-ID")} -{" "}
+                      {new Date(detail.endDate).toLocaleDateString("id-ID")}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Template Selection */}
+          <div className="space-y-3">
+            <h4 className="font-semibold">Select Template</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto">
+              {templates.map((template) => (
+                <Card
+                  key={template._id}
+                  className={`cursor-pointer transition-colors hover:bg-accent ${
+                    selectedReplaceTemplate?._id === template._id ? "ring-2 ring-primary" : ""
+                  }`}
+                  onClick={() => setSelectedReplaceTemplate(template)}
+                >
+                  <CardContent className="p-4">
+                    <h5 className="font-medium">{template.name}</h5>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {template.preliminary.length} preliminary • {template.fittingOut.length} fitting out •{" "}
+                      {template.furnitureWork.length} furniture
+                    </p>
+                    <Button
+                      variant="link"
+                      size="sm"
+                      className="h-auto p-0 mt-2"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setSelectedReplaceTemplate(template)
+                        setReplaceTemplatePreviewOpen(true)
+                      }}
+                    >
+                      Preview
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReplaceTemplateOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleReplaceWithTemplate} disabled={!selectedReplaceTemplate} variant="destructive">
+              Replace BOQ
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={replaceTemplatePreviewOpen} onOpenChange={setReplaceTemplatePreviewOpen}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Template Preview: {selectedReplaceTemplate?.name}</DialogTitle>
+            <DialogDescription>Review the template contents before replacing your BOQ</DialogDescription>
+          </DialogHeader>
+          {selectedReplaceTemplate && (
+            <div className="space-y-4">
+              {renderBOQTable({
+                preliminary: selectedReplaceTemplate.preliminary,
+                fittingOut: selectedReplaceTemplate.fittingOut,
+                furnitureWork: selectedReplaceTemplate.furnitureWork,
+              })}
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setReplaceTemplatePreviewOpen(false)}>Close</Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                setReplaceTemplatePreviewOpen(false)
+                handleReplaceWithTemplate()
+              }}
+            >
+              Use This Template
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -19,6 +19,7 @@ import {
   Save,
   RefreshCw,
   AlertCircle,
+  Send,
 } from "lucide-react"
 import { boqApi } from "@/lib/api/boq"
 import { templatesApi, type CreateTemplateInput } from "@/lib/api/templates" // Imported CreateTemplateInput
@@ -1189,6 +1190,38 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   const mainBOQ = boqItems.find((boq) => boq.number === 1)
   const additionalBOQs = boqItems.filter((boq) => boq.number > 1)
 
+  // Placeholder for handleRequestApproval - needs to be implemented
+  const handleRequestApproval = async () => {
+    if (!mainBOQ) return
+
+    try {
+      setLoading(true)
+      const response = await boqApi.requestApproval(projectId, mainBOQ._id)
+      if (response.success) {
+        toast({
+          title: "Success",
+          description: "Approval request sent successfully",
+        })
+        fetchBOQ() // Refresh BOQ list
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to send approval request",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Failed to request approval:", error)
+      toast({
+        title: "Error",
+        description: "Failed to send approval request",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -2116,6 +2149,15 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                       >
                         <RefreshCw className="h-4 w-4 mr-2" />
                         Replace with Template
+                      </Button>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={handleRequestApproval}
+                        className="flex-1 sm:flex-initial"
+                      >
+                        <Send className="h-4 w-4 mr-2" />
+                        Request Approval
                       </Button>
                     </div>
                   )}

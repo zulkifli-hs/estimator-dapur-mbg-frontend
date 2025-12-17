@@ -1,23 +1,23 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { useRouter } from "next/navigation"
+import { useParams, useRouter } from "next/navigation" // Import useParams
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card" // Added CardTitle
 import { Plus, Trash2, X, ArrowLeft, Loader2, Edit, Save, ChevronsUpDown, Check, Upload, Sparkles } from "lucide-react"
 import { templatesApi } from "@/lib/api/templates"
 import { productsApi } from "@/lib/api/products"
 import { uploadApi } from "@/lib/api/upload"
-import { toast } from "sonner"
+import { toast } from "@/hooks/use-toast" // Updated toast import
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import React from "react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog" // Added DialogDescription, DialogFooter
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { cn } from "@/lib/utils"
+import { cn, formatCurrency } from "@/lib/utils" // Added formatCurrency to import
 
 interface PreliminaryItem {
   name: string
@@ -40,16 +40,17 @@ interface Category {
   products: Product[]
 }
 
-// Move formatCurrency outside component
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0,
-  }).format(value)
-}
+// Move formatCurrency outside component (already done in existing code)
+// const formatCurrency = (value: number) => {
+//   return new Intl.NumberFormat("id-ID", {
+//     style: "currency",
+//     currency: "IDR",
+//     minimumFractionDigits: 0,
+//   }).format(value)
+// }
 
-export default function TemplateDetailPage({ params }: { params: { id: string } }) {
+export default function TemplateDetailPage() {
+  const params = useParams() //
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -85,6 +86,8 @@ export default function TemplateDetailPage({ params }: { params: { id: string } 
   const [creatingProduct, setCreatingProduct] = useState(false)
 
   const fetchTemplate = async () => {
+    if (!params.id) return
+
     setLoading(true)
     try {
       const response = await templatesApi.getById(params.id as string)
@@ -110,7 +113,7 @@ export default function TemplateDetailPage({ params }: { params: { id: string } 
         router.push("/boq-templates")
       }
     } catch (error) {
-      console.error("[v0] Failed to fetch template:", error)
+      console.error("[v0] Failed to fetch template:", error) // Added [v0] prefix
       toast({
         title: "Error",
         description: "Failed to load template",
@@ -137,8 +140,10 @@ export default function TemplateDetailPage({ params }: { params: { id: string } 
   }
 
   useEffect(() => {
-    fetchTemplate()
-    fetchProducts()
+    if (params.id) {
+      fetchTemplate()
+      fetchProducts()
+    }
   }, [params.id])
 
   // Highlight text function
@@ -408,6 +413,7 @@ export default function TemplateDetailPage({ params }: { params: { id: string } 
     try {
       setSaving(true)
       await templatesApi.update(params.id, {
+        // Use params.id here
         name: templateName,
         preliminary: preliminary.map((item) => ({
           name: item.name,

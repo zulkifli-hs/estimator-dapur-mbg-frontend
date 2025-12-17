@@ -1062,7 +1062,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     )
   }
 
-  if (!mainBOQ && creationMode === "blank") {
+  if ((editingBOQ && creationMode === "blank") || (!mainBOQ && creationMode === "blank")) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">

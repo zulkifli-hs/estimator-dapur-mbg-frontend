@@ -1,99 +1,409 @@
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { Logo } from "@/components/layout/logo"
+import {
+  LayoutDashboard,
+  FolderKanban,
+  MessageSquare,
+  Users,
+  Package,
+  FileText,
+  Calculator,
+  TrendingUp,
+  Receipt,
+  FolderOpen,
+  UserPlus,
+  CheckCircle,
+  Clock,
+  DollarSign,
+  BarChart3,
+  Layers,
+  ArrowRight,
+  Star,
+} from "lucide-react"
 
 export default function Page() {
+  const mainFeatures = [
+    {
+      icon: LayoutDashboard,
+      title: "Smart Dashboard",
+      description:
+        "Get a comprehensive overview of all your projects, recent activities, and key metrics at a glance. Monitor project health, track deadlines, and stay informed with real-time updates.",
+    },
+    {
+      icon: FolderKanban,
+      title: "Project Management",
+      description:
+        "Manage multiple interior design projects efficiently. Track progress from concept to completion with detailed project timelines, milestones, and team assignments.",
+    },
+    {
+      icon: MessageSquare,
+      title: "AI Assistant",
+      description:
+        "Leverage AI-powered insights for cost estimation, material recommendations, and project optimization. Get intelligent suggestions based on your project requirements.",
+    },
+    {
+      icon: Users,
+      title: "User Management",
+      description:
+        "Control team access and permissions. Assign roles to team members and manage client access to ensure secure collaboration on every project.",
+    },
+    {
+      icon: Package,
+      title: "Product Catalog",
+      description:
+        "Maintain a comprehensive database of materials, furniture, and finishes. Track prices, manage suppliers, and quickly add items to your BOQ.",
+    },
+    {
+      icon: FileText,
+      title: "BOQ Templates",
+      description:
+        "Create and reuse Bill of Quantities templates for faster project setup. Standardize your estimates and maintain consistency across all projects.",
+    },
+  ]
+
+  const projectFeatures = [
+    {
+      icon: Layers,
+      title: "Layout Management",
+      description:
+        "Upload and manage CAD files, 3D renders, and project photos. Keep all visual assets organized and accessible.",
+    },
+    {
+      icon: Calculator,
+      title: "BOQ Builder",
+      description:
+        "Create detailed Bills of Quantities with preliminary works, fitting out, and furniture items. Auto-calculate totals and manage pricing.",
+    },
+    {
+      icon: TrendingUp,
+      title: "Gantt Chart",
+      description:
+        "Visualize project timelines with interactive Gantt charts. Set start and end dates for each task and track progress in real-time.",
+    },
+    {
+      icon: Receipt,
+      title: "Invoice & Termin",
+      description:
+        "Generate professional invoices and manage payment terms. Track payments and maintain clear financial records for each project.",
+    },
+    {
+      icon: FolderOpen,
+      title: "Document Storage",
+      description:
+        "Centralize all project documents including contracts, specifications, and correspondence in one secure location.",
+    },
+    {
+      icon: UserPlus,
+      title: "Team Collaboration",
+      description:
+        "Add team members and clients to projects. Assign roles and control access levels for seamless collaboration.",
+    },
+  ]
+
+  const benefits = [
+    {
+      icon: Clock,
+      title: "Save Time",
+      stat: "60%",
+      description: "Reduce estimation time with templates and automated calculations",
+    },
+    {
+      icon: DollarSign,
+      title: "Cost Accuracy",
+      stat: "95%",
+      description: "Achieve precise cost estimates with real-time product pricing",
+    },
+    {
+      icon: CheckCircle,
+      title: "Project Success",
+      stat: "100%",
+      description: "Complete projects on time with comprehensive tracking tools",
+    },
+    {
+      icon: BarChart3,
+      title: "Better Insights",
+      stat: "3x",
+      description: "Gain deeper project insights with AI-powered analytics",
+    },
+  ]
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted">
-      <header className="container mx-auto px-4 py-6">
-        <nav className="flex items-center justify-between">
-          <Logo />
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" asChild>
-              <Link href="/login">Login</Link>
-            </Button>
-            <Button asChild>
-              <Link href="/signup">Get Started</Link>
-            </Button>
-          </div>
-        </nav>
-      </header>
+    <div className="min-h-screen bg-background">
+      {/* Hero Section with Interior Design Background */}
+      <div className="relative overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-primary/10" />
+        <div
+          className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fillRule='evenodd'%3E%3Cg fill='%23000000' fillOpacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+          }}
+        />
 
-      <main className="container mx-auto px-4 py-20">
-        <div className="max-w-4xl mx-auto text-center space-y-8">
-          <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-balance">
-            Construction Management
-            <span className="block text-primary mt-2">Powered by AI</span>
-          </h1>
+        {/* Decorative Elements */}
+        <div className="absolute top-20 left-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
 
-          <p className="text-xl text-muted-foreground text-balance max-w-2xl mx-auto">
-            Streamline your construction projects with intelligent project management, real-time collaboration, and
-            AI-powered insights.
-          </p>
+        <header className="relative container mx-auto px-4 py-6">
+          <nav className="flex items-center justify-between">
+            <Logo />
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" asChild>
+                <Link href="/login">Login</Link>
+              </Button>
+              <Button asChild>
+                <Link href="/signup">Get Started</Link>
+              </Button>
+            </div>
+          </nav>
+        </header>
 
-          <div className="flex items-center justify-center gap-4 pt-4">
-            <Button size="lg" asChild>
-              <Link href="/signup">Start Free Trial</Link>
-            </Button>
-            <Button size="lg" variant="outline" asChild>
-              <Link href="/login">Sign In</Link>
-            </Button>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8 pt-16">
-            <div className="space-y-3">
-              <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mx-auto">
-                <svg className="w-6 h-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                  />
-                </svg>
-              </div>
-              <h3 className="text-lg font-semibold">Project Management</h3>
-              <p className="text-sm text-muted-foreground">
-                Organize projects, track progress, and manage resources efficiently
-              </p>
+        <main className="relative container mx-auto px-4 py-20 md:py-32">
+          <div className="max-w-5xl mx-auto text-center space-y-8">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium">
+              <Star className="w-4 h-4" />
+              Interior Design Project Management Platform
             </div>
 
-            <div className="space-y-3">
-              <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mx-auto">
-                <svg className="w-6 h-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
-              </div>
-              <h3 className="text-lg font-semibold">Photo Albums</h3>
-              <p className="text-sm text-muted-foreground">
-                Document progress with organized photo albums and annotations
-              </p>
-            </div>
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-balance">
+              Streamline Your
+              <span className="block text-primary mt-2">Office Interior Projects</span>
+            </h1>
 
-            <div className="space-y-3">
-              <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mx-auto">
-                <svg className="w-6 h-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-                  />
-                </svg>
+            <p className="text-lg md:text-xl text-muted-foreground text-balance max-w-3xl mx-auto leading-relaxed">
+              The complete platform for interior designers to manage projects, create accurate cost estimates, track
+              progress with Gantt charts, and collaborate seamlessly with clients and teams.
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+              <Button size="lg" className="w-full sm:w-auto gap-2" asChild>
+                <Link href="/signup">
+                  Start Free Trial
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </Button>
+              <Button size="lg" variant="outline" className="w-full sm:w-auto bg-transparent" asChild>
+                <Link href="/login">Sign In to Dashboard</Link>
+              </Button>
+            </div>
+          </div>
+        </main>
+      </div>
+
+      {/* Stats Section */}
+      <section className="border-y bg-muted/30">
+        <div className="container mx-auto px-4 py-12 md:py-16">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            {benefits.map((benefit, index) => {
+              const Icon = benefit.icon
+              return (
+                <div key={index} className="text-center space-y-2">
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mb-2">
+                    <Icon className="w-6 h-6 text-primary" />
+                  </div>
+                  <div className="text-3xl md:text-4xl font-bold text-primary">{benefit.stat}</div>
+                  <div className="font-semibold">{benefit.title}</div>
+                  <p className="text-sm text-muted-foreground">{benefit.description}</p>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Main Features Section */}
+      <section className="py-20 md:py-32">
+        <div className="container mx-auto px-4">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Everything You Need to Manage Interior Projects</h2>
+            <p className="text-lg text-muted-foreground">
+              From initial estimates to project completion, Gema AI provides all the tools you need to deliver
+              exceptional interior design projects on time and within budget.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+            {mainFeatures.map((feature, index) => {
+              const Icon = feature.icon
+              return (
+                <div
+                  key={index}
+                  className="group p-6 md:p-8 rounded-2xl border bg-card hover:shadow-lg hover:border-primary/50 transition-all duration-300"
+                >
+                  <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-colors">
+                    <Icon className="w-7 h-7 text-primary" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-3">{feature.title}</h3>
+                  <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Project Detail Features */}
+      <section className="py-20 md:py-32 bg-muted/30">
+        <div className="container mx-auto px-4">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Comprehensive Project Management</h2>
+            <p className="text-lg text-muted-foreground">
+              Each project comes with powerful tools to manage every aspect of your interior design work, from layouts
+              and materials to invoicing and team collaboration.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {projectFeatures.map((feature, index) => {
+              const Icon = feature.icon
+              return (
+                <div
+                  key={index}
+                  className="flex gap-4 p-6 rounded-xl bg-card border hover:border-primary/50 transition-colors"
+                >
+                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <Icon className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-2">{feature.title}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Solutions Section */}
+      <section className="py-20 md:py-32">
+        <div className="container mx-auto px-4">
+          <div className="grid lg:grid-cols-2 gap-12 md:gap-16 items-center">
+            <div className="space-y-8">
+              <h2 className="text-3xl md:text-4xl font-bold">Solving Real Challenges for Interior Designers</h2>
+              <div className="space-y-6">
+                <div className="flex gap-4">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-1">
+                    <CheckCircle className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-1">Accurate Cost Estimation</h3>
+                    <p className="text-muted-foreground">
+                      No more spreadsheet errors. Create detailed BOQs with automatic calculations and real-time product
+                      pricing from your catalog.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-4">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-1">
+                    <CheckCircle className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-1">Streamlined Client Approval</h3>
+                    <p className="text-muted-foreground">
+                      Share BOQs with clients and get approvals directly in the platform. Track revisions and maintain
+                      clear communication throughout.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-4">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-1">
+                    <CheckCircle className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-1">Visual Progress Tracking</h3>
+                    <p className="text-muted-foreground">
+                      Keep everyone informed with photo albums organized by project phases. Document before, during, and
+                      after transformations.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-4">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-1">
+                    <CheckCircle className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-1">Centralized Project Data</h3>
+                    <p className="text-muted-foreground">
+                      All project information, documents, and communications in one place. No more searching through
+                      emails and scattered files.
+                    </p>
+                  </div>
+                </div>
               </div>
-              <h3 className="text-lg font-semibold">AI Assistant</h3>
-              <p className="text-sm text-muted-foreground">
-                Get intelligent insights and recommendations for your projects
-              </p>
+            </div>
+            <div className="relative">
+              <div className="aspect-square rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 p-8 md:p-12">
+                <div className="h-full rounded-xl bg-card border shadow-xl p-6 space-y-4">
+                  <div className="flex items-center gap-3 pb-4 border-b">
+                    <div className="w-3 h-3 rounded-full bg-red-500" />
+                    <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                    <div className="w-3 h-3 rounded-full bg-green-500" />
+                  </div>
+                  <div className="space-y-3">
+                    <div className="h-4 bg-muted rounded w-3/4" />
+                    <div className="h-4 bg-muted rounded w-1/2" />
+                    <div className="h-20 bg-primary/10 rounded-lg" />
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="h-16 bg-muted rounded" />
+                      <div className="h-16 bg-muted rounded" />
+                      <div className="h-16 bg-muted rounded" />
+                    </div>
+                    <div className="h-4 bg-muted rounded w-2/3" />
+                    <div className="h-4 bg-muted rounded w-1/3" />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </main>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 md:py-32 bg-primary text-primary-foreground">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to Transform Your Interior Design Business?</h2>
+          <p className="text-lg opacity-90 max-w-2xl mx-auto mb-8">
+            Join interior designers who are already using Gema AI to deliver projects faster, more accurately, and with
+            better client satisfaction.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Button size="lg" variant="secondary" className="w-full sm:w-auto gap-2" asChild>
+              <Link href="/signup">
+                Get Started Free
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              className="w-full sm:w-auto bg-transparent border-primary-foreground/30 hover:bg-primary-foreground/10"
+              asChild
+            >
+              <Link href="/login">Sign In</Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t py-12">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <Logo />
+            <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} Gema AI. All rights reserved.</p>
+            <div className="flex items-center gap-6">
+              <Link href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                Privacy Policy
+              </Link>
+              <Link href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                Terms of Service
+              </Link>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }

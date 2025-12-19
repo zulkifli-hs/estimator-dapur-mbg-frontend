@@ -292,44 +292,7 @@ export default function Page() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-4 mb-16">
-            <div className="relative aspect-[4/3] rounded-xl overflow-hidden border">
-              <Image
-                src="/office-floor-plan-cad-drawing-with-furniture-layou.jpg"
-                alt="Layout Management"
-                fill
-                className="object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-              <div className="absolute bottom-4 left-4 text-white">
-                <p className="font-semibold">Layout & CAD Files</p>
-              </div>
-            </div>
-            <div className="relative aspect-[4/3] rounded-xl overflow-hidden border">
-              <Image
-                src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Screenshot%202025-12-19%20at%2022.32.44-VEF4OXTlwvPG9L8m8ErCoVoKpbkJXW.png"
-                alt="BOQ Management"
-                fill
-                className="object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-              <div className="absolute bottom-4 left-4 text-white">
-                <p className="font-semibold">Bill of Quantities</p>
-              </div>
-            </div>
-            <div className="relative aspect-[4/3] rounded-xl overflow-hidden border">
-              <Image
-                src="/gantt-chart-project-timeline-for-construction-and-.jpg"
-                alt="Gantt Chart"
-                fill
-                className="object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-              <div className="absolute bottom-4 left-4 text-white">
-                <p className="font-semibold">Project Timeline</p>
-              </div>
-            </div>
-          </div>
+          
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {projectFeatures.map((feature, index) => {

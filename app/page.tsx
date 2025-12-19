@@ -204,7 +204,7 @@ export default function Page() {
               <div className="relative aspect-square max-w-lg mx-auto">
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5 rounded-3xl" />
                 <Image
-                  src="/interior-designer-working-on-office-layout-bluepri.jpg"
+                  src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/attachments/gen-images/v0_image-2-9DnQ668HozDPmxfu0VHwHDAAkwR0zC.png"
                   alt="Interior design planning"
                   fill
                   className="object-contain p-8 rounded-3xl"

@@ -307,7 +307,7 @@ export default function Page() {
             </div>
             <div className="relative aspect-[4/3] rounded-xl overflow-hidden border">
               <Image
-                src="/bill-of-quantities-spreadsheet-for-interior-design.jpg"
+                src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Screenshot%202025-12-19%20at%2022.32.44-VEF4OXTlwvPG9L8m8ErCoVoKpbkJXW.png"
                 alt="BOQ Management"
                 fill
                 className="object-cover"

@@ -21,6 +21,7 @@ import {
   ArrowRight,
   Star,
 } from "lucide-react"
+import Image from "next/image"
 
 export default function Page() {
   const mainFeatures = [
@@ -132,6 +133,15 @@ export default function Page() {
     <div className="min-h-screen bg-background">
       {/* Hero Section with Interior Design Background */}
       <div className="relative overflow-hidden">
+        <div className="absolute inset-0">
+          <Image
+            src="/modern-office-interior-design-workspace-with-clean.jpg"
+            alt="Modern office interior"
+            fill
+            className="object-cover opacity-10"
+            priority
+          />
+        </div>
         {/* Background Pattern */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-primary/10" />
         <div
@@ -160,32 +170,46 @@ export default function Page() {
         </header>
 
         <main className="relative container mx-auto px-4 py-20 md:py-32">
-          <div className="max-w-5xl mx-auto text-center space-y-8">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium">
-              <Star className="w-4 h-4" />
-              Interior Design Project Management Platform
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div className="space-y-8 text-center lg:text-left">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium">
+                <Star className="w-4 h-4" />
+                Interior Design Project Management Platform
+              </div>
+
+              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-balance">
+                Streamline Your
+                <span className="block text-primary mt-2">Office Interior Projects</span>
+              </h1>
+
+              <p className="text-lg md:text-xl text-muted-foreground text-balance max-w-3xl mx-auto lg:mx-0 leading-relaxed">
+                The complete platform for interior designers to manage projects, create accurate cost estimates, track
+                progress with Gantt charts, and collaborate seamlessly with clients and teams.
+              </p>
+
+              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-4">
+                <Button size="lg" className="w-full sm:w-auto gap-2" asChild>
+                  <Link href="/signup">
+                    Start Free Trial
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </Button>
+                <Button size="lg" variant="outline" className="w-full sm:w-auto bg-transparent" asChild>
+                  <Link href="/login">Sign In to Dashboard</Link>
+                </Button>
+              </div>
             </div>
 
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-balance">
-              Streamline Your
-              <span className="block text-primary mt-2">Office Interior Projects</span>
-            </h1>
-
-            <p className="text-lg md:text-xl text-muted-foreground text-balance max-w-3xl mx-auto leading-relaxed">
-              The complete platform for interior designers to manage projects, create accurate cost estimates, track
-              progress with Gantt charts, and collaborate seamlessly with clients and teams.
-            </p>
-
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-              <Button size="lg" className="w-full sm:w-auto gap-2" asChild>
-                <Link href="/signup">
-                  Start Free Trial
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-              </Button>
-              <Button size="lg" variant="outline" className="w-full sm:w-auto bg-transparent" asChild>
-                <Link href="/login">Sign In to Dashboard</Link>
-              </Button>
+            <div className="relative hidden lg:block">
+              <div className="relative aspect-square max-w-lg mx-auto">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5 rounded-3xl" />
+                <Image
+                  src="/interior-designer-working-on-office-layout-bluepri.jpg"
+                  alt="Interior design planning"
+                  fill
+                  className="object-contain p-8 rounded-3xl"
+                />
+              </div>
             </div>
           </div>
         </main>
@@ -223,6 +247,20 @@ export default function Page() {
             </p>
           </div>
 
+          <div className="mb-16 relative rounded-2xl overflow-hidden border shadow-xl">
+            <Image
+              src="/images/screenshot-202025-12-19-20at-2022.png"
+              alt="Gema AI Dashboard"
+              width={1200}
+              height={600}
+              className="w-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+            <div className="absolute bottom-6 left-6 right-6">
+              <p className="text-lg font-medium">Powerful dashboard to manage all your interior design projects</p>
+            </div>
+          </div>
+
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
             {mainFeatures.map((feature, index) => {
               const Icon = feature.icon
@@ -252,6 +290,45 @@ export default function Page() {
               Each project comes with powerful tools to manage every aspect of your interior design work, from layouts
               and materials to invoicing and team collaboration.
             </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-4 mb-16">
+            <div className="relative aspect-[4/3] rounded-xl overflow-hidden border">
+              <Image
+                src="/office-floor-plan-cad-drawing-with-furniture-layou.jpg"
+                alt="Layout Management"
+                fill
+                className="object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+              <div className="absolute bottom-4 left-4 text-white">
+                <p className="font-semibold">Layout & CAD Files</p>
+              </div>
+            </div>
+            <div className="relative aspect-[4/3] rounded-xl overflow-hidden border">
+              <Image
+                src="/bill-of-quantities-spreadsheet-for-interior-design.jpg"
+                alt="BOQ Management"
+                fill
+                className="object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+              <div className="absolute bottom-4 left-4 text-white">
+                <p className="font-semibold">Bill of Quantities</p>
+              </div>
+            </div>
+            <div className="relative aspect-[4/3] rounded-xl overflow-hidden border">
+              <Image
+                src="/gantt-chart-project-timeline-for-construction-and-.jpg"
+                alt="Gantt Chart"
+                fill
+                className="object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+              <div className="absolute bottom-4 left-4 text-white">
+                <p className="font-semibold">Project Timeline</p>
+              </div>
+            </div>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -334,27 +411,46 @@ export default function Page() {
               </div>
             </div>
             <div className="relative">
-              <div className="aspect-square rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 p-8 md:p-12">
-                <div className="h-full rounded-xl bg-card border shadow-xl p-6 space-y-4">
-                  <div className="flex items-center gap-3 pb-4 border-b">
-                    <div className="w-3 h-3 rounded-full bg-red-500" />
-                    <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                    <div className="w-3 h-3 rounded-full bg-green-500" />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-4">
+                  <div className="relative aspect-[3/4] rounded-2xl overflow-hidden border shadow-lg">
+                    <Image
+                      src="/modern-office-interior-with-ergonomic-furniture-an.jpg"
+                      alt="Modern office interior"
+                      fill
+                      className="object-cover"
+                    />
                   </div>
-                  <div className="space-y-3">
-                    <div className="h-4 bg-muted rounded w-3/4" />
-                    <div className="h-4 bg-muted rounded w-1/2" />
-                    <div className="h-20 bg-primary/10 rounded-lg" />
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="h-16 bg-muted rounded" />
-                      <div className="h-16 bg-muted rounded" />
-                      <div className="h-16 bg-muted rounded" />
-                    </div>
-                    <div className="h-4 bg-muted rounded w-2/3" />
-                    <div className="h-4 bg-muted rounded w-1/3" />
+                  <div className="relative aspect-square rounded-2xl overflow-hidden border shadow-lg">
+                    <Image
+                      src="/office-meeting-room-interior-design-with-glass-wal.jpg"
+                      alt="Meeting room design"
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-4 pt-8">
+                  <div className="relative aspect-square rounded-2xl overflow-hidden border shadow-lg">
+                    <Image
+                      src="/executive-office-interior-with-wooden-desk-and-lea.jpg"
+                      alt="Executive office"
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <div className="relative aspect-[3/4] rounded-2xl overflow-hidden border shadow-lg">
+                    <Image
+                      src="/open-plan-office-workspace-with-collaborative-area.jpg"
+                      alt="Open plan office"
+                      fill
+                      className="object-cover"
+                    />
                   </div>
                 </div>
               </div>
+              {/* Decorative gradient overlay */}
+              <div className="absolute -inset-4 bg-gradient-to-br from-primary/10 to-transparent rounded-3xl -z-10" />
             </div>
           </div>
         </div>

@@ -204,10 +204,10 @@ export default function Page() {
               <div className="relative aspect-square max-w-lg mx-auto">
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5 rounded-3xl" />
                 <Image
-                  src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/attachments/gen-images/v0_image-bojw7gUlckhnsgfsObkFZFsWo1TwrD.png"
+                  src="/professional-interior-designer-working-on-office-l.jpg"
                   alt="Interior design planning"
                   fill
-                  className="object-contain p-8 rounded-3xl"
+                  className="object-cover p-8 rounded-3xl"
                 />
               </div>
             </div>
@@ -291,8 +291,6 @@ export default function Page() {
               and materials to invoicing and team collaboration.
             </p>
           </div>
-
-          
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {projectFeatures.map((feature, index) => {

@@ -47,8 +47,8 @@ const mainNavigation: NavItem[] = [
 
 const secondaryNavigation: NavItem[] = [
   { name: "Profile", href: "/profile", icon: User },
-  { name: "Settings", href: "/settings", icon: Settings },
-  { name: "Help & Support", href: "/help", icon: HelpCircle },
+  // { name: "Settings", href: "/settings", icon: Settings },
+  // { name: "Help & Support", href: "/help", icon: HelpCircle },
 ]
 
 export function AppSidebar({ collapsed = false, onCollapse, className }: AppSidebarProps) {

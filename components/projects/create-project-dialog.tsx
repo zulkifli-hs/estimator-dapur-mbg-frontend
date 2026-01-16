@@ -503,7 +503,7 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess }: CreatePro
                   id="companyOwner.name"
                   value={formData.companyOwner.name}
                   onChange={(e) => handleChange("companyOwner.name", e.target.value)}
-                  placeholder="Gema Building"
+                  placeholder="PT Gema Intermulia Sejahtera"
                   required
                   disabled={loading}
                 />
@@ -515,7 +515,7 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess }: CreatePro
                   id="companyOwner.code"
                   value={formData.companyOwner.code}
                   onChange={(e) => handleChange("companyOwner.code", e.target.value)}
-                  placeholder="GEMA"
+                  placeholder="GIS"
                   required
                   disabled={loading}
                 />

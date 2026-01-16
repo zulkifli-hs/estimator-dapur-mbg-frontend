@@ -429,7 +429,7 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess }: CreatePro
 
           {/* Client Company Info */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-lg border-b pb-2">Client Company</h3>
+            <h3 className="font-semibold text-lg border-b pb-2">Client Company as per Legal Documents</h3>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="companyClient.name">Company Name *</Label>

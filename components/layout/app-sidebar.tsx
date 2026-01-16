@@ -134,7 +134,7 @@ export function AppSidebar({ collapsed = false, onCollapse, className }: AppSide
           ))}
         </div>
       </ScrollArea>
-
+      {/* 
       {!collapsed && (
         <div className="hidden lg:block border-t p-4">
           <div className="rounded-lg bg-primary/5 p-3">
@@ -145,7 +145,7 @@ export function AppSidebar({ collapsed = false, onCollapse, className }: AppSide
             </Button>
           </div>
         </div>
-      )}
+      )} */}
     </aside>
   )
 }

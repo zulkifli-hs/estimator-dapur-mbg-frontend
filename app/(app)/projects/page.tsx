@@ -1,5 +1,31 @@
 "use client"
 
+import { DialogFooter } from "@/components/ui/dialog"
+
+import { Label } from "@/components/ui/label"
+
+import { DialogDescription } from "@/components/ui/dialog"
+
+import { DialogTitle } from "@/components/ui/dialog"
+
+import { DialogHeader } from "@/components/ui/dialog"
+
+import { DialogContent } from "@/components/ui/dialog"
+
+import { Dialog } from "@/components/ui/dialog"
+
+import { TableCell } from "@/components/ui/table"
+
+import { TableBody } from "@/components/ui/table"
+
+import { TableHead } from "@/components/ui/table"
+
+import { TableRow } from "@/components/ui/table"
+
+import { TableHeader } from "@/components/ui/table"
+
+import { Table } from "@/components/ui/table"
+
 import type React from "react"
 
 import { useEffect, useState } from "react"
@@ -27,17 +53,6 @@ import {
 import { projectsApi } from "@/lib/api/projects"
 import Link from "next/link"
 import { CreateProjectDialog } from "@/components/projects/create-project-dialog"
-import { Badge } from "@/components/ui/badge"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import {
@@ -324,11 +339,15 @@ export default function ProjectsPage() {
                         {project.name}
                       </CardTitle>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <Badge className="bg-primary/10 text-primary w-fit">{project.type || "Project"}</Badge>
-                        <Badge className={`${getStatusBadge(project.status).className} flex items-center gap-1`}>
+                        <div className="bg-primary/10 text-primary w-fit px-2.5 py-0.5 rounded-full text-xs font-medium">
+                          {project.type || "Project"}
+                        </div>
+                        <div
+                          className={`${getStatusBadge(project.status).className} flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium`}
+                        >
                           <span className={`h-2 w-2 rounded-full ${getStatusBadge(project.status).dotClassName}`} />
                           {getStatusBadge(project.status).label}
-                        </Badge>
+                        </div>
                       </div>
                     </div>
                   </Link>
@@ -443,13 +462,17 @@ export default function ProjectsPage() {
                     </Link>
                   </TableCell>
                   <TableCell>
-                    <Badge className="bg-primary/10 text-primary">{project.type || "Project"}</Badge>
+                    <div className="bg-primary/10 text-primary px-2.5 py-0.5 rounded-full text-xs font-medium">
+                      {project.type || "Project"}
+                    </div>
                   </TableCell>
                   <TableCell>
-                    <Badge className={`${getStatusBadge(project.status).className} flex items-center gap-1 w-fit`}>
+                    <div
+                      className={`${getStatusBadge(project.status).className} flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium w-fit`}
+                    >
                       <span className={`h-2 w-2 rounded-full ${getStatusBadge(project.status).dotClassName}`} />
                       {getStatusBadge(project.status).label}
-                    </Badge>
+                    </div>
                   </TableCell>
                   <TableCell>{project.building}</TableCell>
                   <TableCell>{project.floor}</TableCell>

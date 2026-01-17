@@ -94,12 +94,12 @@ export default function ProjectDetailPage() {
           <h1 className="text-xl md:text-3xl font-bold tracking-tight truncate">{project.name}</h1>
           <p className="text-sm text-muted-foreground truncate">{project.companyClient?.name || "No client"}</p>
         </div>
-        <Button variant="outline" size="icon" className="h-8 w-8 md:h-10 md:w-10 bg-transparent">
+        {/* <Button variant="outline" size="icon" className="h-8 w-8 md:h-10 md:w-10 bg-transparent">
           <Edit className="h-3 w-3 md:h-4 md:w-4" />
         </Button>
         <Button variant="outline" size="icon" className="h-8 w-8 md:h-10 md:w-10 bg-transparent">
           <Trash2 className="h-3 w-3 md:h-4 md:w-4" />
-        </Button>
+        </Button> */}
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 md:space-y-6">

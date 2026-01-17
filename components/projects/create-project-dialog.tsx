@@ -16,16 +16,13 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Switch } from "@/components/ui/switch"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { toast } from "sonner"
 
 interface CreateProjectDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess: () => void
-}
-
-const isValidEmail = (email: string): boolean => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  return emailRegex.test(email)
+  editProject?: any
 }
 
 interface TeamMemberInputProps {
@@ -219,7 +216,12 @@ function TeamMemberInput({ label, emails, onAdd, onRemove, disabled }: TeamMembe
   )
 }
 
-export function CreateProjectDialog({ open, onOpenChange, onSuccess }: CreateProjectDialogProps) {
+const isValidEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return emailRegex.test(email)
+}
+
+export function CreateProjectDialog({ open, onOpenChange, onSuccess, editProject }: CreateProjectDialogProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const errorRef = useRef<HTMLDivElement>(null)
@@ -253,6 +255,83 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess }: CreatePro
     designers: [] as string[],
     admins: [] as string[],
   })
+
+  useEffect(() => {
+    if (editProject && open) {
+      const hasClientCompany = editProject.companyClient && Object.keys(editProject.companyClient).length > 0
+      const hasClientPIC =
+        editProject.companyClient?.picEmail || editProject.companyClient?.picName || editProject.companyClient?.picPhone
+      const hasTeamMembers =
+        editProject.estimators?.length > 0 ||
+        editProject.projectManagers?.length > 0 ||
+        editProject.finances?.length > 0 ||
+        editProject.designers?.length > 0 ||
+        editProject.admins?.length > 0
+
+      setShowClientCompany(hasClientCompany)
+      setShowClientPIC(hasClientPIC)
+      setShowTeamMembers(hasTeamMembers)
+
+      setFormData({
+        name: editProject.name || "",
+        type: editProject.type || "Renovation",
+        area: editProject.area || 0,
+        building: editProject.building || "",
+        floor: editProject.floor || 0,
+        companyClient: {
+          name: editProject.companyClient?.name || "",
+          contact: {
+            phone: editProject.companyClient?.contact?.phone || "",
+            email: editProject.companyClient?.contact?.email || "",
+            website: editProject.companyClient?.contact?.website || "",
+          },
+          type: editProject.companyClient?.type || "",
+          picEmail: editProject.companyClient?.picEmail || "",
+          picName: editProject.companyClient?.picName || "",
+          picPhone: editProject.companyClient?.picPhone || "",
+        },
+        companyOwner: {
+          name: editProject.companyOwner?.name || "",
+          code: editProject.companyOwner?.code || "",
+        },
+        estimators: editProject.estimators?.map((e: any) => e.user?.email).filter(Boolean) || [],
+        projectManagers: editProject.projectManagers?.map((e: any) => e.user?.email).filter(Boolean) || [],
+        finances: editProject.finances?.map((e: any) => e.user?.email).filter(Boolean) || [],
+        designers: editProject.designers?.map((e: any) => e.user?.email).filter(Boolean) || [],
+        admins: editProject.admins?.map((e: any) => e.user?.email).filter(Boolean) || [],
+      })
+    } else if (!open) {
+      // Reset form when dialog closes
+      setFormData({
+        name: "",
+        type: "Renovation",
+        area: 0,
+        building: "",
+        floor: 0,
+        companyClient: {
+          name: "",
+          contact: { phone: "", email: "", website: "" },
+          type: "",
+          picEmail: "",
+          picName: "",
+          picPhone: "",
+        },
+        companyOwner: {
+          name: "",
+          code: "",
+        },
+        estimators: [],
+        projectManagers: [],
+        finances: [],
+        designers: [],
+        admins: [],
+      })
+      setShowClientCompany(false)
+      setShowClientPIC(false)
+      setShowTeamMembers(false)
+      setError("")
+    }
+  }, [editProject, open])
 
   useEffect(() => {
     if (error && errorRef.current) {
@@ -309,6 +388,7 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess }: CreatePro
         building: formData.building,
         floor: formData.floor,
         companyOwner: formData.companyOwner,
+        companyClient: {},
         estimators: formData.estimators,
         projectManagers: formData.projectManagers,
         finances: formData.finances,
@@ -317,41 +397,51 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess }: CreatePro
       }
 
       if (showClientCompany) {
-        if (showClientPIC && !formData.companyClient.picEmail) {
-          setError("PIC Email is required when adding a Person in Charge")
-          setLoading(false)
-          return
+        const companyClientData: any = {}
+
+        if (formData.companyClient.name) companyClientData.name = formData.companyClient.name
+        if (formData.companyClient.type) companyClientData.type = formData.companyClient.type
+
+        if (
+          formData.companyClient.contact.phone ||
+          formData.companyClient.contact.email ||
+          formData.companyClient.contact.website
+        ) {
+          companyClientData.contact = {}
+          if (formData.companyClient.contact.phone)
+            companyClientData.contact.phone = formData.companyClient.contact.phone
+          if (formData.companyClient.contact.email)
+            companyClientData.contact.email = formData.companyClient.contact.email
+          if (formData.companyClient.contact.website)
+            companyClientData.contact.website = formData.companyClient.contact.website
         }
 
-        if (showClientPIC && formData.companyClient.picEmail) {
-          const companyClientData: any = {
-            name: formData.companyClient.name,
-            type: formData.companyClient.type,
-            picEmail: formData.companyClient.picEmail,
+        if (showClientPIC) {
+          if (!formData.companyClient.picEmail) {
+            setError("PIC Email is required when adding a Person in Charge")
+            setLoading(false)
+            return
           }
-
-          if (
-            formData.companyClient.contact.phone ||
-            formData.companyClient.contact.email ||
-            formData.companyClient.contact.website
-          ) {
-            companyClientData.contact = {}
-            if (formData.companyClient.contact.phone)
-              companyClientData.contact.phone = formData.companyClient.contact.phone
-            if (formData.companyClient.contact.email)
-              companyClientData.contact.email = formData.companyClient.contact.email
-            if (formData.companyClient.contact.website)
-              companyClientData.contact.website = formData.companyClient.contact.website
-          }
-
+          companyClientData.picEmail = formData.companyClient.picEmail
           if (formData.companyClient.picName) companyClientData.picName = formData.companyClient.picName
           if (formData.companyClient.picPhone) companyClientData.picPhone = formData.companyClient.picPhone
-
-          requestBody.companyClient = companyClientData
         }
+
+        requestBody.companyClient = companyClientData
       }
 
-      const response = await projectsApi.create(requestBody)
+      let response
+      if (editProject) {
+        response = await projectsApi.update(editProject._id, requestBody)
+        if (response.success) {
+          toast.success("Project updated successfully")
+        }
+      } else {
+        response = await projectsApi.create(requestBody)
+        if (response.success) {
+          toast.success("Project created successfully")
+        }
+      }
 
       if (response.success) {
         setFormData({
@@ -384,7 +474,7 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess }: CreatePro
         onSuccess()
         onOpenChange(false)
       } else {
-        setError(response.message || "Failed to create project")
+        setError(response.message || `Failed to ${editProject ? "update" : "create"} project`)
       }
     } catch (err: any) {
       setError(err?.message || "An error occurred. Please try again.")
@@ -397,8 +487,10 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess }: CreatePro
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[90vw] max-w-4xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl">Create New Project</DialogTitle>
-          <DialogDescription>Add a new interior design project with complete details</DialogDescription>
+          <DialogTitle className="text-2xl">{editProject ? "Edit Project" : "Create New Project"}</DialogTitle>
+          <DialogDescription>
+            {editProject ? "Update the project details" : "Add a new interior design project with complete details"}
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">

@@ -1,14 +1,28 @@
 "use client"
 
+import type React from "react"
+
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Plus, Search, Filter, MapPin, Calendar, User } from 'lucide-react'
+import { Plus, Search, Filter, MapPin, Calendar, User, LayoutGrid, List, Pencil, Trash2 } from "lucide-react"
 import { projectsApi } from "@/lib/api/projects"
 import Link from "next/link"
 import { CreateProjectDialog } from "@/components/projects/create-project-dialog"
 import { Badge } from "@/components/ui/badge"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { toast } from "sonner"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<any[]>([])
@@ -18,6 +32,16 @@ export default function ProjectsPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
+
+  const [viewMode, setViewMode] = useState<"card" | "list">("card")
+
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [editingProject, setEditingProject] = useState<any>(null)
+
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deletingProject, setDeletingProject] = useState<any>(null)
+  const [deleteConfirmName, setDeleteConfirmName] = useState("")
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     loadProjects()
@@ -41,10 +65,8 @@ export default function ProjectsPage() {
     try {
       setLoading(true)
       const response = await projectsApi.getAll({ page, limit: 10 })
-      console.log("[v0] Projects API response:", response)
 
       if (response.success && response.data) {
-        console.log("[v0] Projects data:", response.data)
         setProjects(response.data)
         setFilteredProjects(response.data)
         if (response.totalPage) {
@@ -52,7 +74,7 @@ export default function ProjectsPage() {
         }
       }
     } catch (error) {
-      console.error("[v0] Failed to load projects:", error)
+      console.error("Failed to load projects:", error)
     } finally {
       setLoading(false)
     }
@@ -60,6 +82,50 @@ export default function ProjectsPage() {
 
   const handleProjectCreated = () => {
     setCreateDialogOpen(false)
+    loadProjects()
+  }
+
+  const handleEditClick = (e: React.MouseEvent, project: any) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setEditingProject(project)
+    setEditDialogOpen(true)
+  }
+
+  const handleDeleteClick = (e: React.MouseEvent, project: any) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDeletingProject(project)
+    setDeleteConfirmName("")
+    setDeleteDialogOpen(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!deletingProject || deleteConfirmName !== deletingProject.name) return
+
+    try {
+      setIsDeleting(true)
+      const response = await projectsApi.delete(deletingProject._id)
+      if (response.success) {
+        toast.success("Project deleted successfully")
+        setDeleteDialogOpen(false)
+        setDeletingProject(null)
+        setDeleteConfirmName("")
+        loadProjects()
+      } else {
+        toast.error("Failed to delete project")
+      }
+    } catch (error) {
+      console.error("Failed to delete project:", error)
+      toast.error("Failed to delete project")
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const handleEditSuccess = () => {
+    setEditDialogOpen(false)
+    setEditingProject(null)
     loadProjects()
   }
 
@@ -86,10 +152,24 @@ export default function ProjectsPage() {
             className="pl-10"
           />
         </div>
-        <Button variant="outline">
-          <Filter className="h-4 w-4 mr-2" />
-          Filter
-        </Button>
+        <div className="flex gap-2">
+          <ToggleGroup
+            type="single"
+            value={viewMode}
+            onValueChange={(value) => value && setViewMode(value as "card" | "list")}
+          >
+            <ToggleGroupItem value="card" aria-label="Card view">
+              <LayoutGrid className="h-4 w-4" />
+            </ToggleGroupItem>
+            <ToggleGroupItem value="list" aria-label="List view">
+              <List className="h-4 w-4" />
+            </ToggleGroupItem>
+          </ToggleGroup>
+          <Button variant="outline">
+            <Filter className="h-4 w-4 mr-2" />
+            Filter
+          </Button>
+        </div>
       </div>
 
       {loading ? (
@@ -110,20 +190,46 @@ export default function ProjectsPage() {
             )}
           </CardContent>
         </Card>
-      ) : (
+      ) : viewMode === "card" ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredProjects.map((project) => (
-            <Link key={project._id} href={`/projects/${project._id}`}>
-              <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
-                <CardHeader>
-                  <div className="space-y-2">
-                    <CardTitle className="text-lg line-clamp-2">{project.name}</CardTitle>
-                    <Badge className="bg-primary/10 text-primary w-fit">{project.type || "Project"}</Badge>
+            <Card key={project._id} className="h-full hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <Link href={`/projects/${project._id}`} className="flex-1">
+                    <div className="space-y-2">
+                      <CardTitle className="text-lg line-clamp-2 hover:text-primary transition-colors">
+                        {project.name}
+                      </CardTitle>
+                      <Badge className="bg-primary/10 text-primary w-fit">{project.type || "Project"}</Badge>
+                    </div>
+                  </Link>
+                  <div className="flex gap-1 ml-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={(e) => handleEditClick(e, project)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={(e) => handleDeleteClick(e, project)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
+                </div>
+                <Link href={`/projects/${project._id}`}>
                   <CardDescription className="line-clamp-1">
                     {project.building} - Floor {project.floor}
                   </CardDescription>
-                </CardHeader>
+                </Link>
+              </CardHeader>
+              <Link href={`/projects/${project._id}`}>
                 <CardContent className="space-y-3">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <User className="h-4 w-4" />
@@ -138,10 +244,75 @@ export default function ProjectsPage() {
                     <span>Created: {new Date(project.createdAt).toLocaleDateString()}</span>
                   </div>
                 </CardContent>
-              </Card>
-            </Link>
+              </Link>
+            </Card>
           ))}
         </div>
+      ) : (
+        <Card>
+          <CardContent className="p-0">
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Project Name</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Building</TableHead>
+                    <TableHead>Floor</TableHead>
+                    <TableHead>Area</TableHead>
+                    <TableHead>Client</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredProjects.map((project) => (
+                    <TableRow key={project._id}>
+                      <TableCell>
+                        <Link
+                          href={`/projects/${project._id}`}
+                          className="font-medium hover:text-primary transition-colors whitespace-normal break-words max-w-[200px]"
+                        >
+                          {project.name}
+                        </Link>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className="bg-primary/10 text-primary">{project.type || "Project"}</Badge>
+                      </TableCell>
+                      <TableCell>{project.building}</TableCell>
+                      <TableCell>{project.floor}</TableCell>
+                      <TableCell>{project.area} m²</TableCell>
+                      <TableCell className="whitespace-normal break-words max-w-[150px]">
+                        {project.companyClient?.name || "N/A"}
+                      </TableCell>
+                      <TableCell>{new Date(project.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={(e) => handleEditClick(e, project)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={(e) => handleDeleteClick(e, project)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       <CreateProjectDialog
@@ -149,6 +320,54 @@ export default function ProjectsPage() {
         onOpenChange={setCreateDialogOpen}
         onSuccess={handleProjectCreated}
       />
+
+      <CreateProjectDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onSuccess={handleEditSuccess}
+        editProject={editingProject}
+      />
+
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-destructive">Delete Project</DialogTitle>
+            <DialogDescription>
+              This action cannot be undone. This will permanently delete the project and all associated data including
+              BOQ, documents, and team assignments.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="rounded-lg bg-destructive/10 p-4">
+              <p className="text-sm font-medium">Project to delete:</p>
+              <p className="text-lg font-bold text-destructive">{deletingProject?.name}</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirm-name">
+                Type <span className="font-bold">{deletingProject?.name}</span> to confirm deletion:
+              </Label>
+              <Input
+                id="confirm-name"
+                value={deleteConfirmName}
+                onChange={(e) => setDeleteConfirmName(e.target.value)}
+                placeholder="Enter project name to confirm"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={deleteConfirmName !== deletingProject?.name || isDeleting}
+            >
+              {isDeleting ? "Deleting..." : "Delete Project"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

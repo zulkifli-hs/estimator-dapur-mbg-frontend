@@ -249,8 +249,8 @@ export default function ProjectsPage() {
           ))}
         </div>
       ) : (
-        <Card>
-          <CardContent className="p-0">
+        {/* <Card>
+          <CardContent className="p-0"> */}
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
@@ -311,8 +311,8 @@ export default function ProjectsPage() {
                 </TableBody>
               </Table>
             </div>
-          </CardContent>
-        </Card>
+          {/* </CardContent>
+        </Card> */}
       )}
 
       <CreateProjectDialog

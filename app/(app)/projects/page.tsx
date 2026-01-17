@@ -1,34 +1,23 @@
 "use client"
 
-import { DialogFooter } from "@/components/ui/dialog"
-
-import { Label } from "@/components/ui/label"
-
-import { DialogDescription } from "@/components/ui/dialog"
-
-import { DialogTitle } from "@/components/ui/dialog"
-
-import { DialogHeader } from "@/components/ui/dialog"
-
-import { DialogContent } from "@/components/ui/dialog"
-
-import { Dialog } from "@/components/ui/dialog"
-
-import { TableCell } from "@/components/ui/table"
-
-import { TableBody } from "@/components/ui/table"
-
-import { TableHead } from "@/components/ui/table"
-
-import { TableRow } from "@/components/ui/table"
-
-import { TableHeader } from "@/components/ui/table"
-
-import { Table } from "@/components/ui/table"
-
 import type React from "react"
 
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
+
+import { useState } from "react"
+
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
+
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table"
+
+import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -80,26 +69,26 @@ const getStatusBadge = (status: string) => {
     case "active":
       return {
         label: "Active",
-        className: "bg-green-100 text-green-700 border border-green-300",
-        dotClassName: "bg-green-500",
+        badgeStyle: { backgroundColor: "#dcfce7", color: "#15803d", borderColor: "#86efac" },
+        dotStyle: { backgroundColor: "#22c55e" },
       }
     case "completed":
       return {
         label: "Completed",
-        className: "bg-blue-100 text-blue-700 border border-blue-300",
-        dotClassName: "bg-blue-500",
+        badgeStyle: { backgroundColor: "#dbeafe", color: "#1d4ed8", borderColor: "#93c5fd" },
+        dotStyle: { backgroundColor: "#3b82f6" },
       }
     case "archive":
       return {
         label: "Archived",
-        className: "bg-gray-100 text-gray-600 border border-gray-300",
-        dotClassName: "bg-gray-400",
+        badgeStyle: { backgroundColor: "#f3f4f6", color: "#4b5563", borderColor: "#d1d5db" },
+        dotStyle: { backgroundColor: "#9ca3af" },
       }
     default:
       return {
         label: status || "Unknown",
-        className: "bg-gray-100 text-gray-600 border border-gray-300",
-        dotClassName: "bg-gray-400",
+        badgeStyle: { backgroundColor: "#f3f4f6", color: "#4b5563", borderColor: "#d1d5db" },
+        dotStyle: { backgroundColor: "#9ca3af" },
       }
   }
 }
@@ -343,9 +332,10 @@ export default function ProjectsPage() {
                           {project.type || "Project"}
                         </div>
                         <div
-                          className={`${getStatusBadge(project.status).className} flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium`}
+                          style={getStatusBadge(project.status).badgeStyle}
+                          className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border"
                         >
-                          <span className={`h-2 w-2 rounded-full ${getStatusBadge(project.status).dotClassName}`} />
+                          <span style={getStatusBadge(project.status).dotStyle} className="h-2 w-2 rounded-full" />
                           {getStatusBadge(project.status).label}
                         </div>
                       </div>
@@ -468,9 +458,10 @@ export default function ProjectsPage() {
                   </TableCell>
                   <TableCell>
                     <div
-                      className={`${getStatusBadge(project.status).className} flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium w-fit`}
+                      style={getStatusBadge(project.status).badgeStyle}
+                      className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium w-fit border"
                     >
-                      <span className={`h-2 w-2 rounded-full ${getStatusBadge(project.status).dotClassName}`} />
+                      <span style={getStatusBadge(project.status).dotStyle} className="h-2 w-2 rounded-full" />
                       {getStatusBadge(project.status).label}
                     </div>
                   </TableCell>

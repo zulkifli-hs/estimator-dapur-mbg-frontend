@@ -1,10 +1,12 @@
 "use client"
 
+import type React from "react"
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { UserPlus, Phone, X, Plus, Search, Check, Trash2, Users, Building2, Crown } from 'lucide-react'
+import { Phone, X, Plus, Search, Check, Trash2, Users, Building2, Crown } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import {
   AlertDialog,
@@ -56,7 +58,7 @@ export function ProjectMembers({ project, onUpdate }: ProjectMembersProps) {
           const userEmail = member.user?.email || ""
           const userPhoto = member.user?.profile?.photo?.url || ""
           const userPhone = member.user?.profile?.phone || ""
-          
+
           return (
             <div
               key={member._id}
@@ -64,25 +66,34 @@ export function ProjectMembers({ project, onUpdate }: ProjectMembersProps) {
             >
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <Avatar className="h-10 w-10 ring-2 ring-background">
-                  {userPhoto && <AvatarImage src={userPhoto.startsWith('http') ? userPhoto : `${process.env.NEXT_PUBLIC_API_BASE_URL}/${userPhoto}`} />}
-                  <AvatarFallback className="text-xs">{userName ? getInitials(userName) : userEmail.charAt(0).toUpperCase()}</AvatarFallback>
+                  {userPhoto && (
+                    <AvatarImage
+                      src={
+                        userPhoto.startsWith("http")
+                          ? userPhoto
+                          : `${process.env.NEXT_PUBLIC_API_BASE_URL}/${userPhoto}`
+                      }
+                    />
+                  )}
+                  <AvatarFallback className="text-xs">
+                    {userName ? getInitials(userName) : userEmail.charAt(0).toUpperCase()}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   {userName && <p className="font-medium text-sm truncate">{userName}</p>}
-                  <p className={`text-xs text-muted-foreground truncate ${!userName ? 'font-medium' : ''}`}>{userEmail}</p>
+                  <p className={`text-xs text-muted-foreground truncate ${!userName ? "font-medium" : ""}`}>
+                    {userEmail}
+                  </p>
                   {userPhone && (
                     <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                      <Phone className="h-3 w-3" />
+                      <Phone className="h-3.5 w-3.5" />
                       {userPhone}
                     </p>
                   )}
                 </div>
               </div>
               <div className="flex items-center gap-2 ml-2">
-                <Badge 
-                  variant={member.status === "Accepted" ? "default" : "secondary"}
-                  className="text-xs"
-                >
+                <Badge variant={member.status === "Accepted" ? "default" : "secondary"} className="text-xs">
                   {member.status}
                 </Badge>
                 {!isClientRole && (
@@ -136,19 +147,15 @@ export function ProjectMembers({ project, onUpdate }: ProjectMembersProps) {
 
   // Handler for remove member
   const handleRemoveMember = async () => {
-    console.log('[v0] Remove member request:', {
+    console.log("[v0] Remove member request:", {
       projectId: project._id,
       memberId: removeMemberDialog.memberId,
       role: removeMemberDialog.role,
     })
-    
+
     setIsRemoving(true)
     try {
-      const result = await projectsApi.removeMember(
-        project._id,
-        [removeMemberDialog.memberId],
-        removeMemberDialog.role
-      )
+      const result = await projectsApi.removeMember(project._id, [removeMemberDialog.memberId], removeMemberDialog.role)
       if (result.success) {
         toast({
           title: "Member removed",
@@ -224,7 +231,15 @@ export function ProjectMembers({ project, onUpdate }: ProjectMembersProps) {
             {project.companyClient && project.companyClient.picName ? (
               <div className="flex items-center gap-4 p-4 border-2 border-blue-500/20 rounded-lg bg-gradient-to-br from-blue-500/5 to-background">
                 <Avatar className="h-14 w-14 ring-2 ring-blue-500/20">
-                  <AvatarImage src={project.clients[0].user?.profile?.photo || "/placeholder.svg"} />
+                  <AvatarImage
+                    src={
+                      project.clients && project.clients.length > 0 && project.clients[0]?.user?.profile?.photo?.url
+                        ? project.clients[0].user.profile.photo.url.startsWith("http")
+                          ? project.clients[0].user.profile.photo.url
+                          : `${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${project.clients[0].user.profile.photo.provider}/${project.clients[0].user.profile.photo.url}`
+                        : "/placeholder.svg"
+                    }
+                  />
                   <AvatarFallback className="bg-blue-500/10 text-blue-600 font-semibold">
                     {getInitials(project.companyClient.picName || "C")}
                   </AvatarFallback>
@@ -256,7 +271,7 @@ export function ProjectMembers({ project, onUpdate }: ProjectMembersProps) {
           <h3 className="text-lg font-semibold">Team Members</h3>
           <p className="text-sm text-muted-foreground">Manage project team roles and permissions</p>
         </div>
-        
+
         <div className="grid gap-4 md:grid-cols-2">
           <Card className="hover:shadow-md transition-shadow">
             <CardHeader className="pb-3">
@@ -363,17 +378,20 @@ export function ProjectMembers({ project, onUpdate }: ProjectMembersProps) {
         onSuccess={handleInviteSuccess}
       />
 
-      <AlertDialog open={removeMemberDialog.open} onOpenChange={(open) => {
-        if (!isRemoving) {
-          setRemoveMemberDialog({ ...removeMemberDialog, open })
-        }
-      }}>
+      <AlertDialog
+        open={removeMemberDialog.open}
+        onOpenChange={(open) => {
+          if (!isRemoving) {
+            setRemoveMemberDialog({ ...removeMemberDialog, open })
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remove Member</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to remove <span className="font-semibold">{removeMemberDialog.memberName}</span> from this project?
-              This action cannot be undone.
+              Are you sure you want to remove <span className="font-semibold">{removeMemberDialog.memberName}</span>{" "}
+              from this project? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -445,7 +463,7 @@ function InviteMemberDialog({ open, onOpenChange, projectId, role, onSuccess }: 
 
   const handleSelectUser = (user: User) => {
     const email = user.email
-    
+
     if (emails.includes(email)) {
       setError("This email has already been added")
       return
@@ -514,7 +532,7 @@ function InviteMemberDialog({ open, onOpenChange, projectId, role, onSuccess }: 
       if (result.success) {
         toast({
           title: "Invitations sent",
-          description: `Successfully invited ${emails.length} member${emails.length > 1 ? 's' : ''} to the project.`,
+          description: `Successfully invited ${emails.length} member${emails.length > 1 ? "s" : ""} to the project.`,
         })
         setEmails([])
         setInputValue("")
@@ -538,7 +556,7 @@ function InviteMemberDialog({ open, onOpenChange, projectId, role, onSuccess }: 
       finances: "Finance Team",
       designers: "Designers",
       clients: "Clients",
-      admins: "Admins"
+      admins: "Admins",
     }
     return roleMap[role] || role
   }
@@ -548,9 +566,7 @@ function InviteMemberDialog({ open, onOpenChange, projectId, role, onSuccess }: 
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Invite Members</DialogTitle>
-          <DialogDescription>
-            Add members to the project as {getRoleLabel(role)}
-          </DialogDescription>
+          <DialogDescription>Add members to the project as {getRoleLabel(role)}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -571,7 +587,7 @@ function InviteMemberDialog({ open, onOpenChange, projectId, role, onSuccess }: 
                   className={error ? "border-destructive" : ""}
                 />
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                
+
                 {showDropdown && (
                   <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-md max-h-[300px] overflow-auto">
                     {loading ? (
@@ -585,16 +601,17 @@ function InviteMemberDialog({ open, onOpenChange, projectId, role, onSuccess }: 
                             className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-accent rounded-sm"
                           >
                             <Avatar className="h-8 w-8">
-                              <AvatarImage src={getImageUrl(user.profile.photo.url) || "/placeholder.svg"} alt={user.profile.name} />
+                              <AvatarImage
+                                src={getImageUrl(user.profile.photo.url) || "/placeholder.svg"}
+                                alt={user.profile.name}
+                              />
                               <AvatarFallback>{user.profile.name.charAt(0).toUpperCase()}</AvatarFallback>
                             </Avatar>
                             <div className="flex flex-col flex-1 min-w-0">
                               <p className="font-medium text-sm truncate">{user.profile.name}</p>
                               <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                             </div>
-                            {emails.includes(user.email) && (
-                              <Check className="h-4 w-4 text-primary" />
-                            )}
+                            {emails.includes(user.email) && <Check className="h-4 w-4 text-primary" />}
                           </div>
                         ))}
                       </div>
@@ -606,7 +623,7 @@ function InviteMemberDialog({ open, onOpenChange, projectId, role, onSuccess }: 
                             type="button"
                             variant="outline"
                             size="sm"
-                            className="w-full"
+                            className="w-full bg-transparent"
                             onClick={handleAddManual}
                           >
                             <Plus className="h-4 w-4 mr-2" />
@@ -649,7 +666,7 @@ function InviteMemberDialog({ open, onOpenChange, projectId, role, onSuccess }: 
               Cancel
             </Button>
             <Button onClick={handleSubmit} disabled={submitting || emails.length === 0}>
-              {submitting ? "Sending..." : `Invite ${emails.length} Member${emails.length > 1 ? 's' : ''}`}
+              {submitting ? "Sending..." : `Invite ${emails.length} Member${emails.length > 1 ? "s" : ""}`}
             </Button>
           </div>
         </div>

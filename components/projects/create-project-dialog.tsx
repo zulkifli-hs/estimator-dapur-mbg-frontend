@@ -387,8 +387,10 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess, editProject
         area: formData.area,
         building: formData.building,
         floor: formData.floor,
-        companyOwner: formData.companyOwner,
-        companyClient: {},
+        companyOwner: {
+          name: formData.companyOwner.name,
+          code: formData.companyOwner.code,
+        },
         estimators: formData.estimators,
         projectManagers: formData.projectManagers,
         finances: formData.finances,
@@ -428,10 +430,18 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess, editProject
         }
 
         requestBody.companyClient = companyClientData
+      } else {
+        requestBody.companyClient = {}
       }
 
       let response
       if (editProject) {
+        delete requestBody.estimators
+        delete requestBody.projectManagers
+        delete requestBody.finances
+        delete requestBody.designers
+        delete requestBody.admins
+
         response = await projectsApi.update(editProject._id, requestBody)
         if (response.success) {
           toast.success("Project updated successfully")

@@ -66,25 +66,25 @@ const getStatusBadge = (status: string) => {
       return {
         label: "Active",
         className: "bg-green-100 text-green-700 border border-green-300",
-        iconClassName: "fill-green-500 text-green-500",
+        dotClassName: "bg-green-500",
       }
     case "completed":
       return {
         label: "Completed",
         className: "bg-blue-100 text-blue-700 border border-blue-300",
-        iconClassName: "fill-blue-500 text-blue-500",
+        dotClassName: "bg-blue-500",
       }
     case "archive":
       return {
         label: "Archived",
         className: "bg-gray-100 text-gray-600 border border-gray-300",
-        iconClassName: "fill-gray-400 text-gray-400",
+        dotClassName: "bg-gray-400",
       }
     default:
       return {
         label: status || "Unknown",
         className: "bg-gray-100 text-gray-600 border border-gray-300",
-        iconClassName: "fill-gray-400 text-gray-400",
+        dotClassName: "bg-gray-400",
       }
   }
 }
@@ -326,7 +326,7 @@ export default function ProjectsPage() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <Badge className="bg-primary/10 text-primary w-fit">{project.type || "Project"}</Badge>
                         <Badge className={`${getStatusBadge(project.status).className} flex items-center gap-1`}>
-                          <span className={`h-2 w-2 rounded-full ${getStatusBadge(project.status).iconClassName}`} />
+                          <span className={`h-2 w-2 rounded-full ${getStatusBadge(project.status).dotClassName}`} />
                           {getStatusBadge(project.status).label}
                         </Badge>
                       </div>
@@ -446,8 +446,8 @@ export default function ProjectsPage() {
                     <Badge className="bg-primary/10 text-primary">{project.type || "Project"}</Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge className={`${getStatusBadge(project.status).className} flex items-center gap-1`}>
-                      <span className={`h-2 w-2 rounded-full ${getStatusBadge(project.status).iconClassName}`} />
+                    <Badge className={`${getStatusBadge(project.status).className} flex items-center gap-1 w-fit`}>
+                      <span className={`h-2 w-2 rounded-full ${getStatusBadge(project.status).dotClassName}`} />
                       {getStatusBadge(project.status).label}
                     </Badge>
                   </TableCell>

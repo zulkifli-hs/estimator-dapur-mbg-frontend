@@ -15,81 +15,158 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Plus, Bug, MoreHorizontal, Pencil, Trash2, ImageIcon, X, ExternalLink, GripVertical } from "lucide-react"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Badge } from "@/components/ui/badge"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
+import { Plus, Bug, MoreHorizontal, ExternalLink, ImageIcon, X, Loader2, Trash2 } from "lucide-react"
+import type { BugReport, BugStatus, CreateBugReportInput } from "@/lib/types/bug-report"
 
-type BugReportStatus = "backlog" | "on-going" | "review" | "done"
-
-interface BugReport {
-  _id: string
-  title: string
-  description: string
-  url: string
-  images: string[]
-  status: BugReportStatus
-  createdAt: string
-  updatedAt: string
-}
-
-const STORAGE_KEY = "bug_reports"
-
-const getReportsFromStorage = (): BugReport[] => {
-  if (typeof window === "undefined") return []
-  const stored = localStorage.getItem(STORAGE_KEY)
-  return stored ? JSON.parse(stored) : []
-}
-
-const saveReportsToStorage = (reports: BugReport[]) => {
-  if (typeof window === "undefined") return
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(reports))
-}
-
-const generateId = () => {
-  return Date.now().toString(36) + Math.random().toString(36).substr(2)
-}
-
-const statusColumns: { id: BugReportStatus; title: string; color: string }[] = [
-  { id: "backlog", title: "Backlog", color: "bg-gray-100 border-gray-300" },
-  { id: "on-going", title: "On Going", color: "bg-blue-50 border-blue-300" },
-  { id: "review", title: "Review", color: "bg-yellow-50 border-yellow-300" },
-  { id: "done", title: "Done", color: "bg-green-50 border-green-300" },
+const statusColumns: { status: BugStatus; label: string; color: string }[] = [
+  { status: "backlog", label: "Backlog", color: "bg-gray-500" },
+  { status: "on-going", label: "On-going", color: "bg-blue-500" },
+  { status: "review", label: "Review", color: "bg-yellow-500" },
+  { status: "done", label: "Done", color: "bg-green-500" },
 ]
 
 export default function BugReportPage() {
-  const [reports, setReports] = useState<BugReport[]>([])
+  const [bugReports, setBugReports] = useState<BugReport[]>([])
   const [loading, setLoading] = useState(true)
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
-  const [editDialogOpen, setEditDialogOpen] = useState(false)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [selectedReport, setSelectedReport] = useState<BugReport | null>(null)
-  const [submitting, setSubmitting] = useState(false)
-  const [draggedReport, setDraggedReport] = useState<BugReport | null>(null)
-  const [dragOverColumn, setDragOverColumn] = useState<BugReportStatus | null>(null)
-  const { toast } = useToast()
-
-  // Form state
-  const [formData, setFormData] = useState({
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false)
+  const [selectedBug, setSelectedBug] = useState<BugReport | null>(null)
+  const [creating, setCreating] = useState(false)
+  const [formData, setFormData] = useState<CreateBugReportInput>({
     title: "",
     description: "",
     url: "",
-    images: [] as string[],
+    images: [],
   })
-
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const { toast } = useToast()
+
+  const fetchBugReports = async () => {
+    try {
+      const response = await fetch("/api/bug-reports")
+      const data = await response.json()
+      if (data.success) {
+        setBugReports(data.data)
+      }
+    } catch (error) {
+      console.error("Error fetching bug reports:", error)
+      toast({
+        title: "Error",
+        description: "Failed to fetch bug reports",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const storedReports = getReportsFromStorage()
-    setReports(storedReports)
-    setLoading(false)
+    fetchBugReports()
   }, [])
+
+  const handleCreateBugReport = async () => {
+    if (!formData.title || !formData.description) {
+      toast({
+        title: "Error",
+        description: "Title and description are required",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setCreating(true)
+    try {
+      const response = await fetch("/api/bug-reports", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      })
+      const data = await response.json()
+
+      if (data.success) {
+        toast({
+          title: "Success",
+          description: "Bug report created successfully",
+        })
+        setCreateDialogOpen(false)
+        setFormData({ title: "", description: "", url: "", images: [] })
+        fetchBugReports()
+      } else {
+        throw new Error(data.error)
+      }
+    } catch (error) {
+      console.error("Error creating bug report:", error)
+      toast({
+        title: "Error",
+        description: "Failed to create bug report",
+        variant: "destructive",
+      })
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  const handleStatusChange = async (bugId: string, newStatus: BugStatus) => {
+    try {
+      const response = await fetch(`/api/bug-reports/${bugId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      })
+      const data = await response.json()
+
+      if (data.success) {
+        toast({
+          title: "Success",
+          description: "Status updated successfully",
+        })
+        fetchBugReports()
+      } else {
+        throw new Error(data.error)
+      }
+    } catch (error) {
+      console.error("Error updating status:", error)
+      toast({
+        title: "Error",
+        description: "Failed to update status",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleDeleteBugReport = async (bugId: string) => {
+    try {
+      const response = await fetch(`/api/bug-reports/${bugId}`, {
+        method: "DELETE",
+      })
+      const data = await response.json()
+
+      if (data.success) {
+        toast({
+          title: "Success",
+          description: "Bug report deleted successfully",
+        })
+        setDetailDialogOpen(false)
+        setSelectedBug(null)
+        fetchBugReports()
+      } else {
+        throw new Error(data.error)
+      }
+    } catch (error) {
+      console.error("Error deleting bug report:", error)
+      toast({
+        title: "Error",
+        description: "Failed to delete bug report",
+        variant: "destructive",
+      })
+    }
+  }
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
@@ -97,11 +174,11 @@ export default function BugReportPage() {
 
     Array.from(files).forEach((file) => {
       const reader = new FileReader()
-      reader.onload = (event) => {
-        const base64 = event.target?.result as string
+      reader.onload = (e) => {
+        const base64 = e.target?.result as string
         setFormData((prev) => ({
           ...prev,
-          images: [...prev.images, base64],
+          images: [...(prev.images || []), base64],
         }))
       }
       reader.readAsDataURL(file)
@@ -111,192 +188,23 @@ export default function BugReportPage() {
   const removeImage = (index: number) => {
     setFormData((prev) => ({
       ...prev,
-      images: prev.images.filter((_, i) => i !== index),
+      images: prev.images?.filter((_, i) => i !== index) || [],
     }))
   }
 
-  const resetForm = () => {
-    setFormData({
-      title: "",
-      description: "",
-      url: "",
-      images: [],
-    })
+  const getBugsByStatus = (status: BugStatus) => {
+    return bugReports.filter((bug) => bug.status === status)
   }
 
-  const handleCreate = async () => {
-    if (!formData.title || !formData.description) {
-      toast({
-        title: "Validation Error",
-        description: "Title and description are required",
-        variant: "destructive",
-      })
-      return
-    }
-
-    setSubmitting(true)
-    try {
-      const newReport: BugReport = {
-        _id: generateId(),
-        title: formData.title,
-        description: formData.description,
-        url: formData.url,
-        images: formData.images,
-        status: "backlog",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      }
-
-      const updatedReports = [newReport, ...reports]
-      saveReportsToStorage(updatedReports)
-      setReports(updatedReports)
-
-      toast({
-        title: "Success",
-        description: "Bug report created successfully",
-      })
-      setCreateDialogOpen(false)
-      resetForm()
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to create bug report",
-        variant: "destructive",
-      })
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  const handleEdit = async () => {
-    if (!selectedReport) return
-
-    setSubmitting(true)
-    try {
-      const updatedReports = reports.map((r) =>
-        r._id === selectedReport._id
-          ? {
-              ...r,
-              title: formData.title,
-              description: formData.description,
-              url: formData.url,
-              images: formData.images,
-              updatedAt: new Date().toISOString(),
-            }
-          : r,
-      )
-      saveReportsToStorage(updatedReports)
-      setReports(updatedReports)
-
-      toast({
-        title: "Success",
-        description: "Bug report updated successfully",
-      })
-      setEditDialogOpen(false)
-      setSelectedReport(null)
-      resetForm()
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update bug report",
-        variant: "destructive",
-      })
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  const handleDelete = async () => {
-    if (!selectedReport) return
-
-    setSubmitting(true)
-    try {
-      const updatedReports = reports.filter((r) => r._id !== selectedReport._id)
-      saveReportsToStorage(updatedReports)
-      setReports(updatedReports)
-
-      toast({
-        title: "Success",
-        description: "Bug report deleted successfully",
-      })
-      setDeleteDialogOpen(false)
-      setSelectedReport(null)
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete bug report",
-        variant: "destructive",
-      })
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  const handleStatusChange = async (report: BugReport, newStatus: BugReportStatus) => {
-    try {
-      const updatedReports = reports.map((r) =>
-        r._id === report._id ? { ...r, status: newStatus, updatedAt: new Date().toISOString() } : r,
-      )
-      saveReportsToStorage(updatedReports)
-      setReports(updatedReports)
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update status",
-        variant: "destructive",
-      })
-    }
-  }
-
-  const openEditDialog = (report: BugReport) => {
-    setSelectedReport(report)
-    setFormData({
-      title: report.title,
-      description: report.description,
-      url: report.url,
-      images: report.images,
-    })
-    setEditDialogOpen(true)
-  }
-
-  const openDeleteDialog = (report: BugReport) => {
-    setSelectedReport(report)
-    setDeleteDialogOpen(true)
-  }
-
-  // Drag and drop handlers
-  const handleDragStart = (e: React.DragEvent, report: BugReport) => {
-    setDraggedReport(report)
-    e.dataTransfer.effectAllowed = "move"
-  }
-
-  const handleDragOver = (e: React.DragEvent, status: BugReportStatus) => {
-    e.preventDefault()
-    setDragOverColumn(status)
-  }
-
-  const handleDragLeave = () => {
-    setDragOverColumn(null)
-  }
-
-  const handleDrop = async (e: React.DragEvent, newStatus: BugReportStatus) => {
-    e.preventDefault()
-    setDragOverColumn(null)
-
-    if (draggedReport && draggedReport.status !== newStatus) {
-      await handleStatusChange(draggedReport, newStatus)
-    }
-    setDraggedReport(null)
-  }
-
-  const getReportsByStatus = (status: BugReportStatus) => {
-    return reports.filter((report) => report.status === status)
+  const openBugDetail = (bug: BugReport) => {
+    setSelectedBug(bug)
+    setDetailDialogOpen(true)
   }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="flex items-center justify-center h-[calc(100vh-200px)]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
   }
@@ -309,302 +217,261 @@ export default function BugReportPage() {
           <h1 className="text-2xl font-bold">Bug Report</h1>
           <p className="text-muted-foreground">Track and manage bug reports</p>
         </div>
-        <Button onClick={() => setCreateDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Report Bug
-        </Button>
+        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              New Bug Report
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Create Bug Report</DialogTitle>
+              <DialogDescription>Fill in the details to create a new bug report</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="title">Title *</Label>
+                <Input
+                  id="title"
+                  placeholder="Brief description of the bug"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="description">Description *</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Detailed description of the bug, steps to reproduce, expected behavior..."
+                  rows={4}
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="url">URL (optional)</Label>
+                <Input
+                  id="url"
+                  placeholder="https://example.com/page-with-bug"
+                  value={formData.url}
+                  onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Images (optional)</Label>
+                <div className="flex flex-wrap gap-2">
+                  {formData.images?.map((img, index) => (
+                    <div key={index} className="relative w-20 h-20 rounded-lg overflow-hidden border">
+                      <img
+                        src={img || "/placeholder.svg"}
+                        alt={`Upload ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(index)}
+                        className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-0.5"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-20 h-20 rounded-lg border-2 border-dashed border-muted-foreground/25 flex items-center justify-center hover:border-primary/50 transition-colors"
+                  >
+                    <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleCreateBugReport} disabled={creating}>
+                {creating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Create Report
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Kanban Board */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {statusColumns.map((column) => (
-          <div
-            key={column.id}
-            className={`rounded-lg border-2 ${column.color} ${
-              dragOverColumn === column.id ? "ring-2 ring-primary" : ""
-            }`}
-            onDragOver={(e) => handleDragOver(e, column.id)}
-            onDragLeave={handleDragLeave}
-            onDrop={(e) => handleDrop(e, column.id)}
-          >
-            <div className="p-3 border-b bg-white/50">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold">{column.title}</h3>
-                <span className="text-sm text-muted-foreground bg-white px-2 py-0.5 rounded-full">
-                  {getReportsByStatus(column.id).length}
-                </span>
-              </div>
+          <div key={column.status} className="space-y-3">
+            <div className="flex items-center gap-2">
+              <div className={`w-3 h-3 rounded-full ${column.color}`} />
+              <h3 className="font-semibold">{column.label}</h3>
+              <Badge variant="secondary" className="ml-auto">
+                {getBugsByStatus(column.status).length}
+              </Badge>
             </div>
-            <div className="p-2 space-y-2 min-h-[200px]">
-              {getReportsByStatus(column.id).map((report) => (
-                <Card
-                  key={report._id}
-                  className={`cursor-grab active:cursor-grabbing ${
-                    draggedReport?._id === report._id ? "opacity-50" : ""
-                  }`}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, report)}
-                >
-                  <CardContent className="p-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-sm truncate">{report.title}</h4>
-                          <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{report.description}</p>
+            <ScrollArea className="h-[calc(100vh-280px)]">
+              <div className="space-y-3 pr-2">
+                {getBugsByStatus(column.status).map((bug) => (
+                  <Card
+                    key={bug._id}
+                    className="cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => openBugDetail(bug)}
+                  >
+                    <CardContent className="p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Bug className="h-4 w-4 text-destructive flex-shrink-0" />
+                          <span className="font-medium text-sm truncate">{bug.title}</span>
                         </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                            <Button variant="ghost" size="icon" className="h-6 w-6">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {statusColumns
+                              .filter((s) => s.status !== bug.status)
+                              .map((s) => (
+                                <DropdownMenuItem
+                                  key={s.status}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleStatusChange(bug._id!, s.status)
+                                  }}
+                                >
+                                  <div className={`w-2 h-2 rounded-full ${s.color} mr-2`} />
+                                  Move to {s.label}
+                                </DropdownMenuItem>
+                              ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => openEditDialog(report)}>
-                            <Pencil className="h-4 w-4 mr-2" />
-                            Edit
-                          </DropdownMenuItem>
-                          {report.url && (
-                            <DropdownMenuItem asChild>
-                              <a href={report.url} target="_blank" rel="noopener noreferrer">
-                                <ExternalLink className="h-4 w-4 mr-2" />
-                                Open URL
-                              </a>
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive" onClick={() => openDeleteDialog(report)}>
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                    {report.images.length > 0 && (
-                      <div className="flex gap-1 mt-2">
-                        {report.images.slice(0, 3).map((_, idx) => (
-                          <div key={idx} className="w-6 h-6 rounded bg-muted flex items-center justify-center">
-                            <ImageIcon className="h-3 w-3 text-muted-foreground" />
+                      <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{bug.description}</p>
+                      <div className="flex items-center gap-2 mt-2">
+                        {bug.url && <ExternalLink className="h-3 w-3 text-muted-foreground" />}
+                        {bug.images && bug.images.length > 0 && (
+                          <div className="flex items-center gap-1 text-muted-foreground">
+                            <ImageIcon className="h-3 w-3" />
+                            <span className="text-xs">{bug.images.length}</span>
                           </div>
-                        ))}
-                        {report.images.length > 3 && (
-                          <span className="text-xs text-muted-foreground">+{report.images.length - 3}</span>
                         )}
                       </div>
-                    )}
-                    <div className="flex items-center justify-between mt-2 pt-2 border-t">
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(report.createdAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                    </CardContent>
+                  </Card>
+                ))}
+                {getBugsByStatus(column.status).length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground text-sm">
+                    No bugs in {column.label.toLowerCase()}
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
           </div>
         ))}
       </div>
 
-      {/* Create Dialog */}
-      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Bug className="h-5 w-5" />
-              Report a Bug
-            </DialogTitle>
-            <DialogDescription>Provide details about the bug you encountered</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="title">Title *</Label>
-              <Input
-                id="title"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="Brief description of the bug"
-              />
-            </div>
-            <div>
-              <Label htmlFor="description">Description *</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Detailed steps to reproduce the bug"
-                rows={4}
-              />
-            </div>
-            <div>
-              <Label htmlFor="url">URL</Label>
-              <Input
-                id="url"
-                value={formData.url}
-                onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                placeholder="Page URL where the bug occurred"
-              />
-            </div>
-            <div>
-              <Label>Screenshots</Label>
-              <div className="mt-2">
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImageUpload}
-                  ref={fileInputRef}
-                  className="hidden"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full"
-                >
-                  <ImageIcon className="h-4 w-4 mr-2" />
-                  Add Images
-                </Button>
-              </div>
-              {formData.images.length > 0 && (
-                <div className="grid grid-cols-3 gap-2 mt-2">
-                  {formData.images.map((img, idx) => (
-                    <div key={idx} className="relative">
-                      <img
-                        src={img || "/placeholder.svg"}
-                        alt={`Screenshot ${idx + 1}`}
-                        className="w-full h-20 object-cover rounded border"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeImage(idx)}
-                        className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
+      {/* Bug Detail Dialog */}
+      <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          {selectedBug && (
+            <>
+              <DialogHeader>
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2">
+                    <Bug className="h-5 w-5 text-destructive" />
+                    <DialogTitle>{selectedBug.title}</DialogTitle>
+                  </div>
+                  <Badge className={statusColumns.find((s) => s.status === selectedBug.status)?.color}>
+                    {statusColumns.find((s) => s.status === selectedBug.status)?.label}
+                  </Badge>
                 </div>
-              )}
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleCreate} disabled={submitting}>
-              {submitting ? "Creating..." : "Create Report"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Pencil className="h-5 w-5" />
-              Edit Bug Report
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="edit-title">Title *</Label>
-              <Input
-                id="edit-title"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit-description">Description *</Label>
-              <Textarea
-                id="edit-description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                rows={4}
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit-url">URL</Label>
-              <Input
-                id="edit-url"
-                value={formData.url}
-                onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label>Screenshots</Label>
-              <div className="mt-2">
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImageUpload}
-                  className="hidden"
-                  id="edit-file-input"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => document.getElementById("edit-file-input")?.click()}
-                  className="w-full"
-                >
-                  <ImageIcon className="h-4 w-4 mr-2" />
-                  Add Images
-                </Button>
-              </div>
-              {formData.images.length > 0 && (
-                <div className="grid grid-cols-3 gap-2 mt-2">
-                  {formData.images.map((img, idx) => (
-                    <div key={idx} className="relative">
-                      <img
-                        src={img || "/placeholder.svg"}
-                        alt={`Screenshot ${idx + 1}`}
-                        className="w-full h-20 object-cover rounded border"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeImage(idx)}
-                        className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div>
+                  <Label className="text-muted-foreground text-xs">Description</Label>
+                  <p className="mt-1 text-sm whitespace-pre-wrap">{selectedBug.description}</p>
                 </div>
-              )}
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleEdit} disabled={submitting}>
-              {submitting ? "Saving..." : "Save Changes"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Delete Bug Report</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete &quot;{selectedReport?.title}&quot;? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={submitting}>
-              {submitting ? "Deleting..." : "Delete"}
-            </Button>
-          </DialogFooter>
+                {selectedBug.url && (
+                  <div>
+                    <Label className="text-muted-foreground text-xs">URL</Label>
+                    <a
+                      href={selectedBug.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-1 text-sm text-primary flex items-center gap-1 hover:underline"
+                    >
+                      {selectedBug.url}
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
+                )}
+                {selectedBug.images && selectedBug.images.length > 0 && (
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Images ({selectedBug.images.length})</Label>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {selectedBug.images.map((img, index) => (
+                        <a
+                          key={index}
+                          href={img}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block w-24 h-24 rounded-lg overflow-hidden border hover:opacity-80 transition-opacity"
+                        >
+                          <img
+                            src={img || "/placeholder.svg"}
+                            alt={`Screenshot ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                  <span>Created: {new Date(selectedBug.createdAt).toLocaleString()}</span>
+                  <span>Updated: {new Date(selectedBug.updatedAt).toLocaleString()}</span>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="destructive" onClick={() => handleDeleteBugReport(selectedBug._id!)}>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline">Change Status</Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    {statusColumns
+                      .filter((s) => s.status !== selectedBug.status)
+                      .map((s) => (
+                        <DropdownMenuItem
+                          key={s.status}
+                          onClick={() => {
+                            handleStatusChange(selectedBug._id!, s.status)
+                            setSelectedBug({ ...selectedBug, status: s.status })
+                          }}
+                        >
+                          <div className={`w-2 h-2 rounded-full ${s.color} mr-2`} />
+                          {s.label}
+                        </DropdownMenuItem>
+                      ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>

@@ -1,12 +1,32 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getDatabase } from "@/lib/db/mongodb"
+import { getDatabase, isMongoDBAvailable } from "@/lib/db/mongodb"
 import type { BugReport, CreateBugReportInput } from "@/lib/types/bug-report"
 
 export async function GET() {
   try {
-    const db = await getDatabase()
-    const collection = db.collection<BugReport>("bug-reports")
+    if (!isMongoDBAvailable()) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Bug tracker is not available in preview mode",
+          previewMode: true,
+        },
+        { status: 503 },
+      )
+    }
 
+    const db = await getDatabase()
+    if (!db) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Database connection failed",
+        },
+        { status: 500 },
+      )
+    }
+
+    const collection = db.collection<BugReport>("bug-reports")
     const bugReports = await collection.find({}).sort({ createdAt: -1 }).toArray()
 
     return NextResponse.json({ success: true, data: bugReports })
@@ -18,6 +38,17 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    if (!isMongoDBAvailable()) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Bug tracker is not available in preview mode",
+          previewMode: true,
+        },
+        { status: 503 },
+      )
+    }
+
     const body: CreateBugReportInput = await request.json()
 
     if (!body.title || !body.description) {
@@ -25,6 +56,16 @@ export async function POST(request: NextRequest) {
     }
 
     const db = await getDatabase()
+    if (!db) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Database connection failed",
+        },
+        { status: 500 },
+      )
+    }
+
     const collection = db.collection<BugReport>("bug-reports")
 
     const newBugReport: Omit<BugReport, "_id"> = {

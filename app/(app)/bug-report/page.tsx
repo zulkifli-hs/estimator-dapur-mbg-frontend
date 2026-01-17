@@ -21,7 +21,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
-import { Plus, Bug, MoreHorizontal, ExternalLink, ImageIcon, X, Loader2, Trash2 } from "lucide-react"
+import { Plus, Bug, MoreHorizontal, ExternalLink, ImageIcon, X, Loader2, Trash2, AlertCircle } from "lucide-react"
 import type { BugReport, BugStatus, CreateBugReportInput } from "@/lib/types/bug-report"
 
 const statusColumns: { status: BugStatus; label: string; color: string }[] = [
@@ -34,6 +34,7 @@ const statusColumns: { status: BugStatus; label: string; color: string }[] = [
 export default function BugReportPage() {
   const [bugReports, setBugReports] = useState<BugReport[]>([])
   const [loading, setLoading] = useState(true)
+  const [previewMode, setPreviewMode] = useState(false) // Added preview mode state
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [detailDialogOpen, setDetailDialogOpen] = useState(false)
   const [selectedBug, setSelectedBug] = useState<BugReport | null>(null)
@@ -51,16 +52,19 @@ export default function BugReportPage() {
     try {
       const response = await fetch("/api/bug-reports")
       const data = await response.json()
+
+      if (data.previewMode) {
+        setPreviewMode(true)
+        setLoading(false)
+        return
+      }
+
       if (data.success) {
         setBugReports(data.data)
       }
     } catch (error) {
       console.error("Error fetching bug reports:", error)
-      toast({
-        title: "Error",
-        description: "Failed to fetch bug reports",
-        variant: "destructive",
-      })
+      setPreviewMode(true)
     } finally {
       setLoading(false)
     }
@@ -205,6 +209,72 @@ export default function BugReportPage() {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-200px)]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (previewMode) {
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <div>
+          <h1 className="text-2xl font-bold">Bug Report</h1>
+          <p className="text-muted-foreground">Track and manage bug reports</p>
+        </div>
+
+        {/* Preview Mode Message */}
+        <Card className="border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/20">
+          <CardContent className="p-6">
+            <div className="flex items-start gap-4">
+              <div className="rounded-full bg-amber-100 p-3 dark:bg-amber-900/50">
+                <AlertCircle className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="font-semibold text-amber-800 dark:text-amber-200">
+                  Preview Mode - Feature Not Available
+                </h3>
+                <p className="text-sm text-amber-700 dark:text-amber-300">
+                  The Bug Report feature requires a MongoDB database connection which is not available in the v0 preview
+                  environment.
+                </p>
+                <p className="text-sm text-amber-700 dark:text-amber-300">
+                  This feature will work properly when deployed to production with a valid{" "}
+                  <code className="rounded bg-amber-200 px-1.5 py-0.5 font-mono text-xs dark:bg-amber-900">
+                    MONGODB_URI
+                  </code>{" "}
+                  environment variable configured.
+                </p>
+                <div className="pt-2">
+                  <h4 className="font-medium text-amber-800 dark:text-amber-200 mb-2">Feature Highlights:</h4>
+                  <ul className="text-sm text-amber-700 dark:text-amber-300 space-y-1 list-disc list-inside">
+                    <li>Create bug reports with title, description, URL, and screenshots</li>
+                    <li>Kanban board view with Backlog, On-going, Review, and Done columns</li>
+                    <li>Drag-and-drop style status management</li>
+                    <li>Image attachments with base64 encoding</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Preview Kanban Board (empty state) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 opacity-50">
+          {statusColumns.map((column) => (
+            <div key={column.status} className="space-y-3">
+              <div className="flex items-center gap-2">
+                <div className={`w-3 h-3 rounded-full ${column.color}`} />
+                <h3 className="font-semibold">{column.label}</h3>
+                <Badge variant="secondary" className="ml-auto">
+                  0
+                </Badge>
+              </div>
+              <div className="h-[200px] rounded-lg border-2 border-dashed border-muted flex items-center justify-center">
+                <p className="text-sm text-muted-foreground">Available in production</p>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     )
   }

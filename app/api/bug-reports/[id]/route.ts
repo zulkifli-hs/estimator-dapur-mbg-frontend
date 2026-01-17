@@ -1,14 +1,32 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { ObjectId } from "mongodb"
-import { getDatabase } from "@/lib/db/mongodb"
+import { getDatabase, isMongoDBAvailable } from "@/lib/db/mongodb"
 import type { BugReport, UpdateBugReportInput } from "@/lib/types/bug-report"
+
+function getPreviewModeResponse() {
+  return NextResponse.json(
+    {
+      success: false,
+      error: "Bug tracker is not available in preview mode",
+      previewMode: true,
+    },
+    { status: 503 },
+  )
+}
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    if (!isMongoDBAvailable()) {
+      return getPreviewModeResponse()
+    }
+
     const { id } = await params
     const db = await getDatabase()
-    const collection = db.collection<BugReport>("bug-reports")
+    if (!db) {
+      return NextResponse.json({ success: false, error: "Database connection failed" }, { status: 500 })
+    }
 
+    const collection = db.collection<BugReport>("bug-reports")
     const bugReport = await collection.findOne({ _id: new ObjectId(id) })
 
     if (!bugReport) {
@@ -24,10 +42,18 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    if (!isMongoDBAvailable()) {
+      return getPreviewModeResponse()
+    }
+
     const { id } = await params
     const body: UpdateBugReportInput = await request.json()
 
     const db = await getDatabase()
+    if (!db) {
+      return NextResponse.json({ success: false, error: "Database connection failed" }, { status: 500 })
+    }
+
     const collection = db.collection<BugReport>("bug-reports")
 
     const updateData: Partial<BugReport> = {
@@ -59,10 +85,17 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    if (!isMongoDBAvailable()) {
+      return getPreviewModeResponse()
+    }
+
     const { id } = await params
     const db = await getDatabase()
-    const collection = db.collection<BugReport>("bug-reports")
+    if (!db) {
+      return NextResponse.json({ success: false, error: "Database connection failed" }, { status: 500 })
+    }
 
+    const collection = db.collection<BugReport>("bug-reports")
     const result = await collection.deleteOne({ _id: new ObjectId(id) })
 
     if (result.deletedCount === 0) {

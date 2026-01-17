@@ -25,7 +25,36 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Plus, Bug, MoreHorizontal, Pencil, Trash2, ImageIcon, X, ExternalLink, GripVertical } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import type { BugReport, BugReportStatus } from "@/lib/types/bug-report"
+
+type BugReportStatus = "backlog" | "on-going" | "review" | "done"
+
+interface BugReport {
+  _id: string
+  title: string
+  description: string
+  url: string
+  images: string[]
+  status: BugReportStatus
+  createdAt: string
+  updatedAt: string
+}
+
+const STORAGE_KEY = "bug_reports"
+
+const getReportsFromStorage = (): BugReport[] => {
+  if (typeof window === "undefined") return []
+  const stored = localStorage.getItem(STORAGE_KEY)
+  return stored ? JSON.parse(stored) : []
+}
+
+const saveReportsToStorage = (reports: BugReport[]) => {
+  if (typeof window === "undefined") return
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(reports))
+}
+
+const generateId = () => {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2)
+}
 
 const statusColumns: { id: BugReportStatus; title: string; color: string }[] = [
   { id: "backlog", title: "Backlog", color: "bg-gray-100 border-gray-300" },
@@ -56,27 +85,10 @@ export default function BugReportPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const fetchReports = async () => {
-    try {
-      const response = await fetch("/api/bug-reports")
-      const data = await response.json()
-      if (data.success) {
-        setReports(data.data)
-      }
-    } catch (error) {
-      console.error("Error fetching reports:", error)
-      toast({
-        title: "Error",
-        description: "Failed to fetch bug reports",
-        variant: "destructive",
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
   useEffect(() => {
-    fetchReports()
+    const storedReports = getReportsFromStorage()
+    setReports(storedReports)
+    setLoading(false)
   }, [])
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -124,23 +136,27 @@ export default function BugReportPage() {
 
     setSubmitting(true)
     try {
-      const response = await fetch("/api/bug-reports", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      })
-      const data = await response.json()
-      if (data.success) {
-        toast({
-          title: "Success",
-          description: "Bug report created successfully",
-        })
-        setCreateDialogOpen(false)
-        resetForm()
-        fetchReports()
-      } else {
-        throw new Error(data.error)
+      const newReport: BugReport = {
+        _id: generateId(),
+        title: formData.title,
+        description: formData.description,
+        url: formData.url,
+        images: formData.images,
+        status: "backlog",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       }
+
+      const updatedReports = [newReport, ...reports]
+      saveReportsToStorage(updatedReports)
+      setReports(updatedReports)
+
+      toast({
+        title: "Success",
+        description: "Bug report created successfully",
+      })
+      setCreateDialogOpen(false)
+      resetForm()
     } catch (error) {
       toast({
         title: "Error",
@@ -157,24 +173,28 @@ export default function BugReportPage() {
 
     setSubmitting(true)
     try {
-      const response = await fetch(`/api/bug-reports/${selectedReport._id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+      const updatedReports = reports.map((r) =>
+        r._id === selectedReport._id
+          ? {
+              ...r,
+              title: formData.title,
+              description: formData.description,
+              url: formData.url,
+              images: formData.images,
+              updatedAt: new Date().toISOString(),
+            }
+          : r,
+      )
+      saveReportsToStorage(updatedReports)
+      setReports(updatedReports)
+
+      toast({
+        title: "Success",
+        description: "Bug report updated successfully",
       })
-      const data = await response.json()
-      if (data.success) {
-        toast({
-          title: "Success",
-          description: "Bug report updated successfully",
-        })
-        setEditDialogOpen(false)
-        setSelectedReport(null)
-        resetForm()
-        fetchReports()
-      } else {
-        throw new Error(data.error)
-      }
+      setEditDialogOpen(false)
+      setSelectedReport(null)
+      resetForm()
     } catch (error) {
       toast({
         title: "Error",
@@ -191,21 +211,16 @@ export default function BugReportPage() {
 
     setSubmitting(true)
     try {
-      const response = await fetch(`/api/bug-reports/${selectedReport._id}`, {
-        method: "DELETE",
+      const updatedReports = reports.filter((r) => r._id !== selectedReport._id)
+      saveReportsToStorage(updatedReports)
+      setReports(updatedReports)
+
+      toast({
+        title: "Success",
+        description: "Bug report deleted successfully",
       })
-      const data = await response.json()
-      if (data.success) {
-        toast({
-          title: "Success",
-          description: "Bug report deleted successfully",
-        })
-        setDeleteDialogOpen(false)
-        setSelectedReport(null)
-        fetchReports()
-      } else {
-        throw new Error(data.error)
-      }
+      setDeleteDialogOpen(false)
+      setSelectedReport(null)
     } catch (error) {
       toast({
         title: "Error",
@@ -219,17 +234,11 @@ export default function BugReportPage() {
 
   const handleStatusChange = async (report: BugReport, newStatus: BugReportStatus) => {
     try {
-      const response = await fetch(`/api/bug-reports/${report._id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
-      })
-      const data = await response.json()
-      if (data.success) {
-        fetchReports()
-      } else {
-        throw new Error(data.error)
-      }
+      const updatedReports = reports.map((r) =>
+        r._id === report._id ? { ...r, status: newStatus, updatedAt: new Date().toISOString() } : r,
+      )
+      saveReportsToStorage(updatedReports)
+      setReports(updatedReports)
     } catch (error) {
       toast({
         title: "Error",
@@ -533,13 +542,13 @@ export default function BugReportPage() {
                   accept="image/*"
                   multiple
                   onChange={handleImageUpload}
-                  ref={fileInputRef}
                   className="hidden"
+                  id="edit-file-input"
                 />
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => document.getElementById("edit-file-input")?.click()}
                   className="w-full"
                 >
                   <ImageIcon className="h-4 w-4 mr-2" />
@@ -585,7 +594,7 @@ export default function BugReportPage() {
           <DialogHeader>
             <DialogTitle>Delete Bug Report</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete "{selectedReport?.title}"? This action cannot be undone.
+              Are you sure you want to delete &quot;{selectedReport?.title}&quot;? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

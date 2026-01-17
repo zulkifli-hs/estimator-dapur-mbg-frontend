@@ -249,70 +249,66 @@ export default function ProjectsPage() {
           ))}
         </div>
       ) : (
-        {/* <Card>
-          <CardContent className="p-0"> */}
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Project Name</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Building</TableHead>
-                    <TableHead>Floor</TableHead>
-                    <TableHead>Area</TableHead>
-                    <TableHead>Client</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredProjects.map((project) => (
-                    <TableRow key={project._id}>
-                      <TableCell>
-                        <Link
-                          href={`/projects/${project._id}`}
-                          className="font-medium hover:text-primary transition-colors whitespace-normal break-words max-w-[200px]"
-                        >
-                          {project.name}
-                        </Link>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className="bg-primary/10 text-primary">{project.type || "Project"}</Badge>
-                      </TableCell>
-                      <TableCell>{project.building}</TableCell>
-                      <TableCell>{project.floor}</TableCell>
-                      <TableCell>{project.area} m²</TableCell>
-                      <TableCell className="whitespace-normal break-words max-w-[150px]">
-                        {project.companyClient?.name || "N/A"}
-                      </TableCell>
-                      <TableCell>{new Date(project.createdAt).toLocaleDateString()}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={(e) => handleEditClick(e, project)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive"
-                            onClick={(e) => handleDeleteClick(e, project)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          {/* </CardContent>
-        </Card> */}
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Project Name</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Building</TableHead>
+                <TableHead>Floor</TableHead>
+                <TableHead>Area</TableHead>
+                <TableHead>Client</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredProjects.map((project) => (
+                <TableRow key={project._id}>
+                  <TableCell>
+                    <Link
+                      href={`/projects/${project._id}`}
+                      className="font-medium hover:text-primary transition-colors whitespace-normal break-words max-w-[200px]"
+                    >
+                      {project.name}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    <Badge className="bg-primary/10 text-primary">{project.type || "Project"}</Badge>
+                  </TableCell>
+                  <TableCell>{project.building}</TableCell>
+                  <TableCell>{project.floor}</TableCell>
+                  <TableCell>{project.area} m²</TableCell>
+                  <TableCell className="whitespace-normal break-words max-w-[150px]">
+                    {project.companyClient?.name || "N/A"}
+                  </TableCell>
+                  <TableCell>{new Date(project.createdAt).toLocaleDateString()}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={(e) => handleEditClick(e, project)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={(e) => handleDeleteClick(e, project)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       )}
 
       <CreateProjectDialog

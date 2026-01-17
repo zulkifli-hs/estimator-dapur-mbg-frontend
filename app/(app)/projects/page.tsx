@@ -63,13 +63,26 @@ type StatusFilter = (typeof STATUS_OPTIONS)[number]["value"]
 const getStatusBadge = (status: string) => {
   switch (status) {
     case "active":
-      return { label: "Active", className: "bg-green-100 text-green-700 border-green-200" }
+      return { label: "Active", className: "bg-green-100 text-green-700 border border-green-300" }
     case "completed":
-      return { label: "Completed", className: "bg-blue-100 text-blue-700 border-blue-200" }
+      return { label: "Completed", className: "bg-blue-100 text-blue-700 border border-blue-300" }
     case "archive":
-      return { label: "Archived", className: "bg-gray-100 text-gray-700 border-gray-200" }
+      return { label: "Archived", className: "bg-gray-100 text-gray-600 border border-gray-300" }
     default:
-      return { label: status || "Unknown", className: "bg-gray-100 text-gray-700 border-gray-200" }
+      return { label: status || "Unknown", className: "bg-gray-100 text-gray-600 border border-gray-300" }
+  }
+}
+
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case "active":
+      return "text-green-600"
+    case "completed":
+      return "text-blue-600"
+    case "archive":
+      return "text-gray-600"
+    default:
+      return ""
   }
 }
 
@@ -296,7 +309,7 @@ export default function ProjectsPage() {
                       </CardTitle>
                       <div className="flex items-center gap-2 flex-wrap">
                         <Badge className="bg-primary/10 text-primary w-fit">{project.type || "Project"}</Badge>
-                        <Badge variant="outline" className={getStatusBadge(project.status).className}>
+                        <Badge className={getStatusBadge(project.status).className}>
                           {getStatusBadge(project.status).label}
                         </Badge>
                       </div>
@@ -321,19 +334,28 @@ export default function ProjectsPage() {
                         </DropdownMenuSubTrigger>
                         <DropdownMenuSubContent>
                           {project.status !== "active" && (
-                            <DropdownMenuItem onClick={(e) => handleStatusChange(e as any, project, "active")}>
+                            <DropdownMenuItem
+                              onClick={(e) => handleStatusChange(e as any, project, "active")}
+                              className="text-green-600 focus:text-green-600"
+                            >
                               <Play className="h-4 w-4 mr-2" />
                               Active
                             </DropdownMenuItem>
                           )}
                           {project.status !== "completed" && (
-                            <DropdownMenuItem onClick={(e) => handleStatusChange(e as any, project, "completed")}>
+                            <DropdownMenuItem
+                              onClick={(e) => handleStatusChange(e as any, project, "completed")}
+                              className="text-blue-600 focus:text-blue-600"
+                            >
                               <CheckCircle className="h-4 w-4 mr-2" />
                               Completed
                             </DropdownMenuItem>
                           )}
                           {project.status !== "archive" && (
-                            <DropdownMenuItem onClick={(e) => handleStatusChange(e as any, project, "archive")}>
+                            <DropdownMenuItem
+                              onClick={(e) => handleStatusChange(e as any, project, "archive")}
+                              className="text-gray-600 focus:text-gray-600"
+                            >
                               <Archive className="h-4 w-4 mr-2" />
                               Archive
                             </DropdownMenuItem>
@@ -407,7 +429,7 @@ export default function ProjectsPage() {
                     <Badge className="bg-primary/10 text-primary">{project.type || "Project"}</Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className={getStatusBadge(project.status).className}>
+                    <Badge className={getStatusBadge(project.status).className}>
                       {getStatusBadge(project.status).label}
                     </Badge>
                   </TableCell>
@@ -438,19 +460,28 @@ export default function ProjectsPage() {
                           </DropdownMenuSubTrigger>
                           <DropdownMenuSubContent>
                             {project.status !== "active" && (
-                              <DropdownMenuItem onClick={(e) => handleStatusChange(e as any, project, "active")}>
+                              <DropdownMenuItem
+                                onClick={(e) => handleStatusChange(e as any, project, "active")}
+                                className="text-green-600 focus:text-green-600"
+                              >
                                 <Play className="h-4 w-4 mr-2" />
                                 Active
                               </DropdownMenuItem>
                             )}
                             {project.status !== "completed" && (
-                              <DropdownMenuItem onClick={(e) => handleStatusChange(e as any, project, "completed")}>
+                              <DropdownMenuItem
+                                onClick={(e) => handleStatusChange(e as any, project, "completed")}
+                                className="text-blue-600 focus:text-blue-600"
+                              >
                                 <CheckCircle className="h-4 w-4 mr-2" />
                                 Completed
                               </DropdownMenuItem>
                             )}
                             {project.status !== "archive" && (
-                              <DropdownMenuItem onClick={(e) => handleStatusChange(e as any, project, "archive")}>
+                              <DropdownMenuItem
+                                onClick={(e) => handleStatusChange(e as any, project, "archive")}
+                                className="text-gray-600 focus:text-gray-600"
+                              >
                                 <Archive className="h-4 w-4 mr-2" />
                                 Archive
                               </DropdownMenuItem>

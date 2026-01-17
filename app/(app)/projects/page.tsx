@@ -6,7 +6,20 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Plus, Search, Filter, MapPin, Calendar, User, LayoutGrid, List, Pencil, Trash2 } from "lucide-react"
+import {
+  Plus,
+  Search,
+  Filter,
+  MapPin,
+  Calendar,
+  User,
+  LayoutGrid,
+  List,
+  Pencil,
+  Trash2,
+  ChevronDown,
+  Check,
+} from "lucide-react"
 import { projectsApi } from "@/lib/api/projects"
 import Link from "next/link"
 import { CreateProjectDialog } from "@/components/projects/create-project-dialog"
@@ -23,6 +36,16 @@ import {
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+
+const STATUS_OPTIONS = [
+  { value: "all", label: "All" },
+  { value: "active", label: "Active" },
+  { value: "completed", label: "Completed" },
+  { value: "archive", label: "Archive" },
+] as const
+
+type StatusFilter = (typeof STATUS_OPTIONS)[number]["value"]
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<any[]>([])
@@ -34,6 +57,7 @@ export default function ProjectsPage() {
   const [totalPages, setTotalPages] = useState(1)
 
   const [viewMode, setViewMode] = useState<"card" | "list">("card")
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all")
 
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [editingProject, setEditingProject] = useState<any>(null)
@@ -45,7 +69,7 @@ export default function ProjectsPage() {
 
   useEffect(() => {
     loadProjects()
-  }, [page])
+  }, [page, statusFilter])
 
   useEffect(() => {
     if (searchQuery) {
@@ -64,7 +88,11 @@ export default function ProjectsPage() {
   const loadProjects = async () => {
     try {
       setLoading(true)
-      const response = await projectsApi.getAll({ page, limit: 10 })
+      const response = await projectsApi.getAll({
+        page,
+        limit: 10,
+        status: statusFilter !== "all" ? statusFilter : undefined,
+      })
 
       if (response.success && response.data) {
         setProjects(response.data)
@@ -78,6 +106,11 @@ export default function ProjectsPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleStatusFilterChange = (status: StatusFilter) => {
+    setStatusFilter(status)
+    setPage(1)
   }
 
   const handleProjectCreated = () => {
@@ -129,6 +162,8 @@ export default function ProjectsPage() {
     loadProjects()
   }
 
+  const currentFilterLabel = STATUS_OPTIONS.find((opt) => opt.value === statusFilter)?.label || "All"
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -165,10 +200,27 @@ export default function ProjectsPage() {
               <List className="h-4 w-4" />
             </ToggleGroupItem>
           </ToggleGroup>
-          <Button variant="outline">
-            <Filter className="h-4 w-4 mr-2" />
-            Filter
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <Filter className="h-4 w-4 mr-2" />
+                {currentFilterLabel}
+                <ChevronDown className="h-4 w-4 ml-2" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {STATUS_OPTIONS.map((option) => (
+                <DropdownMenuItem
+                  key={option.value}
+                  onClick={() => handleStatusFilterChange(option.value)}
+                  className="flex items-center justify-between"
+                >
+                  {option.label}
+                  {statusFilter === option.value && <Check className="h-4 w-4 ml-2" />}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 

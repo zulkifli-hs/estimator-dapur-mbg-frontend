@@ -204,13 +204,14 @@ export interface CreateProjectData {
   admins?: string[]
 }
 
-const getProjects = async (params?: { page?: number; limit?: number; search?: string }): Promise<
+const getProjects = async (params?: { page?: number; limit?: number; search?: string; status?: string }): Promise<
   ApiResponse<{ list: Project[]; totalData: number; totalPage: number; page: number }>
 > => {
   const queryParams = new URLSearchParams()
   if (params?.page) queryParams.append("page", params.page.toString())
   if (params?.limit) queryParams.append("limit", params.limit.toString())
   if (params?.search) queryParams.append("search", params.search)
+  if (params?.status) queryParams.append("status", params.status)
 
   const queryString = queryParams.toString()
   return apiRequest<{ list: Project[]; totalData: number; totalPage: number; page: number }>(
@@ -308,7 +309,7 @@ const uploadContract = async (projectId: string, file: File): Promise<ApiRespons
 }
 
 export const projectsApi = {
-  getAll: async (params?: { page?: number; limit?: number; search?: string }) => {
+  getAll: async (params?: { page?: number; limit?: number; search?: string; status?: string }) => {
     const response = await getProjects(params)
     return {
       success: response.code === 200,

@@ -65,31 +65,42 @@ const STATUS_OPTIONS = [
 type StatusFilter = (typeof STATUS_OPTIONS)[number]["value"]
 
 const getStatusBadge = (status: string) => {
-  switch (status) {
-    case "active":
-      return {
-        label: "Active",
-        badgeStyle: { backgroundColor: "#dcfce7", color: "#15803d", borderColor: "#86efac" },
-        dotStyle: { backgroundColor: "#22c55e" },
-      }
-    case "completed":
-      return {
-        label: "Completed",
-        badgeStyle: { backgroundColor: "#dbeafe", color: "#1d4ed8", borderColor: "#93c5fd" },
-        dotStyle: { backgroundColor: "#3b82f6" },
-      }
-    case "archive":
-      return {
-        label: "Archived",
-        badgeStyle: { backgroundColor: "#f3f4f6", color: "#4b5563", borderColor: "#d1d5db" },
-        dotStyle: { backgroundColor: "#9ca3af" },
-      }
-    default:
-      return {
-        label: status || "Unknown",
-        badgeStyle: { backgroundColor: "#f3f4f6", color: "#4b5563", borderColor: "#d1d5db" },
-        dotStyle: { backgroundColor: "#9ca3af" },
-      }
+  const normalizedStatus = status?.toLowerCase() || ""
+
+  if (normalizedStatus === "active") {
+    return {
+      label: "Active",
+      bgColor: "#dcfce7",
+      textColor: "#15803d",
+      borderColor: "#86efac",
+      dotColor: "#22c55e",
+    }
+  }
+  if (normalizedStatus === "completed") {
+    return {
+      label: "Completed",
+      bgColor: "#dbeafe",
+      textColor: "#1d4ed8",
+      borderColor: "#93c5fd",
+      dotColor: "#3b82f6",
+    }
+  }
+  if (normalizedStatus === "archive") {
+    return {
+      label: "Archived",
+      bgColor: "#f3f4f6",
+      textColor: "#4b5563",
+      borderColor: "#d1d5db",
+      dotColor: "#9ca3af",
+    }
+  }
+  // Default fallback
+  return {
+    label: status || "Unknown",
+    bgColor: "#f3f4f6",
+    textColor: "#4b5563",
+    borderColor: "#d1d5db",
+    dotColor: "#9ca3af",
   }
 }
 
@@ -332,10 +343,17 @@ export default function ProjectsPage() {
                           {project.type || "Project"}
                         </div>
                         <div
-                          style={getStatusBadge(project.status).badgeStyle}
+                          style={{
+                            backgroundColor: getStatusBadge(project.status).bgColor,
+                            color: getStatusBadge(project.status).textColor,
+                            borderColor: getStatusBadge(project.status).borderColor,
+                          }}
                           className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border"
                         >
-                          <span style={getStatusBadge(project.status).dotStyle} className="h-2 w-2 rounded-full" />
+                          <span
+                            style={{ backgroundColor: getStatusBadge(project.status).dotColor }}
+                            className="h-2 w-2 rounded-full"
+                          />
                           {getStatusBadge(project.status).label}
                         </div>
                       </div>
@@ -458,10 +476,17 @@ export default function ProjectsPage() {
                   </TableCell>
                   <TableCell>
                     <div
-                      style={getStatusBadge(project.status).badgeStyle}
+                      style={{
+                        backgroundColor: getStatusBadge(project.status).bgColor,
+                        color: getStatusBadge(project.status).textColor,
+                        borderColor: getStatusBadge(project.status).borderColor,
+                      }}
                       className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium w-fit border"
                     >
-                      <span style={getStatusBadge(project.status).dotStyle} className="h-2 w-2 rounded-full" />
+                      <span
+                        style={{ backgroundColor: getStatusBadge(project.status).dotColor }}
+                        className="h-2 w-2 rounded-full"
+                      />
                       {getStatusBadge(project.status).label}
                     </div>
                   </TableCell>

@@ -6,20 +6,9 @@ import Link from "next/link"
 import { useEffect, useState } from "react"
 import { GemaLogo } from "@/components/gema-logo"
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
-import {
-  LayoutDashboard,
-  FolderKanban,
-  MessageSquare,
-  Users,
-  Settings,
-  HelpCircle,
-  Package,
-  User,
-  FileText,
-} from "lucide-react"
+import { LayoutDashboard, FolderKanban, MessageSquare, Users, Package, User, FileText, Bug } from "lucide-react"
 import { getProfile, type UserProfile } from "@/lib/api/auth"
 
 interface NavItem {
@@ -47,6 +36,7 @@ const mainNavigation: NavItem[] = [
 
 const secondaryNavigation: NavItem[] = [
   { name: "Profile", href: "/profile", icon: User },
+  { name: "Bug Report", href: "/bug-report", icon: Bug }, // Added Bug Report menu
   // { name: "Settings", href: "/settings", icon: Settings },
   // { name: "Help & Support", href: "/help", icon: HelpCircle },
 ]

@@ -834,7 +834,13 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess, editProject
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? "Creating..." : "Create Project"}
+              {loading
+                ? editProject
+                  ? "Updating..."
+                  : "Creating..."
+                : editProject
+                  ? "Update Project"
+                  : "Create Project"}
             </Button>
           </div>
         </form>

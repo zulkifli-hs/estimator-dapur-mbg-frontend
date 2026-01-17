@@ -19,6 +19,10 @@ import {
   Trash2,
   ChevronDown,
   Check,
+  MoreHorizontal,
+  CheckCircle,
+  Archive,
+  Play,
 } from "lucide-react"
 import { projectsApi } from "@/lib/api/projects"
 import Link from "next/link"
@@ -36,7 +40,16 @@ import {
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+} from "@/components/ui/dropdown-menu"
 
 const STATUS_OPTIONS = [
   { value: "all", label: "All" },
@@ -133,26 +146,20 @@ export default function ProjectsPage() {
     setDeleteDialogOpen(true)
   }
 
-  const handleConfirmDelete = async () => {
-    if (!deletingProject || deleteConfirmName !== deletingProject.name) return
-
+  const handleStatusChange = async (e: React.MouseEvent, project: any, status: "active" | "completed" | "archive") => {
+    e.preventDefault()
+    e.stopPropagation()
     try {
-      setIsDeleting(true)
-      const response = await projectsApi.delete(deletingProject._id)
+      const response = await projectsApi.updateStatus(project._id, status)
       if (response.success) {
-        toast.success("Project deleted successfully")
-        setDeleteDialogOpen(false)
-        setDeletingProject(null)
-        setDeleteConfirmName("")
+        toast.success(`Project status updated to ${status}`)
         loadProjects()
       } else {
-        toast.error("Failed to delete project")
+        toast.error("Failed to update project status")
       }
     } catch (error) {
-      console.error("Failed to delete project:", error)
-      toast.error("Failed to delete project")
-    } finally {
-      setIsDeleting(false)
+      console.error("Failed to update project status:", error)
+      toast.error("Failed to update project status")
     }
   }
 
@@ -160,6 +167,27 @@ export default function ProjectsPage() {
     setEditDialogOpen(false)
     setEditingProject(null)
     loadProjects()
+  }
+
+  const handleConfirmDelete = async () => {
+    if (deleteConfirmName === deletingProject?.name) {
+      setIsDeleting(true)
+      try {
+        const response = await projectsApi.delete(deletingProject._id)
+        if (response.success) {
+          toast.success("Project deleted successfully")
+          setDeleteDialogOpen(false)
+          loadProjects()
+        } else {
+          toast.error("Failed to delete project")
+        }
+      } catch (error) {
+        console.error("Failed to delete project:", error)
+        toast.error("Failed to delete project")
+      } finally {
+        setIsDeleting(false)
+      }
+    }
   }
 
   const currentFilterLabel = STATUS_OPTIONS.find((opt) => opt.value === statusFilter)?.label || "All"
@@ -256,24 +284,51 @@ export default function ProjectsPage() {
                       <Badge className="bg-primary/10 text-primary w-fit">{project.type || "Project"}</Badge>
                     </div>
                   </Link>
-                  <div className="flex gap-1 ml-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={(e) => handleEditClick(e, project)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive"
-                      onClick={(e) => handleDeleteClick(e, project)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 ml-2">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={(e) => handleEditClick(e as any, project)}>
+                        <Pencil className="h-4 w-4 mr-2" />
+                        Edit Project
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger>
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          Change Status
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent>
+                          <DropdownMenuItem onClick={(e) => handleStatusChange(e as any, project, "active")}>
+                            <Play className="h-4 w-4 mr-2" />
+                            Active
+                            {project.status === "active" && <Check className="h-4 w-4 ml-auto" />}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => handleStatusChange(e as any, project, "completed")}>
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Completed
+                            {project.status === "completed" && <Check className="h-4 w-4 ml-auto" />}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => handleStatusChange(e as any, project, "archive")}>
+                            <Archive className="h-4 w-4 mr-2" />
+                            Archive
+                            {project.status === "archive" && <Check className="h-4 w-4 ml-auto" />}
+                          </DropdownMenuItem>
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={(e) => handleDeleteClick(e as any, project)}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete Project
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
                 <Link href={`/projects/${project._id}`}>
                   <CardDescription className="line-clamp-1">
@@ -337,24 +392,51 @@ export default function ProjectsPage() {
                   </TableCell>
                   <TableCell>{new Date(project.createdAt).toLocaleDateString()}</TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={(e) => handleEditClick(e, project)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                        onClick={(e) => handleDeleteClick(e, project)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={(e) => handleEditClick(e as any, project)}>
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Edit Project
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuSub>
+                          <DropdownMenuSubTrigger>
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Change Status
+                          </DropdownMenuSubTrigger>
+                          <DropdownMenuSubContent>
+                            <DropdownMenuItem onClick={(e) => handleStatusChange(e as any, project, "active")}>
+                              <Play className="h-4 w-4 mr-2" />
+                              Active
+                              {project.status === "active" && <Check className="h-4 w-4 ml-auto" />}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => handleStatusChange(e as any, project, "completed")}>
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                              Completed
+                              {project.status === "completed" && <Check className="h-4 w-4 ml-auto" />}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => handleStatusChange(e as any, project, "archive")}>
+                              <Archive className="h-4 w-4 mr-2" />
+                              Archive
+                              {project.status === "archive" && <Check className="h-4 w-4 ml-auto" />}
+                            </DropdownMenuItem>
+                          </DropdownMenuSubContent>
+                        </DropdownMenuSub>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={(e) => handleDeleteClick(e as any, project)}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete Project
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}

@@ -308,6 +308,15 @@ const uploadContract = async (projectId: string, file: File): Promise<ApiRespons
   return response.json()
 }
 
+const updateProjectStatus = async (
+  id: string,
+  status: "active" | "completed" | "archive",
+): Promise<ApiResponse<Project>> => {
+  return apiRequest<Project>(`/projects/${id}/${status}`, {
+    method: "PATCH",
+  })
+}
+
 export const projectsApi = {
   getAll: async (params?: { page?: number; limit?: number; search?: string; status?: string }) => {
     const response = await getProjects(params)
@@ -361,6 +370,10 @@ export const projectsApi = {
   },
   uploadContract: async (projectId: string, file: File) => {
     const response = await uploadContract(projectId, file)
+    return { success: response.code === 200, data: response.data }
+  },
+  updateStatus: async (id: string, status: "active" | "completed" | "archive") => {
+    const response = await updateProjectStatus(id, status)
     return { success: response.code === 200, data: response.data }
   },
 }

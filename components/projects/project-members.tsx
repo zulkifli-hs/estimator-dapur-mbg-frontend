@@ -221,21 +221,21 @@ export function ProjectMembers({ project, onUpdate }: ProjectMembersProps) {
             </div>
           </CardHeader>
           <CardContent className="pt-6">
-            {project.clients && project.clients.length > 0 ? (
+            {project.companyClient && project.companyClient.picName ? (
               <div className="flex items-center gap-4 p-4 border-2 border-blue-500/20 rounded-lg bg-gradient-to-br from-blue-500/5 to-background">
                 <Avatar className="h-14 w-14 ring-2 ring-blue-500/20">
                   <AvatarImage src={project.clients[0].user?.profile?.photo || "/placeholder.svg"} />
                   <AvatarFallback className="bg-blue-500/10 text-blue-600 font-semibold">
-                    {getInitials(project.clients[0].user?.profile?.name || "C")}
+                    {getInitials(project.companyClient.picName || "C")}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold truncate">{project.clients[0].user?.profile?.name || "Unknown"}</p>
-                  <p className="text-sm text-muted-foreground truncate">{project.clients[0].user?.email}</p>
-                  {project.clients[0].user?.profile?.phone && (
+                  <p className="font-semibold truncate">{project.companyClient.picName || "Unknown"}</p>
+                  <p className="text-sm text-muted-foreground truncate">{project.companyClient.picEmail}</p>
+                  {project.companyClient.picPhone && (
                     <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                       <Phone className="h-3 w-3" />
-                      {project.clients[0].user.profile.phone}
+                      {project.companyClient.picPhone}
                     </p>
                   )}
                 </div>

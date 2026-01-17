@@ -181,7 +181,7 @@ export interface CreateProjectData {
   area: number
   building: string
   floor: number
-  companyClient: {
+  companyClient?: {
     name: string
     contact?: {
       phone?: string
@@ -189,6 +189,9 @@ export interface CreateProjectData {
       website?: string
     }
     type: string
+    picEmail?: string
+    picName?: string
+    picPhone?: string
   }
   companyOwner: {
     name: string
@@ -199,11 +202,6 @@ export interface CreateProjectData {
   finances?: string[]
   designers?: string[]
   admins?: string[]
-  client: {
-    email: string
-    name: string
-    phone: string
-  }
 }
 
 const getProjects = async (params?: { page?: number; limit?: number; search?: string }): Promise<
@@ -258,8 +256,8 @@ const inviteMember = async (projectId: string, data: string[], role: string): Pr
 }
 
 const removeMember = async (projectId: string, data: string[], role: string): Promise<ApiResponse<any>> => {
-  console.log('[v0] API removeMember request:', { projectId, data, role })
-  
+  console.log("[v0] API removeMember request:", { projectId, data, role })
+
   return apiRequest<any>(`/projects/${projectId}/remove`, {
     method: "POST",
     body: JSON.stringify({ data, role }),

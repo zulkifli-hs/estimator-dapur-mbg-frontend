@@ -329,41 +329,42 @@ export default function ProjectsPage() {
       />
 
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="text-destructive">Delete Project</DialogTitle>
-            <DialogDescription>
-              This action cannot be undone. This will permanently delete the project and all associated data including
-              BOQ, documents, and team assignments.
+            <DialogDescription className="text-sm">
+              This action cannot be undone. All associated data will be permanently deleted.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="rounded-lg bg-destructive/10 p-4">
-              <p className="text-sm font-medium">Project to delete:</p>
-              <p className="text-lg font-bold text-destructive">{deletingProject?.name}</p>
+          <div className="space-y-3 py-2">
+            <div className="rounded-lg bg-destructive/10 p-3">
+              <p className="text-xs text-muted-foreground">Project to delete:</p>
+              <p className="font-semibold text-destructive">{deletingProject?.name}</p>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirm-name">
-                Type <span className="font-bold">{deletingProject?.name}</span> to confirm deletion:
+            <div className="space-y-1.5">
+              <Label htmlFor="confirm-name" className="text-sm">
+                Type <span className="font-semibold">{deletingProject?.name}</span> to confirm:
               </Label>
               <Input
                 id="confirm-name"
                 value={deleteConfirmName}
                 onChange={(e) => setDeleteConfirmName(e.target.value)}
-                placeholder="Enter project name to confirm"
+                placeholder="Enter project name"
+                className="h-9"
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" size="sm" onClick={() => setDeleteDialogOpen(false)}>
               Cancel
             </Button>
             <Button
               variant="destructive"
+              size="sm"
               onClick={handleConfirmDelete}
               disabled={deleteConfirmName !== deletingProject?.name || isDeleting}
             >
-              {isDeleting ? "Deleting..." : "Delete Project"}
+              {isDeleting ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>

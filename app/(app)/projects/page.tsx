@@ -60,6 +60,19 @@ const STATUS_OPTIONS = [
 
 type StatusFilter = (typeof STATUS_OPTIONS)[number]["value"]
 
+const getStatusBadge = (status: string) => {
+  switch (status) {
+    case "active":
+      return { label: "Active", className: "bg-green-100 text-green-700 border-green-200" }
+    case "completed":
+      return { label: "Completed", className: "bg-blue-100 text-blue-700 border-blue-200" }
+    case "archive":
+      return { label: "Archived", className: "bg-gray-100 text-gray-700 border-gray-200" }
+    default:
+      return { label: status || "Unknown", className: "bg-gray-100 text-gray-700 border-gray-200" }
+  }
+}
+
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<any[]>([])
   const [filteredProjects, setFilteredProjects] = useState<any[]>([])
@@ -281,7 +294,12 @@ export default function ProjectsPage() {
                       <CardTitle className="text-lg line-clamp-2 hover:text-primary transition-colors">
                         {project.name}
                       </CardTitle>
-                      <Badge className="bg-primary/10 text-primary w-fit">{project.type || "Project"}</Badge>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge className="bg-primary/10 text-primary w-fit">{project.type || "Project"}</Badge>
+                        <Badge variant="outline" className={getStatusBadge(project.status).className}>
+                          {getStatusBadge(project.status).label}
+                        </Badge>
+                      </div>
                     </div>
                   </Link>
                   <DropdownMenu>
@@ -302,21 +320,24 @@ export default function ProjectsPage() {
                           Change Status
                         </DropdownMenuSubTrigger>
                         <DropdownMenuSubContent>
-                          <DropdownMenuItem onClick={(e) => handleStatusChange(e as any, project, "active")}>
-                            <Play className="h-4 w-4 mr-2" />
-                            Active
-                            {project.status === "active" && <Check className="h-4 w-4 ml-auto" />}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={(e) => handleStatusChange(e as any, project, "completed")}>
-                            <CheckCircle className="h-4 w-4 mr-2" />
-                            Completed
-                            {project.status === "completed" && <Check className="h-4 w-4 ml-auto" />}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={(e) => handleStatusChange(e as any, project, "archive")}>
-                            <Archive className="h-4 w-4 mr-2" />
-                            Archive
-                            {project.status === "archive" && <Check className="h-4 w-4 ml-auto" />}
-                          </DropdownMenuItem>
+                          {project.status !== "active" && (
+                            <DropdownMenuItem onClick={(e) => handleStatusChange(e as any, project, "active")}>
+                              <Play className="h-4 w-4 mr-2" />
+                              Active
+                            </DropdownMenuItem>
+                          )}
+                          {project.status !== "completed" && (
+                            <DropdownMenuItem onClick={(e) => handleStatusChange(e as any, project, "completed")}>
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                              Completed
+                            </DropdownMenuItem>
+                          )}
+                          {project.status !== "archive" && (
+                            <DropdownMenuItem onClick={(e) => handleStatusChange(e as any, project, "archive")}>
+                              <Archive className="h-4 w-4 mr-2" />
+                              Archive
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuSubContent>
                       </DropdownMenuSub>
                       <DropdownMenuSeparator />
@@ -362,6 +383,7 @@ export default function ProjectsPage() {
               <TableRow>
                 <TableHead>Project Name</TableHead>
                 <TableHead>Type</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Building</TableHead>
                 <TableHead>Floor</TableHead>
                 <TableHead>Area</TableHead>
@@ -383,6 +405,11 @@ export default function ProjectsPage() {
                   </TableCell>
                   <TableCell>
                     <Badge className="bg-primary/10 text-primary">{project.type || "Project"}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={getStatusBadge(project.status).className}>
+                      {getStatusBadge(project.status).label}
+                    </Badge>
                   </TableCell>
                   <TableCell>{project.building}</TableCell>
                   <TableCell>{project.floor}</TableCell>
@@ -410,21 +437,24 @@ export default function ProjectsPage() {
                             Change Status
                           </DropdownMenuSubTrigger>
                           <DropdownMenuSubContent>
-                            <DropdownMenuItem onClick={(e) => handleStatusChange(e as any, project, "active")}>
-                              <Play className="h-4 w-4 mr-2" />
-                              Active
-                              {project.status === "active" && <Check className="h-4 w-4 ml-auto" />}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => handleStatusChange(e as any, project, "completed")}>
-                              <CheckCircle className="h-4 w-4 mr-2" />
-                              Completed
-                              {project.status === "completed" && <Check className="h-4 w-4 ml-auto" />}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => handleStatusChange(e as any, project, "archive")}>
-                              <Archive className="h-4 w-4 mr-2" />
-                              Archive
-                              {project.status === "archive" && <Check className="h-4 w-4 ml-auto" />}
-                            </DropdownMenuItem>
+                            {project.status !== "active" && (
+                              <DropdownMenuItem onClick={(e) => handleStatusChange(e as any, project, "active")}>
+                                <Play className="h-4 w-4 mr-2" />
+                                Active
+                              </DropdownMenuItem>
+                            )}
+                            {project.status !== "completed" && (
+                              <DropdownMenuItem onClick={(e) => handleStatusChange(e as any, project, "completed")}>
+                                <CheckCircle className="h-4 w-4 mr-2" />
+                                Completed
+                              </DropdownMenuItem>
+                            )}
+                            {project.status !== "archive" && (
+                              <DropdownMenuItem onClick={(e) => handleStatusChange(e as any, project, "archive")}>
+                                <Archive className="h-4 w-4 mr-2" />
+                                Archive
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuSubContent>
                         </DropdownMenuSub>
                         <DropdownMenuSeparator />

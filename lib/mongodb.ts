@@ -1,7 +1,6 @@
-import mongoose from 'mongoose'
-
 // Global variable to track connection status
 let isConnected = false
+let mongooseInstance: any = null
 
 /**
  * Connects to MongoDB only in production environment
@@ -11,25 +10,29 @@ let isConnected = false
 export async function connectToDatabase() {
   // Only connect in production
   if (process.env.VERCEL_ENV !== 'production') {
-    console.log('[v0] MongoDB: Skipping connection (not in production environment)')
+    console.log('[v0] MongoDB: Skipping connection (not in production)')
     return { connected: false, isProduction: false }
   }
 
-  // Check if already connected
-  if (isConnected && mongoose.connection.readyState === 1) {
+  if (!process.env.MONGODB_URI) {
+    console.warn('[v0] MongoDB: MONGODB_URI not configured')
+    return { connected: false, isProduction: true }
+  }
+
+  // Reuse existing connection
+  if (isConnected && mongooseInstance?.connection?.readyState === 1) {
     console.log('[v0] MongoDB: Using existing connection')
     return { connected: true, isProduction: true }
   }
 
-  // Check if MongoDB URI is configured
-  if (!process.env.MONGODB_URI) {
-    console.warn('[v0] MongoDB: MONGODB_URI not configured')
-    return { connected: false, isProduction: true, error: 'MONGODB_URI not configured' }
-  }
-
   try {
+    // ✅ Dynamic import (THIS is the key)
+    const mongoose = (await import('mongoose')).default
+    mongooseInstance = mongoose
+
     await mongoose.connect(process.env.MONGODB_URI)
     isConnected = true
+
     console.log('[v0] MongoDB: Connected successfully')
     return { connected: true, isProduction: true }
   } catch (error) {
@@ -38,16 +41,10 @@ export async function connectToDatabase() {
   }
 }
 
-/**
- * Returns whether the app is running in production
- */
 export function isProductionEnvironment() {
   return process.env.VERCEL_ENV === 'production'
 }
 
-/**
- * Returns whether MongoDB is connected
- */
 export function isDatabaseConnected() {
-  return isConnected && mongoose.connection.readyState === 1
+  return isConnected && mongooseInstance?.connection?.readyState === 1
 }

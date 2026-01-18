@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { connectToDatabase, isProductionEnvironment } from '@/lib/mongodb'
-import BugReport from '@/models/BugReport'
+import { getBugReportModel } from '@/models/BugReport'
 
 // PATCH - Update bug report status
 export async function PATCH(
@@ -13,7 +13,7 @@ export async function PATCH(
     const { status } = body
 
     // Validate status
-    const validStatuses = ['open', 'in_progress', 'review', 'resolved', 'closed']
+    const validStatuses = ['backlog', 'on-going', 'review', 'done']
     if (!status || !validStatuses.includes(status)) {
       return NextResponse.json(
         { success: false, error: 'Invalid status' },
@@ -41,7 +41,8 @@ export async function PATCH(
       )
     }
 
-    // Update bug report status
+    // Get model and update bug report status
+    const BugReport = await getBugReportModel()
     const report = await BugReport.findByIdAndUpdate(
       id,
       { status },

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { connectToDatabase, isProductionEnvironment } from '@/lib/mongodb'
-import BugReport from '@/models/BugReport'
+import { getBugReportModel } from '@/models/BugReport'
 
 // GET - List all bug reports
 export async function GET() {
@@ -24,7 +24,8 @@ export async function GET() {
       )
     }
 
-    // Fetch bug reports, sorted by most recent first
+    // Get model and fetch bug reports
+    const BugReport = await getBugReportModel()
     const reports = await BugReport.find().sort({ createdAt: -1 }).lean()
 
     return NextResponse.json({
@@ -45,10 +46,10 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { title, description, userId, userEmail, url, images, scale } = body
+    const { title, description, userId, userEmail, url, images } = body
 
     // Validate required fields
-    if (!title || !description || !userId || !scale) {
+    if (!title || !description || !userId) {
       return NextResponse.json(
         { success: false, error: 'Missing required fields' },
         { status: 400 }
@@ -64,8 +65,7 @@ export async function POST(request: NextRequest) {
         userEmail,
         url,
         images: images?.length || 0,
-        scale,
-        status: 'open',
+        status: 'backlog',
       })
 
       return NextResponse.json({
@@ -78,8 +78,7 @@ export async function POST(request: NextRequest) {
           userEmail,
           url,
           images,
-          scale,
-          status: 'open',
+          status: 'backlog',
           createdAt: new Date(),
           updatedAt: new Date(),
         },
@@ -97,7 +96,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create bug report in database
+    // Get model and create bug report
+    const BugReport = await getBugReportModel()
     const report = await BugReport.create({
       title,
       description,
@@ -105,8 +105,7 @@ export async function POST(request: NextRequest) {
       userEmail,
       url,
       images,
-      scale,
-      status: 'open',
+      status: 'backlog',
     })
 
     return NextResponse.json({

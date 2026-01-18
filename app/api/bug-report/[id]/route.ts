@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { connectToDatabase, isProductionEnvironment } from '@/lib/mongodb'
-import { getBugReportModel } from '@/models/BugReport'
+
+export const runtime = 'nodejs'
 
 // PATCH - Update bug report status
 export async function PATCH(
@@ -12,7 +12,6 @@ export async function PATCH(
     const body = await request.json()
     const { status } = body
 
-    // Validate status
     const validStatuses = ['backlog', 'on-going', 'review', 'done']
     if (!status || !validStatuses.includes(status)) {
       return NextResponse.json(
@@ -21,19 +20,20 @@ export async function PATCH(
       )
     }
 
-    // In non-production, return mock success
+    const { isProductionEnvironment } = await import('@/lib/mongodb')
+
     if (!isProductionEnvironment()) {
       console.log(`[v0] Bug Report Update (Preview Mode): ${id} -> ${status}`)
       return NextResponse.json({
         success: true,
         data: { _id: id, status },
         preview: true,
-        message: 'Status updated (not persisted in preview mode)',
       })
     }
 
-    // Connect to database
+    const { connectToDatabase } = await import('@/lib/mongodb')
     const { connected } = await connectToDatabase()
+
     if (!connected) {
       return NextResponse.json(
         { success: false, error: 'Database connection failed' },
@@ -41,8 +41,9 @@ export async function PATCH(
       )
     }
 
-    // Get model and update bug report status
+    const { getBugReportModel } = await import('@/models/BugReport')
     const BugReport = await getBugReportModel()
+
     const report = await BugReport.findByIdAndUpdate(
       id,
       { status },
@@ -59,10 +60,9 @@ export async function PATCH(
     return NextResponse.json({
       success: true,
       data: report,
-      preview: false,
     })
   } catch (error) {
-    console.error('[v0] Bug Reports: Error updating report:', error)
+    console.error('[v0] Bug Reports PATCH error:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to update bug report' },
       { status: 500 }

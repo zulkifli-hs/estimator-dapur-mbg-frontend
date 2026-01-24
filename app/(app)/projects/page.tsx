@@ -38,6 +38,7 @@ import {
   CheckCircle,
   Archive,
   Play,
+  FileText,
 } from "lucide-react"
 import { projectsApi } from "@/lib/api/projects"
 import Link from "next/link"
@@ -133,6 +134,8 @@ export default function ProjectsPage() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false)
+  const [selectedProjectForStatus, setSelectedProjectForStatus] = useState<any>(null)
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
 
@@ -213,19 +216,28 @@ export default function ProjectsPage() {
     setDeleteDialogOpen(true)
   }
 
-  const handleStatusChange = async (e: React.MouseEvent, project: any, status: "propose" | "active" | "completed" | "archive") => {
-    e.preventDefault()
+  const openStatusDialog = (e: React.MouseEvent, project: any) => {
     e.stopPropagation()
+    e.preventDefault()
+    setSelectedProjectForStatus(project)
+    setStatusDialogOpen(true)
+  }
+
+  const handleStatusChange = async (status: "propose" | "active" | "completed" | "archive") => {
+    if (!selectedProjectForStatus) return
+
     try {
-      const response = await projectsApi.updateStatus(project._id, status)
-      if (response.success) {
+      const result = await projectsApi.updateStatus(selectedProjectForStatus._id, status)
+      if (result.success) {
         toast.success(`Project status updated to ${status}`)
+        setStatusDialogOpen(false)
+        setSelectedProjectForStatus(null)
         loadProjects()
       } else {
         toast.error("Failed to update project status")
       }
     } catch (error) {
-      console.error("Failed to update project status:", error)
+      console.error("Error updating project status:", error)
       toast.error("Failed to update project status")
     }
   }
@@ -380,51 +392,10 @@ export default function ProjectsPage() {
                         <Pencil className="h-4 w-4 mr-2" />
                         Edit Project
                       </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuSub>
-                        <DropdownMenuSubTrigger>
-                          <CheckCircle className="h-4 w-4 mr-2" />
-                          Change Status
-                        </DropdownMenuSubTrigger>
-                        <DropdownMenuSubContent sideOffset={8} alignOffset={-5}>
-                          {project.status !== "propose" && (
-                            <DropdownMenuItem
-                              onClick={(e) => handleStatusChange(e as any, project, "propose")}
-                              className="text-amber-600 focus:text-amber-600"
-                            >
-                              <ChevronDown className="h-4 w-4 mr-2 text-amber-600" />
-                              Propose
-                            </DropdownMenuItem>
-                          )}
-                          {project.status !== "active" && (
-                            <DropdownMenuItem
-                              onClick={(e) => handleStatusChange(e as any, project, "active")}
-                              className="text-green-600 focus:text-green-600"
-                            >
-                              <Play className="h-4 w-4 mr-2 text-green-600" />
-                              Active
-                            </DropdownMenuItem>
-                          )}
-                          {project.status !== "completed" && (
-                            <DropdownMenuItem
-                              onClick={(e) => handleStatusChange(e as any, project, "completed")}
-                              className="text-blue-600 focus:text-blue-600"
-                            >
-                              <CheckCircle className="h-4 w-4 mr-2 text-blue-600" />
-                              Completed
-                            </DropdownMenuItem>
-                          )}
-                          {project.status !== "archive" && (
-                            <DropdownMenuItem
-                              onClick={(e) => handleStatusChange(e as any, project, "archive")}
-                              className="text-gray-600 focus:text-gray-600"
-                            >
-                              <Archive className="h-4 w-4 mr-2 text-gray-600" />
-                              Archive
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuSubContent>
-                      </DropdownMenuSub>
+                      <DropdownMenuItem onClick={(e) => openStatusDialog(e as any, project)}>
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Change Status
+                      </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         onClick={(e) => handleDeleteClick(e as any, project)}
@@ -528,51 +499,10 @@ export default function ProjectsPage() {
                           <Pencil className="h-4 w-4 mr-2" />
                           Edit Project
                         </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuSub>
-                          <DropdownMenuSubTrigger>
-                            <CheckCircle className="h-4 w-4 mr-2" />
-                            Change Status
-                          </DropdownMenuSubTrigger>
-                          <DropdownMenuSubContent sideOffset={8} alignOffset={-5}>
-                            {project.status !== "propose" && (
-                              <DropdownMenuItem
-                                onClick={(e) => handleStatusChange(e as any, project, "propose")}
-                                className="text-amber-600 focus:text-amber-600"
-                              >
-                                <ChevronDown className="h-4 w-4 mr-2 text-amber-600" />
-                                Propose
-                              </DropdownMenuItem>
-                            )}
-                            {project.status !== "active" && (
-                              <DropdownMenuItem
-                                onClick={(e) => handleStatusChange(e as any, project, "active")}
-                                className="text-green-600 focus:text-green-600"
-                              >
-                                <Play className="h-4 w-4 mr-2 text-green-600" />
-                                Active
-                              </DropdownMenuItem>
-                            )}
-                            {project.status !== "completed" && (
-                              <DropdownMenuItem
-                                onClick={(e) => handleStatusChange(e as any, project, "completed")}
-                                className="text-blue-600 focus:text-blue-600"
-                              >
-                                <CheckCircle className="h-4 w-4 mr-2 text-blue-600" />
-                                Completed
-                              </DropdownMenuItem>
-                            )}
-                            {project.status !== "archive" && (
-                              <DropdownMenuItem
-                                onClick={(e) => handleStatusChange(e as any, project, "archive")}
-                                className="text-gray-600 focus:text-gray-600"
-                              >
-                                <Archive className="h-4 w-4 mr-2 text-gray-600" />
-                                Archive
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuSubContent>
-                        </DropdownMenuSub>
+                        <DropdownMenuItem onClick={(e) => openStatusDialog(e as any, project)}>
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          Change Status
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           onClick={(e) => handleDeleteClick(e as any, project)}
@@ -603,6 +533,89 @@ export default function ProjectsPage() {
         onSuccess={handleEditSuccess}
         editProject={editingProject}
       />
+
+      <Dialog open={statusDialogOpen} onOpenChange={setStatusDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Change Project Status</DialogTitle>
+            <DialogDescription className="text-sm">
+              <span className="font-semibold">{selectedProjectForStatus?.name}</span>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {/* Current Status */}
+            <div className="rounded-lg bg-muted p-3">
+              <p className="text-xs text-muted-foreground mb-1">Current Status:</p>
+              <div
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium"
+                style={{
+                  backgroundColor: getStatusBadge(selectedProjectForStatus?.status || "").bgColor,
+                  color: getStatusBadge(selectedProjectForStatus?.status || "").textColor,
+                  border: `1px solid ${getStatusBadge(selectedProjectForStatus?.status || "").borderColor}`,
+                }}
+              >
+                <span
+                  className="w-2 h-2 rounded-full"
+                  style={{ backgroundColor: getStatusBadge(selectedProjectForStatus?.status || "").dotColor }}
+                />
+                {getStatusBadge(selectedProjectForStatus?.status || "").label}
+              </div>
+            </div>
+
+            {/* Status Options */}
+            <div>
+              <p className="text-xs text-muted-foreground mb-2">Select new status:</p>
+              <div className="space-y-2">
+                {selectedProjectForStatus?.status !== "propose" && (
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-amber-600 hover:text-amber-600 hover:bg-amber-50 bg-transparent"
+                    onClick={() => handleStatusChange("propose")}
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Propose
+                  </Button>
+                )}
+                {selectedProjectForStatus?.status !== "active" && (
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-green-600 hover:text-green-600 hover:bg-green-50 bg-transparent"
+                    onClick={() => handleStatusChange("active")}
+                  >
+                    <Play className="h-4 w-4 mr-2" />
+                    Active
+                  </Button>
+                )}
+                {selectedProjectForStatus?.status !== "completed" && (
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-blue-600 hover:text-blue-600 hover:bg-blue-50 bg-transparent"
+                    onClick={() => handleStatusChange("completed")}
+                  >
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Completed
+                  </Button>
+                )}
+                {selectedProjectForStatus?.status !== "archive" && (
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-gray-600 hover:text-gray-600 hover:bg-gray-50 bg-transparent"
+                    onClick={() => handleStatusChange("archive")}
+                  >
+                    <Archive className="h-4 w-4 mr-2" />
+                    Archive
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" size="sm" onClick={() => setStatusDialogOpen(false)}>
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent className="max-w-md">

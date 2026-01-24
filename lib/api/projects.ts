@@ -310,7 +310,7 @@ const uploadContract = async (projectId: string, file: File): Promise<ApiRespons
 
 const updateProjectStatus = async (
   id: string,
-  status: "active" | "completed" | "archive",
+  status: "propose" | "active" | "completed" | "archive",
 ): Promise<ApiResponse<Project>> => {
   return apiRequest<Project>(`/projects/${id}/${status}`, {
     method: "PATCH",
@@ -372,7 +372,7 @@ export const projectsApi = {
     const response = await uploadContract(projectId, file)
     return { success: response.code === 200, data: response.data }
   },
-  updateStatus: async (id: string, status: "active" | "completed" | "archive") => {
+  updateStatus: async (id: string, status: "propose" | "active" | "completed" | "archive") => {
     const response = await updateProjectStatus(id, status)
     return { success: response.code === 200, data: response.data }
   },

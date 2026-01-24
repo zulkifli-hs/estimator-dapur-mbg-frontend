@@ -57,6 +57,7 @@ import {
 
 const STATUS_OPTIONS = [
   { value: "all", label: "All" },
+  { value: "propose", label: "Propose" },
   { value: "active", label: "Active" },
   { value: "completed", label: "Completed" },
   { value: "archive", label: "Archive" },
@@ -67,6 +68,15 @@ type StatusFilter = (typeof STATUS_OPTIONS)[number]["value"]
 const getStatusBadge = (status: string) => {
   const normalizedStatus = status?.toLowerCase() || ""
 
+  if (normalizedStatus === "propose") {
+    return {
+      label: "Propose",
+      bgColor: "#fef3c7",
+      textColor: "#92400e",
+      borderColor: "#fcd34d",
+      dotColor: "#f59e0b",
+    }
+  }
   if (normalizedStatus === "active") {
     return {
       label: "Active",
@@ -203,7 +213,7 @@ export default function ProjectsPage() {
     setDeleteDialogOpen(true)
   }
 
-  const handleStatusChange = async (e: React.MouseEvent, project: any, status: "active" | "completed" | "archive") => {
+  const handleStatusChange = async (e: React.MouseEvent, project: any, status: "propose" | "active" | "completed" | "archive") => {
     e.preventDefault()
     e.stopPropagation()
     try {
@@ -376,7 +386,16 @@ export default function ProjectsPage() {
                           <CheckCircle className="h-4 w-4 mr-2" />
                           Change Status
                         </DropdownMenuSubTrigger>
-                        <DropdownMenuSubContent>
+                        <DropdownMenuSubContent sideOffset={8} alignOffset={-5}>
+                          {project.status !== "propose" && (
+                            <DropdownMenuItem
+                              onClick={(e) => handleStatusChange(e as any, project, "propose")}
+                              className="text-amber-600 focus:text-amber-600"
+                            >
+                              <ChevronDown className="h-4 w-4 mr-2 text-amber-600" />
+                              Propose
+                            </DropdownMenuItem>
+                          )}
                           {project.status !== "active" && (
                             <DropdownMenuItem
                               onClick={(e) => handleStatusChange(e as any, project, "active")}
@@ -515,7 +534,16 @@ export default function ProjectsPage() {
                             <CheckCircle className="h-4 w-4 mr-2" />
                             Change Status
                           </DropdownMenuSubTrigger>
-                          <DropdownMenuSubContent>
+                          <DropdownMenuSubContent sideOffset={8} alignOffset={-5}>
+                            {project.status !== "propose" && (
+                              <DropdownMenuItem
+                                onClick={(e) => handleStatusChange(e as any, project, "propose")}
+                                className="text-amber-600 focus:text-amber-600"
+                              >
+                                <ChevronDown className="h-4 w-4 mr-2 text-amber-600" />
+                                Propose
+                              </DropdownMenuItem>
+                            )}
                             {project.status !== "active" && (
                               <DropdownMenuItem
                                 onClick={(e) => handleStatusChange(e as any, project, "active")}
@@ -602,7 +630,7 @@ export default function ProjectsPage() {
               />
             </div>
           </div>
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="gap-2 sm:gap-2">
             <Button variant="outline" size="sm" onClick={() => setDeleteDialogOpen(false)}>
               Cancel
             </Button>

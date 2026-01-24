@@ -251,7 +251,9 @@ export default function ProductsPage() {
 
       const updateData: UpdateProductInput = {
         name: formData.name,
+        type: formData.type,
         unit: formData.unit,
+        sku: formData.sku,
         brand: formData.brand || undefined,
         sellingPrice: Number.parseFloat(formData.sellingPrice) || 0,
         purchasePrice: Number.parseFloat(formData.purchasePrice) || 0,

@@ -45,6 +45,7 @@ import { CreateBOQDialog } from "./create-boq-dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { ProductSearchPopover } from "@/components/product-search-popover"
 
 interface PreliminaryItem {
   name: string
@@ -52,6 +53,7 @@ interface PreliminaryItem {
   unit: string
   price: number
   productId?: string
+  location?: string
   startDate?: string // Added startDate
   endDate?: string // Added endDate
 }
@@ -62,6 +64,7 @@ interface ProductItem {
   unit: string
   price: number
   productId?: string
+  location?: string
   startDate?: string // Added startDate
   endDate?: string // Added endDate
 }
@@ -93,6 +96,11 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   const [openPopovers, setOpenPopovers] = useState<{ [key: string]: boolean }>({})
   const [searchQuery, setSearchQuery] = useState<{ [key: string]: string }>({})
   const [createProductDialogOpen, setCreateProductDialogOpen] = useState(false)
+  const [pendingProductSelection, setPendingProductSelection] = useState<{
+    type: 'preliminary' | 'fittingOut' | 'furnitureWork'
+    categoryIndex?: number
+    productIndex: number
+  } | null>(null)
 
   // Form states for blank creation
   const [preliminary, setPreliminary] = useState<PreliminaryItem[]>([])
@@ -166,6 +174,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
           unit: item.unit || "",
           price: item.price || 0,
           productId: item.productId || "",
+          location: item.location || "",
           startDate: item.startDate ? new Date(item.startDate).toISOString().split("T")[0] : "", // Format date
           endDate: item.endDate ? new Date(item.endDate).toISOString().split("T")[0] : "", // Format date
         })) || [],
@@ -182,6 +191,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
               unit: product.unit || "",
               price: product.price || 0,
               productId: product.productId || "",
+              location: product.location || "",
               startDate: product.startDate ? new Date(product.startDate).toISOString().split("T")[0] : "", // Format date
               endDate: product.endDate ? new Date(product.endDate).toISOString().split("T")[0] : "", // Format date
             })) || [],
@@ -199,6 +209,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
               unit: product.unit || "",
               price: product.price || 0,
               productId: product.productId || "",
+              location: product.location || "",
               startDate: product.startDate ? new Date(product.startDate).toISOString().split("T")[0] : "", // Format date
               endDate: product.endDate ? new Date(product.endDate).toISOString().split("T")[0] : "", // Format date
             })) || [],
@@ -299,7 +310,8 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
           <TableHeader>
             <TableRow>
               <TableHead className="w-[60px] px-4">No</TableHead>
-              <TableHead className="min-w-[300px] max-w-[500px] px-4">Item Name</TableHead>
+              <TableHead className="min-w-[250px] max-w-[400px] px-4">Item Name</TableHead>
+              <TableHead className="w-[120px] px-4">Location</TableHead>
               <TableHead className="text-right w-[80px] px-4">Qty</TableHead>
               <TableHead className="w-[80px] px-4">Unit</TableHead>
               <TableHead className="text-right w-[150px] px-4">Unit Price</TableHead>
@@ -311,7 +323,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
             {Array.isArray(boq.preliminary) && boq.preliminary.length > 0 && (
               <>
                 <TableRow className="bg-primary/10">
-                  <TableCell colSpan={6} className="font-bold text-primary uppercase px-4 py-3">
+                  <TableCell colSpan={7} className="font-bold text-primary uppercase px-4 py-3">
                     PRELIMINARY
                   </TableCell>
                 </TableRow>
@@ -322,6 +334,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                     <TableRow key={item._id}>
                       <TableCell className="font-medium pl-8 pr-4">{itemNumber++}</TableCell>
                       <TableCell className="whitespace-normal break-words px-4">{item.name}</TableCell>
+                      <TableCell className="px-4">{item.location || "-"}</TableCell>
                       <TableCell className="text-right px-4">{item.qty}</TableCell>
                       <TableCell className="px-4">{item.unit}</TableCell>
                       <TableCell className="text-right px-4">{formatCurrency(item.price)}</TableCell>
@@ -330,7 +343,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                   )
                 })}
                 <TableRow className="bg-muted/30">
-                  <TableCell colSpan={5} className="text-right font-semibold px-4 py-3">
+                  <TableCell colSpan={6} className="text-right font-semibold px-4 py-3">
                     Subtotal Preliminary
                   </TableCell>
                   <TableCell className="text-right font-semibold px-4 py-3">
@@ -346,7 +359,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
             {Array.isArray(boq.fittingOut) && boq.fittingOut.length > 0 && (
               <>
                 <TableRow className="bg-primary/10">
-                  <TableCell colSpan={6} className="font-bold text-primary uppercase px-4 py-3">
+                  <TableCell colSpan={7} className="font-bold text-primary uppercase px-4 py-3">
                     FITTING OUT
                   </TableCell>
                 </TableRow>
@@ -359,7 +372,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                   return (
                     <React.Fragment key={category._id}>
                       <TableRow className="bg-muted/50">
-                        <TableCell colSpan={6} className="font-semibold pl-8 pr-4 py-2">
+                        <TableCell colSpan={7} className="font-semibold pl-8 pr-4 py-2">
                           {category.name}
                         </TableCell>
                       </TableRow>
@@ -370,6 +383,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                             <TableRow key={product._id}>
                               <TableCell className="font-medium pl-12 pr-4">{itemNumber++}</TableCell>
                               <TableCell className="whitespace-normal break-words px-4">{product.name}</TableCell>
+                              <TableCell className="px-4">{product.location || "-"}</TableCell>
                               <TableCell className="text-right px-4">{product.qty}</TableCell>
                               <TableCell className="px-4">{product.unit}</TableCell>
                               <TableCell className="text-right px-4">{formatCurrency(product.price)}</TableCell>
@@ -378,7 +392,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                           )
                         })}
                       <TableRow className="bg-muted/20">
-                        <TableCell colSpan={5} className="text-right text-sm font-medium pl-12 pr-4 py-2">
+                        <TableCell colSpan={6} className="text-right text-sm font-medium pl-12 pr-4 py-2">
                           Subtotal {category.name}
                         </TableCell>
                         <TableCell className="text-right text-sm font-medium px-4 py-2">
@@ -389,7 +403,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                   )
                 })}
                 <TableRow className="bg-muted/30">
-                  <TableCell colSpan={5} className="text-right font-semibold px-4 py-3">
+                  <TableCell colSpan={6} className="text-right font-semibold px-4 py-3">
                     Subtotal Fitting Out
                   </TableCell>
                   <TableCell className="text-right font-semibold px-4 py-3">
@@ -412,7 +426,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
             {Array.isArray(boq.furnitureWork) && boq.furnitureWork.length > 0 && (
               <>
                 <TableRow className="bg-primary/10">
-                  <TableCell colSpan={6} className="font-bold text-primary uppercase px-4 py-3">
+                  <TableCell colSpan={7} className="font-bold text-primary uppercase px-4 py-3">
                     FURNITURE WORK
                   </TableCell>
                 </TableRow>
@@ -425,7 +439,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                   return (
                     <React.Fragment key={category._id}>
                       <TableRow className="bg-muted/50">
-                        <TableCell colSpan={6} className="font-semibold pl-8 pr-4 py-2">
+                        <TableCell colSpan={7} className="font-semibold pl-8 pr-4 py-2">
                           {category.name}
                         </TableCell>
                       </TableRow>
@@ -436,6 +450,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                             <TableRow key={product._id}>
                               <TableCell className="font-medium pl-12 pr-4">{itemNumber++}</TableCell>
                               <TableCell className="whitespace-normal break-words px-4">{product.name}</TableCell>
+                              <TableCell className="px-4">{product.location || "-"}</TableCell>
                               <TableCell className="text-right px-4">{product.qty}</TableCell>
                               <TableCell className="px-4">{product.unit}</TableCell>
                               <TableCell className="text-right px-4">{formatCurrency(product.price)}</TableCell>
@@ -444,7 +459,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                           )
                         })}
                       <TableRow className="bg-muted/20">
-                        <TableCell colSpan={5} className="text-right text-sm font-medium pl-12 pr-4 py-2">
+                        <TableCell colSpan={6} className="text-right text-sm font-medium pl-12 pr-4 py-2">
                           Subtotal {category.name}
                         </TableCell>
                         <TableCell className="text-right text-sm font-medium px-4 py-2">
@@ -455,7 +470,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                   )
                 })}
                 <TableRow className="bg-primary/20 font-bold">
-                  <TableCell colSpan={5} className="text-right text-lg px-4 py-4">
+                  <TableCell colSpan={6} className="text-right text-lg px-4 py-4">
                     GRAND TOTAL
                   </TableCell>
                   <TableCell className="text-right text-lg px-4 py-4">{formatCurrency(grandTotal)}</TableCell>
@@ -711,37 +726,33 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       }
 
       const filteredPreliminary = preliminary
-        .filter((item) => item.name && item.unit)
-        .map((item) => {
-          const filtered: any = {
-            productId: item.productId,
-            qty: item.qty,
-            name: item.name,
-            unit: item.unit,
-            price: item.price,
-          }
-          if (item.startDate) filtered.startDate = formatDateToYYYYMMDD(item.startDate)
-          if (item.endDate) filtered.endDate = formatDateToYYYYMMDD(item.endDate)
-          return filtered
-        })
+        .filter((item) => item.name && item.qty > 0 && item.unit && item.price >= 0)
+        .map((item) => ({
+          productId: item.productId,
+          qty: item.qty,
+          name: item.name,
+          unit: item.unit,
+          price: item.price,
+          location: item.location || undefined,
+          startDate: item.startDate || undefined,
+          endDate: item.endDate || undefined,
+        }))
 
       const filteredFittingOut = fittingOut
         .map((category) => ({
           name: category.name,
           products: category.products
-            .filter((product) => product.name && product.unit)
-            .map((product) => {
-              const filtered: any = {
-                productId: product.productId,
-                qty: product.qty,
-                name: product.name,
-                unit: product.unit,
-                price: product.price,
-              }
-              if (product.startDate) filtered.startDate = formatDateToYYYYMMDD(product.startDate)
-              if (product.endDate) filtered.endDate = formatDateToYYYYMMDD(product.endDate)
-              return filtered
-            }),
+            .filter((product) => product.name && product.qty > 0 && product.unit && product.price >= 0)
+            .map((product) => ({
+              productId: product.productId,
+              qty: product.qty,
+              name: product.name,
+              unit: product.unit,
+              price: product.price,
+              location: product.location || undefined,
+              startDate: product.startDate || undefined,
+              endDate: product.endDate || undefined,
+            })),
         }))
         .filter((category) => category.name && category.products.length > 0)
 
@@ -749,19 +760,17 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         .map((category) => ({
           name: category.name,
           products: category.products
-            .filter((product) => product.name && product.unit)
-            .map((product) => {
-              const filtered: any = {
-                productId: product.productId,
-                qty: product.qty,
-                name: product.name,
-                unit: product.unit,
-                price: product.price,
-              }
-              if (product.startDate) filtered.startDate = formatDateToYYYYMMDD(product.startDate)
-              if (product.endDate) filtered.endDate = formatDateToYYYYMMDD(product.endDate)
-              return filtered
-            }),
+            .filter((product) => product.name && product.qty > 0 && product.unit && product.price >= 0)
+            .map((product) => ({
+              productId: product.productId,
+              qty: product.qty,
+              name: product.name,
+              unit: product.unit,
+              price: product.price,
+              location: product.location || undefined,
+              startDate: product.startDate || undefined,
+              endDate: product.endDate || undefined,
+            })),
         }))
         .filter((category) => category.name && category.products.length > 0)
 
@@ -964,7 +973,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
 
     setSubmittingProduct(true)
     try {
-      const response = await productsApi.create({
+      const newProduct = await productsApi.create({
         name: productFormData.name,
         type: productFormData.type,
         unit: productFormData.unit,
@@ -976,15 +985,29 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         details: productDetails.length > 0 ? productDetails : undefined,
       })
 
-      if (response.success) {
-        toast({
-          title: "Success",
-          description: "Product created successfully",
-        })
-        setCreateProductDialogOpen(false)
-        resetProductForm()
-        fetchProducts()
+      toast({
+        title: "Success",
+        description: "Product created successfully",
+      })
+      
+      // Auto-select the newly created product if there's a pending selection
+      if (pendingProductSelection) {
+        const { type, categoryIndex, productIndex } = pendingProductSelection
+        
+        if (type === 'preliminary') {
+          selectPreliminaryProduct(productIndex, newProduct)
+        } else if (type === 'fittingOut' && categoryIndex !== undefined) {
+          selectFittingOutProduct(categoryIndex, productIndex, newProduct)
+        } else if (type === 'furnitureWork' && categoryIndex !== undefined) {
+          selectFurnitureWorkProduct(categoryIndex, productIndex, newProduct)
+        }
+        
+        setPendingProductSelection(null)
       }
+      
+      setCreateProductDialogOpen(false)
+      resetProductForm()
+      fetchProducts()
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -1385,164 +1408,92 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
             <h3 className="text-lg font-semibold">I. PRELIMINARY</h3>
           </CardHeader>
           <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[5%]">No</TableHead>
-                  <TableHead className="w-[40%]">Item Name</TableHead>
-                  <TableHead className="w-[15%]">Quantity</TableHead>
-                  <TableHead className="w-[15%]">Unit</TableHead>
-                  <TableHead className="w-[20%]">Price</TableHead>
-                  <TableHead className="w-[10%] text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <div className="border">
+              <div className="overflow-x-auto">
                 {preliminary.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                      No items yet. Click "Add Item" button below to start adding items.
-                    </TableCell>
-                  </TableRow>
+                  <div className="text-center py-8 text-muted-foreground">
+                    No items yet. Click "Add Item" button below to start adding items.
+                  </div>
                 ) : (
-                  preliminary.map((item, index) => (
-                    <TableRow key={index}>
-                      <TableCell className="font-medium text-center">{index + 1}</TableCell>
-                      <TableCell className="align-top">
-                        <Popover
-                          open={openPopovers[`preliminary-${index}`]}
-                          onOpenChange={(open) =>
-                            setOpenPopovers((prev) => ({ ...prev, [`preliminary-${index}`]: open }))
-                          }
-                        >
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              className="w-full justify-between min-h-[40px] h-auto text-left font-normal bg-transparent"
-                            >
-                              <span className="whitespace-normal break-words text-left">
-                                {item.name || "Select product..."}
-                              </span>
-                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-[500px] p-0" align="start">
-                            <Command>
-                              <CommandInput
-                                placeholder="Search product..."
-                                onValueChange={(value) =>
-                                  setSearchQuery({ ...searchQuery, [`preliminary-${index}`]: value })
-                                }
-                              />
-                              <CommandList>
-                                <CommandEmpty>
-                                  {loadingProducts ? (
-                                    "Loading products..."
-                                  ) : (
-                                    <div className="p-2">
-                                      <p className="text-sm text-muted-foreground mb-2">No product found.</p>
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="w-full bg-transparent"
-                                        onClick={() => {
-                                          setOpenPopovers({ ...openPopovers, [`preliminary-${index}`]: false })
-                                          setCreateProductDialogOpen(true)
-                                        }}
-                                      >
-                                        <Plus className="mr-2 h-4 w-4" />
-                                        Create New Product
-                                      </Button>
-                                    </div>
-                                  )}
-                                </CommandEmpty>
-                                <CommandGroup className="max-h-[300px] overflow-auto">
-                                  {products.map((product) => (
-                                    <CommandItem
-                                      key={product._id}
-                                      value={product.name}
-                                      onSelect={() => {
-                                        selectPreliminaryProduct(index, product)
-                                      }}
-                                      className="flex flex-col items-start py-3 hover:bg-primary/30 cursor-pointer"
-                                    >
-                                      <div className="flex items-center w-full">
-                                        <Check
-                                          className={cn(
-                                            "mr-2 h-4 w-4 shrink-0",
-                                            item.name === product.name ? "opacity-100" : "opacity-0",
-                                          )}
-                                        />
-                                        <div className="flex-1">
-                                          <div className="font-medium">
-                                            {highlightText(product.name, searchQuery[`preliminary-${index}`] || "")}
-                                          </div>
-                                          <div className="text-xs text-muted-foreground mt-1 space-x-2">
-                                            <span>SKU: {product.sku}</span>
-                                            <span>•</span>
-                                            <span>Type: {product.type}</span>
-                                            {product.brand && (
-                                              <>
-                                                <span>•</span>
-                                                <span>Brand: {product.brand}</span>
-                                              </>
-                                            )}
-                                          </div>
-                                          <div className="text-xs text-muted-foreground mt-1">
-                                            Price: {formatCurrency(product.sellingPrice)}
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </CommandItem>
-                                  ))}
-                                </CommandGroup>
-                              </CommandList>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
-                      </TableCell>
-                      <TableCell className="align-top">
-                        <Input
-                          ref={(el) => {
-                            preliminaryQtyRefs.current[index] = el
-                          }}
-                          type="number"
-                          value={item.qty}
-                          onChange={(e) => updatePreliminaryItem(index, "qty", Number(e.target.value))}
-                          placeholder="0"
-                        />
-                      </TableCell>
-                      <TableCell className="align-top">
-                        <Input
-                          value={item.unit}
-                          onChange={(e) => updatePreliminaryItem(index, "unit", e.target.value)}
-                          placeholder="ls, m2"
-                        />
-                      </TableCell>
-                      <TableCell className="align-top">
-                        <Input
-                          type="number"
-                          value={item.price}
-                          onChange={(e) => updatePreliminaryItem(index, "price", Number(e.target.value))}
-                          placeholder="0"
-                        />
-                      </TableCell>
-                      <TableCell className="text-right align-top">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removePreliminaryItem(index)}
-                          // Removed disabled check here as it's handled by the ternary above
-                          // disabled={preliminary.length === 1}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  <div className="divide-y">
+                    {preliminary.map((item, index) => (
+                      <div key={index} className="p-4 space-y-3">
+                        {/* First Row: Number and Item Name */}
+                        <div className="flex items-start gap-3">
+                          <div className="flex-shrink-0 w-8 h-10 flex items-center justify-center font-medium text-sm">
+                            {index + 1}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <Label className="text-xs text-muted-foreground mb-1.5 block">Item Name</Label>
+                            <ProductSearchPopover
+                              products={products}
+                              selectedProductName={item.name}
+                              onSelect={(product) => selectPreliminaryProduct(index, product)}
+                              onCreateNew={() => {
+                                setPendingProductSelection({ type: 'preliminary', productIndex: index })
+                                setCreateProductDialogOpen(true)
+                              }}
+                              loadingProducts={loadingProducts}
+                              className="w-full min-h-[40px] h-auto text-left font-normal"
+                              formatCurrency={formatCurrency}
+                            />
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removePreliminaryItem(index)}
+                            className="flex-shrink-0"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        
+                        {/* Second Row: Other Fields */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pl-11">
+                          <div>
+                            <Label className="text-xs text-muted-foreground mb-1.5 block">Location (optional)</Label>
+                            <Input
+                              value={item.location || ""}
+                              onChange={(e) => updatePreliminaryItem(index, "location", e.target.value)}
+                              placeholder="e.g. Front, Back"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground mb-1.5 block">Quantity</Label>
+                            <Input
+                              ref={(el) => {
+                                preliminaryQtyRefs.current[index] = el
+                              }}
+                              type="number"
+                              value={item.qty}
+                              onChange={(e) => updatePreliminaryItem(index, "qty", Number(e.target.value))}
+                              placeholder="0"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground mb-1.5 block">Unit</Label>
+                            <Input
+                              value={item.unit}
+                              onChange={(e) => updatePreliminaryItem(index, "unit", e.target.value)}
+                              placeholder="ls, m2"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground mb-1.5 block">Price</Label>
+                            <Input
+                              type="number"
+                              value={item.price}
+                              onChange={(e) => updatePreliminaryItem(index, "price", Number(e.target.value))}
+                              placeholder="0"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
-              </TableBody>
-            </Table>
+              </div>
+            </div>
             <div className="p-4 border-t">
               <Button type="button" onClick={addPreliminaryItem} variant="outline" className="w-full bg-transparent">
                 <Plus className="h-4 w-4 mr-2" />
@@ -1587,174 +1538,96 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                   </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-[5%]">No</TableHead>
-                        <TableHead className="w-[40%]">Product Name</TableHead>
-                        <TableHead className="w-[15%]">Quantity</TableHead>
-                        <TableHead className="w-[15%]">Unit</TableHead>
-                        <TableHead className="w-[20%]">Price</TableHead>
-                        <TableHead className="w-[10%] text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                  <div className="border-t">
+                    <div className="divide-y">
                       {category.products.map((product, productIndex) => (
-                        <TableRow key={productIndex}>
-                          <TableCell className="font-medium text-center">{productIndex + 1}</TableCell>
-                          <TableCell className="align-top">
-                            <Popover
-                              open={openPopovers[`fittingOut-${categoryIndex}-${productIndex}`]}
-                              onOpenChange={(open) =>
-                                setOpenPopovers((prev) => ({
-                                  ...prev,
-                                  [`fittingOut-${categoryIndex}-${productIndex}`]: open,
-                                }))
-                              }
-                            >
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  role="combobox"
-                                  className="w-full justify-between min-h-[40px] h-auto text-left font-normal bg-transparent"
-                                >
-                                  <span className="whitespace-normal break-words text-left">
-                                    {product.name || "Select product..."}
-                                  </span>
-                                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-[500px] p-0" align="start">
-                                <Command>
-                                  <CommandInput
-                                    placeholder="Search product..."
-                                    onValueChange={(value) =>
-                                      setSearchQuery({
-                                        ...searchQuery,
-                                        [`fittingOut-${categoryIndex}-${productIndex}`]: value,
-                                      })
-                                    }
-                                  />
-                                  <CommandList>
-                                    <CommandEmpty>
-                                      {loadingProducts ? (
-                                        "Loading products..."
-                                      ) : (
-                                        <div className="p-2">
-                                          <p className="text-sm text-muted-foreground mb-2">No product found.</p>
-                                          <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="w-full bg-transparent"
-                                            onClick={() => {
-                                              setOpenPopovers({
-                                                ...openPopovers,
-                                                [`fittingOut-${categoryIndex}-${productIndex}`]: false,
-                                              })
-                                              setCreateProductDialogOpen(true)
-                                            }}
-                                          >
-                                            <Plus className="mr-2 h-4 w-4" />
-                                            Create New Product
-                                          </Button>
-                                        </div>
-                                      )}
-                                    </CommandEmpty>
-                                    <CommandGroup className="max-h-[300px] overflow-auto">
-                                      {products.map((product) => (
-                                        <CommandItem
-                                          key={product._id}
-                                          value={product.name}
-                                          onSelect={() => {
-                                            selectFittingOutProduct(categoryIndex, productIndex, product)
-                                          }}
-                                          className="flex flex-col items-start py-3 hover:bg-primary/30 cursor-pointer"
-                                        >
-                                          <div className="flex items-center w-full">
-                                            <Check
-                                              className={cn(
-                                                "mr-2 h-4 w-4 shrink-0",
-                                                product.name === product.name ? "opacity-100" : "opacity-0",
-                                              )}
-                                            />
-                                            <div className="flex-1">
-                                              <div className="font-medium">
-                                                {highlightText(
-                                                  product.name,
-                                                  searchQuery[`fittingOut-${categoryIndex}-${productIndex}`] || "",
-                                                )}
-                                              </div>
-                                              <div className="text-xs text-muted-foreground mt-1 space-x-2">
-                                                <span>SKU: {product.sku}</span>
-                                                <span>•</span>
-                                                <span>Type: {product.type}</span>
-                                                {product.brand && (
-                                                  <>
-                                                    <span>•</span>
-                                                    <span>Brand: {product.brand}</span>
-                                                  </>
-                                                )}
-                                              </div>
-                                              <div className="text-xs text-muted-foreground mt-1">
-                                                Price: {formatCurrency(product.sellingPrice)}
-                                              </div>
-                                            </div>
-                                          </div>
-                                        </CommandItem>
-                                      ))}
-                                    </CommandGroup>
-                                  </CommandList>
-                                </Command>
-                              </PopoverContent>
-                            </Popover>
-                          </TableCell>
-                          <TableCell className="align-top">
-                            <Input
-                              ref={(el) => {
-                                fittingOutQtyRefs.current[`${categoryIndex}-${productIndex}`] = el
-                              }}
-                              type="number"
-                              value={product.qty}
-                              onChange={(e) =>
-                                updateFittingOutProduct(categoryIndex, productIndex, "qty", Number(e.target.value))
-                              }
-                              placeholder="0"
-                            />
-                          </TableCell>
-                          <TableCell className="align-top">
-                            <Input
-                              value={product.unit}
-                              onChange={(e) =>
-                                updateFittingOutProduct(categoryIndex, productIndex, "unit", e.target.value)
-                              }
-                              placeholder="ls, m2"
-                            />
-                          </TableCell>
-                          <TableCell className="align-top">
-                            <Input
-                              type="number"
-                              value={product.price}
-                              onChange={(e) =>
-                                updateFittingOutProduct(categoryIndex, productIndex, "price", Number(e.target.value))
-                              }
-                              placeholder="0"
-                            />
-                          </TableCell>
-                          <TableCell className="text-right align-top">
+                        <div key={productIndex} className="p-4 space-y-3">
+                          {/* First Row: Number and Product Name */}
+                          <div className="flex items-start gap-3">
+                            <div className="flex-shrink-0 w-8 h-10 flex items-center justify-center font-medium text-sm">
+                              {productIndex + 1}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <Label className="text-xs text-muted-foreground mb-1.5 block">Product Name</Label>
+                              <ProductSearchPopover
+                                products={products}
+                                selectedProductName={product.name}
+                                onSelect={(prod) => selectFittingOutProduct(categoryIndex, productIndex, prod)}
+                                onCreateNew={() => {
+                                  setPendingProductSelection({ 
+                                    type: 'fittingOut', 
+                                    categoryIndex, 
+                                    productIndex 
+                                  })
+                                  setCreateProductDialogOpen(true)
+                                }}
+                                loadingProducts={loadingProducts}
+                                className="w-full min-h-[40px] h-auto text-left font-normal"
+                                formatCurrency={formatCurrency}
+                              />
+                            </div>
                             <Button
                               variant="ghost"
                               size="icon"
                               onClick={() => removeFittingOutProduct(categoryIndex, productIndex)}
-                              // Removed disabled check here as it's handled by the ternary above
-                              // disabled={category.products.length === 1}
+                              className="flex-shrink-0"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
-                          </TableCell>
-                        </TableRow>
+                          </div>
+                          
+                          {/* Second Row: Other Fields */}
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pl-11">
+                            <div>
+                              <Label className="text-xs text-muted-foreground mb-1.5 block">Location (optional)</Label>
+                              <Input
+                                value={product.location || ""}
+                                onChange={(e) =>
+                                  updateFittingOutProduct(categoryIndex, productIndex, "location", e.target.value)
+                                }
+                                placeholder="e.g. Front, Back"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs text-muted-foreground mb-1.5 block">Quantity</Label>
+                              <Input
+                                ref={(el) => {
+                                  fittingOutQtyRefs.current[`${categoryIndex}-${productIndex}`] = el
+                                }}
+                                type="number"
+                                value={product.qty}
+                                onChange={(e) =>
+                                  updateFittingOutProduct(categoryIndex, productIndex, "qty", Number(e.target.value))
+                                }
+                                placeholder="0"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs text-muted-foreground mb-1.5 block">Unit</Label>
+                              <Input
+                                value={product.unit}
+                                onChange={(e) =>
+                                  updateFittingOutProduct(categoryIndex, productIndex, "unit", e.target.value)
+                                }
+                                placeholder="ls, m2"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs text-muted-foreground mb-1.5 block">Price</Label>
+                              <Input
+                                type="number"
+                                value={product.price}
+                                onChange={(e) =>
+                                  updateFittingOutProduct(categoryIndex, productIndex, "price", Number(e.target.value))
+                                }
+                                placeholder="0"
+                              />
+                            </div>
+                          </div>
+                        </div>
                       ))}
-                    </TableBody>
-                  </Table>
+                    </div>
+                  </div>
                   <div className="p-4 border-t">
                     <Button
                       type="button"
@@ -1811,174 +1684,96 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                   </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-[5%]">No</TableHead>
-                        <TableHead className="w-[40%]">Product Name</TableHead>
-                        <TableHead className="w-[15%]">Quantity</TableHead>
-                        <TableHead className="w-[15%]">Unit</TableHead>
-                        <TableHead className="w-[20%]">Price</TableHead>
-                        <TableHead className="w-[10%] text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                  <div className="border-t">
+                    <div className="divide-y">
                       {category.products.map((product, productIndex) => (
-                        <TableRow key={productIndex}>
-                          <TableCell className="font-medium text-center">{productIndex + 1}</TableCell>
-                          <TableCell className="align-top">
-                            <Popover
-                              open={openPopovers[`furnitureWork-${categoryIndex}-${productIndex}`]}
-                              onOpenChange={(open) =>
-                                setOpenPopovers((prev) => ({
-                                  ...prev,
-                                  [`furnitureWork-${categoryIndex}-${productIndex}`]: open,
-                                }))
-                              }
-                            >
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  role="combobox"
-                                  className="w-full justify-between min-h-[40px] h-auto text-left font-normal bg-transparent"
-                                >
-                                  <span className="whitespace-normal break-words text-left">
-                                    {product.name || "Select product..."}
-                                  </span>
-                                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-[500px] p-0" align="start">
-                                <Command>
-                                  <CommandInput
-                                    placeholder="Search product..."
-                                    onValueChange={(value) =>
-                                      setSearchQuery({
-                                        ...searchQuery,
-                                        [`furnitureWork-${categoryIndex}-${productIndex}`]: value,
-                                      })
-                                    }
-                                  />
-                                  <CommandList>
-                                    <CommandEmpty>
-                                      {loadingProducts ? (
-                                        "Loading products..."
-                                      ) : (
-                                        <div className="p-2">
-                                          <p className="text-sm text-muted-foreground mb-2">No product found.</p>
-                                          <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="w-full bg-transparent"
-                                            onClick={() => {
-                                              setOpenPopovers({
-                                                ...openPopovers,
-                                                [`furnitureWork-${categoryIndex}-${productIndex}`]: false,
-                                              })
-                                              setCreateProductDialogOpen(true)
-                                            }}
-                                          >
-                                            <Plus className="mr-2 h-4 w-4" />
-                                            Create New Product
-                                          </Button>
-                                        </div>
-                                      )}
-                                    </CommandEmpty>
-                                    <CommandGroup className="max-h-[300px] overflow-auto">
-                                      {products.map((product) => (
-                                        <CommandItem
-                                          key={product._id}
-                                          value={product.name}
-                                          onSelect={() => {
-                                            selectFurnitureWorkProduct(categoryIndex, productIndex, product)
-                                          }}
-                                          className="flex flex-col items-start py-3 hover:bg-primary/30 cursor-pointer"
-                                        >
-                                          <div className="flex items-center w-full">
-                                            <Check
-                                              className={cn(
-                                                "mr-2 h-4 w-4 shrink-0",
-                                                product.name === product.name ? "opacity-100" : "opacity-0",
-                                              )}
-                                            />
-                                            <div className="flex-1">
-                                              <div className="font-medium">
-                                                {highlightText(
-                                                  product.name,
-                                                  searchQuery[`furnitureWork-${categoryIndex}-${productIndex}`] || "",
-                                                )}
-                                              </div>
-                                              <div className="text-xs text-muted-foreground mt-1 space-x-2">
-                                                <span>SKU: {product.sku}</span>
-                                                <span>•</span>
-                                                <span>Type: {product.type}</span>
-                                                {product.brand && (
-                                                  <>
-                                                    <span>•</span>
-                                                    <span>Brand: {product.brand}</span>
-                                                  </>
-                                                )}
-                                              </div>
-                                              <div className="text-xs text-muted-foreground mt-1">
-                                                Price: {formatCurrency(product.sellingPrice)}
-                                              </div>
-                                            </div>
-                                          </div>
-                                        </CommandItem>
-                                      ))}
-                                    </CommandGroup>
-                                  </CommandList>
-                                </Command>
-                              </PopoverContent>
-                            </Popover>
-                          </TableCell>
-                          <TableCell className="align-top">
-                            <Input
-                              ref={(el) => {
-                                furnitureWorkQtyRefs.current[`${categoryIndex}-${productIndex}`] = el
-                              }}
-                              type="number"
-                              value={product.qty}
-                              onChange={(e) =>
-                                updateFurnitureWorkProduct(categoryIndex, productIndex, "qty", Number(e.target.value))
-                              }
-                              placeholder="0"
-                            />
-                          </TableCell>
-                          <TableCell className="align-top">
-                            <Input
-                              value={product.unit}
-                              onChange={(e) =>
-                                updateFurnitureWorkProduct(categoryIndex, productIndex, "unit", e.target.value)
-                              }
-                              placeholder="ls, m2"
-                            />
-                          </TableCell>
-                          <TableCell className="align-top">
-                            <Input
-                              type="number"
-                              value={product.price}
-                              onChange={(e) =>
-                                updateFurnitureWorkProduct(categoryIndex, productIndex, "price", Number(e.target.value))
-                              }
-                              placeholder="0"
-                            />
-                          </TableCell>
-                          <TableCell className="text-right align-top">
+                        <div key={productIndex} className="p-4 space-y-3">
+                          {/* First Row: Number and Product Name */}
+                          <div className="flex items-start gap-3">
+                            <div className="flex-shrink-0 w-8 h-10 flex items-center justify-center font-medium text-sm">
+                              {productIndex + 1}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <Label className="text-xs text-muted-foreground mb-1.5 block">Product Name</Label>
+                              <ProductSearchPopover
+                                products={products}
+                                selectedProductName={product.name}
+                                onSelect={(prod) => selectFurnitureWorkProduct(categoryIndex, productIndex, prod)}
+                                onCreateNew={() => {
+                                  setPendingProductSelection({ 
+                                    type: 'furnitureWork', 
+                                    categoryIndex, 
+                                    productIndex 
+                                  })
+                                  setCreateProductDialogOpen(true)
+                                }}
+                                loadingProducts={loadingProducts}
+                                className="w-full min-h-[40px] h-auto text-left font-normal"
+                                formatCurrency={formatCurrency}
+                              />
+                            </div>
                             <Button
                               variant="ghost"
                               size="icon"
                               onClick={() => removeFurnitureWorkProduct(categoryIndex, productIndex)}
-                              // Removed disabled check here as it's handled by the ternary above
-                              // disabled={category.products.length === 1}
+                              className="flex-shrink-0"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
-                          </TableCell>
-                        </TableRow>
+                          </div>
+                          
+                          {/* Second Row: Other Fields */}
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pl-11">
+                            <div>
+                              <Label className="text-xs text-muted-foreground mb-1.5 block">Location (optional)</Label>
+                              <Input
+                                value={product.location || ""}
+                                onChange={(e) =>
+                                  updateFurnitureWorkProduct(categoryIndex, productIndex, "location", e.target.value)
+                                }
+                                placeholder="e.g. Front, Back"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs text-muted-foreground mb-1.5 block">Quantity</Label>
+                              <Input
+                                ref={(el) => {
+                                  furnitureWorkQtyRefs.current[`${categoryIndex}-${productIndex}`] = el
+                                }}
+                                type="number"
+                                value={product.qty}
+                                onChange={(e) =>
+                                  updateFurnitureWorkProduct(categoryIndex, productIndex, "qty", Number(e.target.value))
+                                }
+                                placeholder="0"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs text-muted-foreground mb-1.5 block">Unit</Label>
+                              <Input
+                                value={product.unit}
+                                onChange={(e) =>
+                                  updateFurnitureWorkProduct(categoryIndex, productIndex, "unit", e.target.value)
+                                }
+                                placeholder="ls, m2"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs text-muted-foreground mb-1.5 block">Price</Label>
+                              <Input
+                                type="number"
+                                value={product.price}
+                                onChange={(e) =>
+                                  updateFurnitureWorkProduct(categoryIndex, productIndex, "price", Number(e.target.value))
+                                }
+                                placeholder="0"
+                              />
+                            </div>
+                          </div>
+                        </div>
                       ))}
-                    </TableBody>
-                  </Table>
+                    </div>
+                  </div>
                   <div className="p-4 border-t">
                     <Button
                       type="button"
@@ -1999,6 +1794,222 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
             Add Category
           </Button>
         </div>
+
+        {/* Create Product Dialog - for blank creation mode */}
+        <Dialog open={createProductDialogOpen} onOpenChange={setCreateProductDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create Product</DialogTitle>
+            <DialogDescription>Add a new product to the system</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="create-name-blank">Product Name *</Label>
+              <Input
+                id="create-name-blank"
+                value={productFormData.name}
+                onChange={(e) => setProductFormData({ ...productFormData, name: e.target.value })}
+                placeholder="e.g., Semen"
+              />
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="create-type-blank">Type *</Label>
+                <Select
+                  value={productFormData.type}
+                  onValueChange={(value: any) => setProductFormData({ ...productFormData, type: value })}
+                >
+                  <SelectTrigger id="create-type-blank">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Goods">Goods</SelectItem>
+                    <SelectItem value="Services">Services</SelectItem>
+                    <SelectItem value="Goods and Services">Goods and Services</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="create-unit-blank">Unit *</Label>
+                <Input
+                  id="create-unit-blank"
+                  value={productFormData.unit}
+                  onChange={(e) => setProductFormData({ ...productFormData, unit: e.target.value })}
+                  placeholder="e.g., liter"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="create-brand-blank">Brand</Label>
+                <Input
+                  id="create-brand-blank"
+                  value={productFormData.brand}
+                  onChange={(e) => setProductFormData({ ...productFormData, brand: e.target.value })}
+                  placeholder="e.g., Mitsubishi"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="create-purchase-blank">Purchase Price (IDR) *</Label>
+                <Input
+                  id="create-purchase-blank"
+                  type="number"
+                  value={productFormData.purchasePrice}
+                  onChange={(e) => setProductFormData({ ...productFormData, purchasePrice: e.target.value })}
+                  placeholder="e.g., 20000"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="create-selling-blank">Selling Price (IDR) *</Label>
+                <Input
+                  id="create-selling-blank"
+                  type="number"
+                  value={productFormData.sellingPrice}
+                  onChange={(e) => setProductFormData({ ...productFormData, sellingPrice: e.target.value })}
+                  placeholder="e.g., 25000"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="create-sku-blank">SKU *</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="create-sku-blank"
+                  value={productFormData.sku}
+                  onChange={(e) => setProductFormData({ ...productFormData, sku: e.target.value })}
+                  placeholder="e.g., DSG-GS-MIT-25"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={generateSKU}
+                  className="whitespace-nowrap bg-transparent"
+                >
+                  Generate SKU
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Photos</Label>
+              <div className="border-2 border-dashed rounded-lg p-4">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoUpload}
+                  disabled={uploading}
+                  className="hidden"
+                  id="photo-upload-blank"
+                />
+                <label htmlFor="photo-upload-blank" className="cursor-pointer">
+                  <div className="flex flex-col items-center justify-center py-4">
+                    {uploading ? (
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-2" />
+                    ) : (
+                      <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                    )}
+                    <p className="text-sm text-muted-foreground">
+                      {uploading ? "Uploading..." : "Click to upload photo"}
+                    </p>
+                  </div>
+                </label>
+
+                {uploadedPhotos.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2 mt-4">
+                    {uploadedPhotos.map((photo, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${photo.provider}/${photo.url}`}
+                          alt={`Product ${index + 1}`}
+                          className="w-full h-24 object-cover rounded"
+                        />
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => removePhoto(index)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Product Details */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Product Details (Optional)</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setProductDetails([...productDetails, { name: "", value: "" }])}
+                  className="bg-transparent"
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Detail
+                </Button>
+              </div>
+
+              {productDetails.map((detail, index) => (
+                <div key={index} className="flex gap-2">
+                  <Input
+                    placeholder="Detail name (e.g., Material)"
+                    value={detail.name}
+                    onChange={(e) => {
+                      const updated = [...productDetails]
+                      updated[index].name = e.target.value
+                      setProductDetails(updated)
+                    }}
+                    className="flex-1"
+                  />
+                  <Input
+                    placeholder="Value (e.g., Mahogany Wood)"
+                    value={detail.value}
+                    onChange={(e) => {
+                      const updated = [...productDetails]
+                      updated[index].value = e.target.value
+                      setProductDetails(updated)
+                    }}
+                    className="flex-1"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      setProductDetails(productDetails.filter((_, i) => i !== index))
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setCreateProductDialogOpen(false)
+                resetProductForm()
+              }}
+              className="bg-transparent"
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleCreateProduct} disabled={submittingProduct}>
+              {submittingProduct && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Create Product
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       </div>
     )
   }

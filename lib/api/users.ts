@@ -1,8 +1,15 @@
 import { apiRequest } from "./config"
 
+export interface Permission {
+  path: string
+  method: string
+}
+
 export interface User {
   _id: string
   email: string
+  status: "Active" | "Inactive"
+  admin?: boolean
   profile?: {
     name?: string
     photo?: {
@@ -13,7 +20,14 @@ export interface User {
   }
   createdAt: string
   updatedAt: string
-  permissions?: string[]
+  permissions?: Permission[]
+}
+
+export interface UpdatePermissionsInput {
+  users: {
+    _id: string
+    permissions: Permission[]
+  }[]
 }
 
 export interface CreateUserInput {
@@ -118,5 +132,28 @@ export const usersApi = {
       console.error("[v0] Failed to search users:", error)
       return []
     }
+  },
+
+  activate: async (id: string): Promise<User> => {
+    const response = await apiRequest(`/users/${id}/active`, {
+      method: "PUT",
+    })
+
+    return response.data
+  },
+
+  deactivate: async (id: string): Promise<User> => {
+    const response = await apiRequest(`/users/${id}/inactive`, {
+      method: "PUT",
+    })
+
+    return response.data
+  },
+
+  updatePermissions: async (data: UpdatePermissionsInput): Promise<void> => {
+    await apiRequest("/users/permissions", {
+      method: "POST",
+      body: JSON.stringify(data),
+    })
   },
 }

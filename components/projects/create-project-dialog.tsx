@@ -606,7 +606,7 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess, editProject
                   id="companyOwner.code"
                   value={formData.companyOwner.code}
                   onChange={(e) => handleChange("companyOwner.code", e.target.value)}
-                  placeholder="GEMA"
+                  placeholder="GIS"
                   required
                   disabled={loading}
                 />

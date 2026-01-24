@@ -18,6 +18,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog" // Added DialogDescription, DialogFooter
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn, formatCurrency } from "@/lib/utils" // Added formatCurrency to import
+import { ProductSearchPopover } from "@/components/product-search-popover"
 
 interface PreliminaryItem {
   name: string
@@ -735,96 +736,15 @@ export default function TemplateDetailPage() {
                   {preliminary.map((item, index) => (
                     <TableRow key={index}>
                       <TableCell className="align-top">
-                        <Popover
-                          open={openPopovers[`preliminary-${index}`]}
-                          onOpenChange={(open) =>
-                            setOpenPopovers((prev) => ({ ...prev, [`preliminary-${index}`]: open }))
-                          }
-                        >
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              className="w-full justify-between min-h-[40px] h-auto text-left font-normal bg-transparent"
-                            >
-                              <span className="whitespace-normal break-words text-left">
-                                {item.name || "Select product..."}
-                              </span>
-                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-[500px] p-0" align="start">
-                            <Command>
-                              <CommandInput
-                                placeholder="Search product..."
-                                onValueChange={(value) =>
-                                  setSearchQuery({ ...searchQuery, [`preliminary-${index}`]: value })
-                                }
-                              />
-                              <CommandList>
-                                <CommandEmpty>
-                                  {loadingProducts ? (
-                                    "Loading products..."
-                                  ) : (
-                                    <div className="p-2">
-                                      <p className="text-sm text-muted-foreground mb-2">No product found.</p>
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="w-full bg-transparent"
-                                        onClick={() => {
-                                          setOpenPopovers({ ...openPopovers, [`preliminary-${index}`]: false })
-                                          setCreateProductDialogOpen(true)
-                                        }}
-                                      >
-                                        <Plus className="mr-2 h-4 w-4" />
-                                        Create New Product
-                                      </Button>
-                                    </div>
-                                  )}
-                                </CommandEmpty>
-                                <CommandGroup className="max-h-[300px] overflow-auto">
-                                  {products.map((product) => (
-                                    <CommandItem
-                                      key={product._id}
-                                      value={product.name}
-                                      onSelect={() => selectPreliminaryProduct(index, product)}
-                                      className="flex flex-col items-start py-3 hover:bg-primary/30 cursor-pointer"
-                                    >
-                                      <div className="flex items-center w-full">
-                                        <Check
-                                          className={cn(
-                                            "mr-2 h-4 w-4 shrink-0",
-                                            item.name === product.name ? "opacity-100" : "opacity-0",
-                                          )}
-                                        />
-                                        <div className="flex-1">
-                                          <div className="font-medium">
-                                            {highlightText(product.name, searchQuery[`preliminary-${index}`] || "")}
-                                          </div>
-                                          <div className="text-xs text-muted-foreground mt-1 space-x-2">
-                                            <span>SKU: {product.sku}</span>
-                                            <span>•</span>
-                                            <span>Type: {product.type}</span>
-                                            {product.brand && (
-                                              <>
-                                                <span>•</span>
-                                                <span>Brand: {product.brand}</span>
-                                              </>
-                                            )}
-                                          </div>
-                                          <div className="text-xs text-muted-foreground mt-1">
-                                            Price: {formatCurrency(product.sellingPrice)}
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </CommandItem>
-                                  ))}
-                                </CommandGroup>
-                              </CommandList>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
+                        <ProductSearchPopover
+                          products={products}
+                          selectedProductName={item.name}
+                          onSelect={(product) => selectPreliminaryProduct(index, product)}
+                          onCreateNew={() => setCreateProductDialogOpen(true)}
+                          loadingProducts={loadingProducts}
+                          className="w-full min-h-[40px] h-auto text-left font-normal"
+                          formatCurrency={formatCurrency}
+                        />
                       </TableCell>
                       <TableCell className="align-top">
                         <Input
@@ -916,108 +836,15 @@ export default function TemplateDetailPage() {
                       {category.products.map((product, productIndex) => (
                         <TableRow key={productIndex}>
                           <TableCell className="align-top">
-                            <Popover
-                              open={openPopovers[`fittingOut-${categoryIndex}-${productIndex}`]}
-                              onOpenChange={(open) =>
-                                setOpenPopovers((prev) => ({
-                                  ...prev,
-                                  [`fittingOut-${categoryIndex}-${productIndex}`]: open,
-                                }))
-                              }
-                            >
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  role="combobox"
-                                  className="w-full justify-between min-h-[40px] h-auto text-left font-normal bg-transparent"
-                                >
-                                  <span className="whitespace-normal break-words text-left">
-                                    {product.name || "Select product..."}
-                                  </span>
-                                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-[500px] p-0" align="start">
-                                <Command>
-                                  <CommandInput
-                                    placeholder="Search product..."
-                                    onValueChange={(value) =>
-                                      setSearchQuery({
-                                        ...searchQuery,
-                                        [`fittingOut-${categoryIndex}-${productIndex}`]: value,
-                                      })
-                                    }
-                                  />
-                                  <CommandList>
-                                    <CommandEmpty>
-                                      {loadingProducts ? (
-                                        "Loading products..."
-                                      ) : (
-                                        <div className="p-2">
-                                          <p className="text-sm text-muted-foreground mb-2">No product found.</p>
-                                          <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="w-full bg-transparent"
-                                            onClick={() => {
-                                              setOpenPopovers({
-                                                ...openPopovers,
-                                                [`fittingOut-${categoryIndex}-${productIndex}`]: false,
-                                              })
-                                              setCreateProductDialogOpen(true)
-                                            }}
-                                          >
-                                            <Plus className="mr-2 h-4 w-4" />
-                                            Create New Product
-                                          </Button>
-                                        </div>
-                                      )}
-                                    </CommandEmpty>
-                                    <CommandGroup className="max-h-[300px] overflow-auto">
-                                      {products.map((prod) => (
-                                        <CommandItem
-                                          key={prod._id}
-                                          value={prod.name}
-                                          onSelect={() => selectFittingOutProduct(categoryIndex, productIndex, prod)}
-                                          className="flex flex-col items-start py-3 hover:bg-primary/30 cursor-pointer"
-                                        >
-                                          <div className="flex items-center w-full">
-                                            <Check
-                                              className={cn(
-                                                "mr-2 h-4 w-4 shrink-0",
-                                                product.name === prod.name ? "opacity-100" : "opacity-0",
-                                              )}
-                                            />
-                                            <div className="flex-1">
-                                              <div className="font-medium">
-                                                {highlightText(
-                                                  prod.name,
-                                                  searchQuery[`fittingOut-${categoryIndex}-${productIndex}`] || "",
-                                                )}
-                                              </div>
-                                              <div className="text-xs text-muted-foreground mt-1 space-x-2">
-                                                <span>SKU: {prod.sku}</span>
-                                                <span>•</span>
-                                                <span>Type: {prod.type}</span>
-                                                {prod.brand && (
-                                                  <>
-                                                    <span>•</span>
-                                                    <span>Brand: {prod.brand}</span>
-                                                  </>
-                                                )}
-                                              </div>
-                                              <div className="text-xs text-muted-foreground mt-1">
-                                                Price: {formatCurrency(prod.sellingPrice)}
-                                              </div>
-                                            </div>
-                                          </div>
-                                        </CommandItem>
-                                      ))}
-                                    </CommandGroup>
-                                  </CommandList>
-                                </Command>
-                              </PopoverContent>
-                            </Popover>
+                            <ProductSearchPopover
+                              products={products}
+                              selectedProductName={product.name}
+                              onSelect={(prod) => selectFittingOutProduct(categoryIndex, productIndex, prod)}
+                              onCreateNew={() => setCreateProductDialogOpen(true)}
+                              loadingProducts={loadingProducts}
+                              className="w-full min-h-[40px] h-auto text-left font-normal"
+                              formatCurrency={formatCurrency}
+                            />
                           </TableCell>
                           <TableCell className="align-top">
                             <Input
@@ -1126,108 +953,15 @@ export default function TemplateDetailPage() {
                       {category.products.map((product, productIndex) => (
                         <TableRow key={productIndex}>
                           <TableCell className="align-top">
-                            <Popover
-                              open={openPopovers[`furnitureWork-${categoryIndex}-${productIndex}`]}
-                              onOpenChange={(open) =>
-                                setOpenPopovers((prev) => ({
-                                  ...prev,
-                                  [`furnitureWork-${categoryIndex}-${productIndex}`]: open,
-                                }))
-                              }
-                            >
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  role="combobox"
-                                  className="w-full justify-between min-h-[40px] h-auto text-left font-normal bg-transparent"
-                                >
-                                  <span className="whitespace-normal break-words text-left">
-                                    {product.name || "Select product..."}
-                                  </span>
-                                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-[500px] p-0" align="start">
-                                <Command>
-                                  <CommandInput
-                                    placeholder="Search product..."
-                                    onValueChange={(value) =>
-                                      setSearchQuery({
-                                        ...searchQuery,
-                                        [`furnitureWork-${categoryIndex}-${productIndex}`]: value,
-                                      })
-                                    }
-                                  />
-                                  <CommandList>
-                                    <CommandEmpty>
-                                      {loadingProducts ? (
-                                        "Loading products..."
-                                      ) : (
-                                        <div className="p-2">
-                                          <p className="text-sm text-muted-foreground mb-2">No product found.</p>
-                                          <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="w-full bg-transparent"
-                                            onClick={() => {
-                                              setOpenPopovers({
-                                                ...openPopovers,
-                                                [`furnitureWork-${categoryIndex}-${productIndex}`]: false,
-                                              })
-                                              setCreateProductDialogOpen(true)
-                                            }}
-                                          >
-                                            <Plus className="mr-2 h-4 w-4" />
-                                            Create New Product
-                                          </Button>
-                                        </div>
-                                      )}
-                                    </CommandEmpty>
-                                    <CommandGroup className="max-h-[300px] overflow-auto">
-                                      {products.map((prod) => (
-                                        <CommandItem
-                                          key={prod._id}
-                                          value={prod.name}
-                                          onSelect={() => selectFurnitureWorkProduct(categoryIndex, productIndex, prod)}
-                                          className="flex flex-col items-start py-3 hover:bg-primary/30 cursor-pointer"
-                                        >
-                                          <div className="flex items-center w-full">
-                                            <Check
-                                              className={cn(
-                                                "mr-2 h-4 w-4 shrink-0",
-                                                product.name === prod.name ? "opacity-100" : "opacity-0",
-                                              )}
-                                            />
-                                            <div className="flex-1">
-                                              <div className="font-medium">
-                                                {highlightText(
-                                                  prod.name,
-                                                  searchQuery[`furnitureWork-${categoryIndex}-${productIndex}`] || "",
-                                                )}
-                                              </div>
-                                              <div className="text-xs text-muted-foreground mt-1 space-x-2">
-                                                <span>SKU: {prod.sku}</span>
-                                                <span>•</span>
-                                                <span>Type: {prod.type}</span>
-                                                {prod.brand && (
-                                                  <>
-                                                    <span>•</span>
-                                                    <span>Brand: {prod.brand}</span>
-                                                  </>
-                                                )}
-                                              </div>
-                                              <div className="text-xs text-muted-foreground mt-1">
-                                                Price: {formatCurrency(prod.sellingPrice)}
-                                              </div>
-                                            </div>
-                                          </div>
-                                        </CommandItem>
-                                      ))}
-                                    </CommandGroup>
-                                  </CommandList>
-                                </Command>
-                              </PopoverContent>
-                            </Popover>
+                            <ProductSearchPopover
+                              products={products}
+                              selectedProductName={product.name}
+                              onSelect={(prod) => selectFurnitureWorkProduct(categoryIndex, productIndex, prod)}
+                              onCreateNew={() => setCreateProductDialogOpen(true)}
+                              loadingProducts={loadingProducts}
+                              className="w-full min-h-[40px] h-auto text-left font-normal"
+                              formatCurrency={formatCurrency}
+                            />
                           </TableCell>
                           <TableCell className="align-top">
                             <Input

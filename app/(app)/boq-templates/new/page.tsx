@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/dialog" // Added Dialog components
 import { cn } from "@/lib/utils"
 import { formatCurrency } from "@/lib/utils" // Added formatCurrency import
+import { ProductSearchPopover } from "@/components/product-search-popover"
 
 interface PreliminaryItem {
   name: string
@@ -607,7 +608,7 @@ export default function NewTemplatePage() {
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-[500px] p-0" align="start">
-                          <Command>
+                          <Command shouldFilter={false}>
                             <CommandInput
                               placeholder="Search product..."
                               onValueChange={(value) =>
@@ -616,66 +617,73 @@ export default function NewTemplatePage() {
                             />
                             <CommandList>
                               <CommandEmpty>
-                                {loadingProducts ? (
-                                  "Loading products..."
-                                ) : (
-                                  <div className="p-2">
-                                    <p className="text-sm text-muted-foreground mb-2">No product found.</p>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="w-full bg-transparent"
-                                      onClick={() => {
-                                        setOpenPopovers({ ...openPopovers, [`preliminary-${index}`]: false })
-                                        setCreateProductDialogOpen(true)
-                                      }}
-                                    >
-                                      <Plus className="mr-2 h-4 w-4" />
-                                      Create New Product
-                                    </Button>
-                                  </div>
-                                )}
+                                {loadingProducts ? "Loading products..." : "No product found."}
                               </CommandEmpty>
                               <CommandGroup className="max-h-[300px] overflow-auto">
-                                {products.map((product) => (
-                                  <CommandItem
-                                    key={product._id}
-                                    value={product.name}
-                                    onSelect={() => {
-                                      selectPreliminaryProduct(index, product)
-                                    }}
-                                    className="flex flex-col items-start py-3 hover:bg-primary/30 cursor-pointer"
-                                  >
-                                    <div className="flex items-center w-full">
-                                      <Check
-                                        className={cn(
-                                          "mr-2 h-4 w-4 shrink-0",
-                                          item.name === product.name ? "opacity-100" : "opacity-0",
-                                        )}
-                                      />
-                                      <div className="flex-1">
-                                        <div className="font-medium">
-                                          {highlightText(product.name, searchQuery[`preliminary-${index}`] || "")}
-                                        </div>
-                                        <div className="text-xs text-muted-foreground mt-1 space-x-2">
-                                          <span>SKU: {product.sku}</span>
-                                          <span>•</span>
-                                          <span>Type: {product.type}</span>
-                                          {product.brand && (
-                                            <>
-                                              <span>•</span>
-                                              <span>Brand: {product.brand}</span>
-                                            </>
+                                {products
+                                  .filter((product) => {
+                                    const query = (searchQuery[`preliminary-${index}`] || "").toLowerCase()
+                                    if (!query) return true
+                                    return (
+                                      product.name.toLowerCase().includes(query) ||
+                                      product.sku.toLowerCase().includes(query) ||
+                                      product.type.toLowerCase().includes(query) ||
+                                      (product.brand && product.brand.toLowerCase().includes(query))
+                                    )
+                                  })
+                                  .map((product) => (
+                                    <CommandItem
+                                      key={product._id}
+                                      value={product.name}
+                                      onSelect={() => {
+                                        selectPreliminaryProduct(index, product)
+                                      }}
+                                      className="flex flex-col items-start py-3 hover:bg-primary/30 cursor-pointer"
+                                    >
+                                      <div className="flex items-center w-full">
+                                        <Check
+                                          className={cn(
+                                            "mr-2 h-4 w-4 shrink-0",
+                                            item.name === product.name ? "opacity-100" : "opacity-0",
                                           )}
-                                        </div>
-                                        <div className="text-xs text-muted-foreground mt-1">
-                                          Price: {formatCurrency(product.sellingPrice)}
+                                        />
+                                        <div className="flex-1">
+                                          <div className="font-medium">
+                                            {highlightText(product.name, searchQuery[`preliminary-${index}`] || "")}
+                                          </div>
+                                          <div className="text-xs text-muted-foreground mt-1 space-x-2">
+                                            <span>SKU: {highlightText(product.sku, searchQuery[`preliminary-${index}`] || "")}</span>
+                                            <span>•</span>
+                                            <span>Type: {highlightText(product.type, searchQuery[`preliminary-${index}`] || "")}</span>
+                                            {product.brand && (
+                                              <>
+                                                <span>•</span>
+                                                <span>Brand: {highlightText(product.brand, searchQuery[`preliminary-${index}`] || "")}</span>
+                                              </>
+                                            )}
+                                          </div>
+                                          <div className="text-xs text-muted-foreground mt-1">
+                                            Price: {formatCurrency(product.sellingPrice)}
+                                          </div>
                                         </div>
                                       </div>
-                                    </div>
-                                  </CommandItem>
-                                ))}
+                                    </CommandItem>
+                                  ))}
                               </CommandGroup>
+                              <div className="border-t p-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="w-full bg-transparent"
+                                  onClick={() => {
+                                    setOpenPopovers({ ...openPopovers, [`preliminary-${index}`]: false })
+                                    setCreateProductDialogOpen(true)
+                                  }}
+                                >
+                                  <Plus className="mr-2 h-4 w-4" />
+                                  Create New Product
+                                </Button>
+                              </div>
                             </CommandList>
                           </Command>
                         </PopoverContent>
@@ -795,7 +803,7 @@ export default function NewTemplatePage() {
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-[500px] p-0" align="start">
-                              <Command>
+                              <Command shouldFilter={false}>
                                 <CommandInput
                                   placeholder="Search product..."
                                   onValueChange={(value) =>
@@ -807,72 +815,81 @@ export default function NewTemplatePage() {
                                 />
                                 <CommandList>
                                   <CommandEmpty>
-                                    {loadingProducts ? (
-                                      "Loading products..."
-                                    ) : (
-                                      <div className="p-2">
-                                        <p className="text-sm text-muted-foreground mb-2">No product found.</p>
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          className="w-full bg-transparent"
-                                          onClick={() => {
-                                            setOpenPopovers({
-                                              ...openPopovers,
-                                              [`fittingOut-${categoryIndex}-${productIndex}`]: false,
-                                            })
-                                            setCreateProductDialogOpen(true)
-                                          }}
-                                        >
-                                          <Plus className="mr-2 h-4 w-4" />
-                                          Create New Product
-                                        </Button>
-                                      </div>
-                                    )}
+                                    {loadingProducts ? "Loading products..." : "No product found."}
                                   </CommandEmpty>
                                   <CommandGroup className="max-h-[300px] overflow-auto">
-                                    {products.map((prod) => (
-                                      <CommandItem
-                                        key={prod._id}
-                                        value={prod.name}
-                                        onSelect={() => {
-                                          selectFittingOutProduct(categoryIndex, productIndex, prod)
-                                        }}
-                                        className="flex flex-col items-start py-3 hover:bg-primary/30 cursor-pointer"
-                                      >
-                                        <div className="flex items-center w-full">
-                                          <Check
-                                            className={cn(
-                                              "mr-2 h-4 w-4 shrink-0",
-                                              product.name === prod.name ? "opacity-100" : "opacity-0",
-                                            )}
-                                          />
-                                          <div className="flex-1">
-                                            <div className="font-medium">
-                                              {highlightText(
-                                                prod.name,
-                                                searchQuery[`fittingOut-${categoryIndex}-${productIndex}`] || "",
+                                    {products
+                                      .filter((prod) => {
+                                        const query = (
+                                          searchQuery[`fittingOut-${categoryIndex}-${productIndex}`] || ""
+                                        ).toLowerCase()
+                                        if (!query) return true
+                                        return (
+                                          prod.name.toLowerCase().includes(query) ||
+                                          prod.sku.toLowerCase().includes(query) ||
+                                          prod.type.toLowerCase().includes(query) ||
+                                          (prod.brand && prod.brand.toLowerCase().includes(query))
+                                        )
+                                      })
+                                      .map((prod) => (
+                                        <CommandItem
+                                          key={prod._id}
+                                          value={prod.name}
+                                          onSelect={() => {
+                                            selectFittingOutProduct(categoryIndex, productIndex, prod)
+                                          }}
+                                          className="flex flex-col items-start py-3 hover:bg-primary/30 cursor-pointer"
+                                        >
+                                          <div className="flex items-center w-full">
+                                            <Check
+                                              className={cn(
+                                                "mr-2 h-4 w-4 shrink-0",
+                                                product.name === prod.name ? "opacity-100" : "opacity-0",
                                               )}
-                                            </div>
-                                            <div className="text-xs text-muted-foreground mt-1 space-x-2">
-                                              <span>SKU: {prod.sku}</span>
-                                              <span>•</span>
-                                              <span>Type: {prod.type}</span>
-                                              {prod.brand && (
-                                                <>
-                                                  <span>•</span>
-                                                  <span>Brand: {prod.brand}</span>
-                                                </>
-                                              )}
-                                            </div>
-                                            <div className="text-xs text-muted-foreground mt-1">
-                                              Price: {formatCurrency(prod.sellingPrice)}
+                                            />
+                                            <div className="flex-1">
+                                              <div className="font-medium">
+                                                {highlightText(
+                                                  prod.name,
+                                                  searchQuery[`fittingOut-${categoryIndex}-${productIndex}`] || "",
+                                                )}
+                                              </div>
+                                              <div className="text-xs text-muted-foreground mt-1 space-x-2">
+                                                <span>SKU: {highlightText(prod.sku, searchQuery[`fittingOut-${categoryIndex}-${productIndex}`] || "")}</span>
+                                                <span>•</span>
+                                                <span>Type: {highlightText(prod.type, searchQuery[`fittingOut-${categoryIndex}-${productIndex}`] || "")}</span>
+                                                {prod.brand && (
+                                                  <>
+                                                    <span>•</span>
+                                                    <span>Brand: {highlightText(prod.brand, searchQuery[`fittingOut-${categoryIndex}-${productIndex}`] || "")}</span>
+                                                  </>
+                                                )}
+                                              </div>
+                                              <div className="text-xs text-muted-foreground mt-1">
+                                                Price: {formatCurrency(prod.sellingPrice)}
+                                              </div>
                                             </div>
                                           </div>
-                                        </div>
-                                      </CommandItem>
-                                    ))}
+                                        </CommandItem>
+                                      ))}
                                   </CommandGroup>
+                                  <div className="border-t p-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="w-full bg-transparent"
+                                      onClick={() => {
+                                        setOpenPopovers({
+                                          ...openPopovers,
+                                          [`fittingOut-${categoryIndex}-${productIndex}`]: false,
+                                        })
+                                        setCreateProductDialogOpen(true)
+                                      }}
+                                    >
+                                      <Plus className="mr-2 h-4 w-4" />
+                                      Create New Product
+                                    </Button>
+                                  </div>
                                 </CommandList>
                               </Command>
                             </PopoverContent>
@@ -1009,7 +1026,7 @@ export default function NewTemplatePage() {
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-[500px] p-0" align="start">
-                              <Command>
+                              <Command shouldFilter={false}>
                                 <CommandInput
                                   placeholder="Search product..."
                                   onValueChange={(value) =>
@@ -1021,72 +1038,81 @@ export default function NewTemplatePage() {
                                 />
                                 <CommandList>
                                   <CommandEmpty>
-                                    {loadingProducts ? (
-                                      "Loading products..."
-                                    ) : (
-                                      <div className="p-2">
-                                        <p className="text-sm text-muted-foreground mb-2">No product found.</p>
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          className="w-full bg-transparent"
-                                          onClick={() => {
-                                            setOpenPopovers({
-                                              ...openPopovers,
-                                              [`furnitureWork-${categoryIndex}-${productIndex}`]: false,
-                                            })
-                                            setCreateProductDialogOpen(true)
-                                          }}
-                                        >
-                                          <Plus className="mr-2 h-4 w-4" />
-                                          Create New Product
-                                        </Button>
-                                      </div>
-                                    )}
+                                    {loadingProducts ? "Loading products..." : "No product found."}
                                   </CommandEmpty>
                                   <CommandGroup className="max-h-[300px] overflow-auto">
-                                    {products.map((prod) => (
-                                      <CommandItem
-                                        key={prod._id}
-                                        value={prod.name}
-                                        onSelect={() => {
-                                          selectFurnitureWorkProduct(categoryIndex, productIndex, prod)
-                                        }}
-                                        className="flex flex-col items-start py-3 hover:bg-primary/30 cursor-pointer"
-                                      >
-                                        <div className="flex items-center w-full">
-                                          <Check
-                                            className={cn(
-                                              "mr-2 h-4 w-4 shrink-0",
-                                              product.name === prod.name ? "opacity-100" : "opacity-0",
-                                            )}
-                                          />
-                                          <div className="flex-1">
-                                            <div className="font-medium">
-                                              {highlightText(
-                                                prod.name,
-                                                searchQuery[`furnitureWork-${categoryIndex}-${productIndex}`] || "",
+                                    {products
+                                      .filter((prod) => {
+                                        const query = (
+                                          searchQuery[`furnitureWork-${categoryIndex}-${productIndex}`] || ""
+                                        ).toLowerCase()
+                                        if (!query) return true
+                                        return (
+                                          prod.name.toLowerCase().includes(query) ||
+                                          prod.sku.toLowerCase().includes(query) ||
+                                          prod.type.toLowerCase().includes(query) ||
+                                          (prod.brand && prod.brand.toLowerCase().includes(query))
+                                        )
+                                      })
+                                      .map((prod) => (
+                                        <CommandItem
+                                          key={prod._id}
+                                          value={prod.name}
+                                          onSelect={() => {
+                                            selectFurnitureWorkProduct(categoryIndex, productIndex, prod)
+                                          }}
+                                          className="flex flex-col items-start py-3 hover:bg-primary/30 cursor-pointer"
+                                        >
+                                          <div className="flex items-center w-full">
+                                            <Check
+                                              className={cn(
+                                                "mr-2 h-4 w-4 shrink-0",
+                                                product.name === prod.name ? "opacity-100" : "opacity-0",
                                               )}
-                                            </div>
-                                            <div className="text-xs text-muted-foreground mt-1 space-x-2">
-                                              <span>SKU: {prod.sku}</span>
-                                              <span>•</span>
-                                              <span>Type: {prod.type}</span>
-                                              {prod.brand && (
-                                                <>
-                                                  <span>•</span>
-                                                  <span>Brand: {prod.brand}</span>
-                                                </>
-                                              )}
-                                            </div>
-                                            <div className="text-xs text-muted-foreground mt-1">
-                                              Price: {formatCurrency(prod.sellingPrice)}
+                                            />
+                                            <div className="flex-1">
+                                              <div className="font-medium">
+                                                {highlightText(
+                                                  prod.name,
+                                                  searchQuery[`furnitureWork-${categoryIndex}-${productIndex}`] || "",
+                                                )}
+                                              </div>
+                                              <div className="text-xs text-muted-foreground mt-1 space-x-2">
+                                                <span>SKU: {highlightText(prod.sku, searchQuery[`furnitureWork-${categoryIndex}-${productIndex}`] || "")}</span>
+                                                <span>•</span>
+                                                <span>Type: {highlightText(prod.type, searchQuery[`furnitureWork-${categoryIndex}-${productIndex}`] || "")}</span>
+                                                {prod.brand && (
+                                                  <>
+                                                    <span>•</span>
+                                                    <span>Brand: {highlightText(prod.brand, searchQuery[`furnitureWork-${categoryIndex}-${productIndex}`] || "")}</span>
+                                                  </>
+                                                )}
+                                              </div>
+                                              <div className="text-xs text-muted-foreground mt-1">
+                                                Price: {formatCurrency(prod.sellingPrice)}
+                                              </div>
                                             </div>
                                           </div>
-                                        </div>
-                                      </CommandItem>
-                                    ))}
+                                        </CommandItem>
+                                      ))}
                                   </CommandGroup>
+                                  <div className="border-t p-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="w-full bg-transparent"
+                                      onClick={() => {
+                                        setOpenPopovers({
+                                          ...openPopovers,
+                                          [`furnitureWork-${categoryIndex}-${productIndex}`]: false,
+                                        })
+                                        setCreateProductDialogOpen(true)
+                                      }}
+                                    >
+                                      <Plus className="mr-2 h-4 w-4" />
+                                      Create New Product
+                                    </Button>
+                                  </div>
                                 </CommandList>
                               </Command>
                             </PopoverContent>

@@ -29,8 +29,17 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Plus, Search, Edit, Trash2, Loader2, Upload, X, Shield } from "lucide-react"
-import { usersApi, type User, type UpdateUserInput } from "@/lib/api/users"
+import { Switch } from "@/components/ui/switch"
+import { Badge } from "@/components/ui/badge"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Plus, Search, Edit, Trash2, Loader2, Upload, X, Shield, MoreVertical, Eye, Key, Lock } from "lucide-react"
+import { usersApi, type User, type UpdateUserInput, type Permission } from "@/lib/api/users"
 import { uploadApi } from "@/lib/api/upload"
 import { getProfile } from "@/lib/api/auth"
 import { useToast } from "@/hooks/use-toast"
@@ -42,6 +51,7 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [checkingAuth, setCheckingAuth] = useState(true) // Added auth checking state
+  const [currentUserId, setCurrentUserId] = useState<string>("")
   const [searchQuery, setSearchQuery] = useState("")
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -51,9 +61,17 @@ export default function UsersPage() {
   // Dialog states
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false)
+  const [statusConfirmDialogOpen, setStatusConfirmDialogOpen] = useState(false)
+  const [permissionsDialogOpen, setPermissionsDialogOpen] = useState(false)
+  const [viewDetailDialogOpen, setViewDetailDialogOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null)
+  const [toggleStatusUser, setToggleStatusUser] = useState<User | null>(null)
+  const [selectedUsersForPermissions, setSelectedUsersForPermissions] = useState<User[]>([])
+  const [permissionsMap, setPermissionsMap] = useState<Record<string, Permission[]>>({})
 
   // Form states
   const [formData, setFormData] = useState({
@@ -62,10 +80,14 @@ export default function UsersPage() {
     name: "",
     phone: "",
   })
+  const [passwordFormData, setPasswordFormData] = useState({
+    password: "",
+  })
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string>("")
-  const [uploadProgress, setUploadProgress] = useState(0)
   const [submitting, setSubmitting] = useState(false)
+  const [viewingUser, setViewingUser] = useState<User | null>(null)
+  const [uploadProgress, setUploadProgress] = useState<number>(0) // Declared uploadProgress variable
 
   useEffect(() => {
     const checkAdminAccess = async () => {
@@ -80,6 +102,7 @@ export default function UsersPage() {
           router.push("/dashboard")
           return
         }
+        setCurrentUserId(response.data._id)
       } catch (error) {
         toast({
           title: "Error",
@@ -287,6 +310,43 @@ export default function UsersPage() {
     }
   }
 
+  const openBulkDeleteDialog = () => {
+    if (selectedUsers.length === 0) return
+
+    // Check if current user is in the selection
+    if (selectedUsers.includes(currentUserId)) {
+      toast({
+        title: "Action Not Allowed",
+        description: "You cannot delete your own account. Please deselect yourself from the selection.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setBulkDeleteDialogOpen(true)
+  }
+
+  const confirmBulkDelete = async () => {
+    if (selectedUsers.length === 0) return
+
+    try {
+      await usersApi.bulkDelete(selectedUsers)
+      toast({
+        title: "Success",
+        description: `${selectedUsers.length} user(s) deleted successfully`,
+      })
+      setSelectedUsers([])
+      setBulkDeleteDialogOpen(false)
+      loadUsers()
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete users",
+        variant: "destructive",
+      })
+    }
+  }
+
   const handleBulkDelete = async () => {
     if (selectedUsers.length === 0) return
 
@@ -297,6 +357,7 @@ export default function UsersPage() {
         description: `${selectedUsers.length} user(s) deleted successfully`,
       })
       setSelectedUsers([])
+      setBulkDeleteDialogOpen(false)
       loadUsers()
     } catch (error) {
       toast({
@@ -317,6 +378,188 @@ export default function UsersPage() {
     } else {
       setSelectedUsers(users.map((u) => u._id))
     }
+  }
+
+  const handleToggleStatus = (user: User) => {
+    // Prevent user from deactivating their own account
+    if (user._id === currentUserId && user.status === "Active") {
+      toast({
+        title: "Action Not Allowed",
+        description: "You cannot deactivate your own account",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setToggleStatusUser(user)
+    setStatusConfirmDialogOpen(true)
+  }
+
+  const confirmToggleStatus = async () => {
+    if (!toggleStatusUser) return
+
+    try {
+      if (toggleStatusUser.status === "Active") {
+        await usersApi.deactivate(toggleStatusUser._id)
+        toast({
+          title: "Success",
+          description: `User ${toggleStatusUser.profile?.name || toggleStatusUser.email} has been deactivated`,
+        })
+      } else {
+        await usersApi.activate(toggleStatusUser._id)
+        toast({
+          title: "Success",
+          description: `User ${toggleStatusUser.profile?.name || toggleStatusUser.email} has been activated`,
+        })
+      }
+      loadUsers()
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update user status",
+        variant: "destructive",
+      })
+    } finally {
+      setStatusConfirmDialogOpen(false)
+      setToggleStatusUser(null)
+    }
+  }
+
+  const openPermissionsDialog = () => {
+    if (selectedUsers.length === 0) {
+      toast({
+        title: "No Users Selected",
+        description: "Please select users to update permissions",
+        variant: "destructive",
+      })
+      return
+    }
+
+    const usersToUpdate = users.filter((u) => selectedUsers.includes(u._id))
+    setSelectedUsersForPermissions(usersToUpdate)
+
+    // Initialize permissions map with current user permissions
+    const initialMap: Record<string, Permission[]> = {}
+    for (const user of usersToUpdate) {
+      initialMap[user._id] = user.permissions || []
+    }
+    setPermissionsMap(initialMap)
+    setPermissionsDialogOpen(true)
+  }
+
+  const togglePermission = (userId: string, permission: Permission) => {
+    setPermissionsMap((prev) => {
+      const userPerms = prev[userId] || []
+      const exists = userPerms.some((p) => p.path === permission.path && p.method === permission.method)
+
+      if (exists) {
+        return {
+          ...prev,
+          [userId]: userPerms.filter((p) => !(p.path === permission.path && p.method === permission.method)),
+        }
+      }
+      return {
+        ...prev,
+        [userId]: [...userPerms, permission],
+      }
+    })
+  }
+
+  const hasPermission = (userId: string, permission: Permission): boolean => {
+    const userPerms = permissionsMap[userId] || []
+    return userPerms.some((p) => p.path === permission.path && p.method === permission.method)
+  }
+
+  const handleUpdatePermissions = async () => {
+    try {
+      setSubmitting(true)
+
+      const updateData = {
+        users: Object.entries(permissionsMap).map(([userId, permissions]) => ({
+          _id: userId,
+          permissions,
+        })),
+      }
+
+      await usersApi.updatePermissions(updateData)
+
+      toast({
+        title: "Success",
+        description: "Permissions updated successfully",
+      })
+
+      setPermissionsDialogOpen(false)
+      setSelectedUsersForPermissions([])
+      setPermissionsMap({})
+      setSelectedUsers([])
+      loadUsers()
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update permissions",
+        variant: "destructive",
+      })
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const openViewDetailDialog = async (user: User) => {
+    try {
+      const userData = await usersApi.getById(user._id)
+      setViewingUser(userData)
+      setViewDetailDialogOpen(true)
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load user details",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const openPasswordDialog = (user: User) => {
+    setEditingUser(user)
+    setPasswordFormData({ password: "" })
+    setPasswordDialogOpen(true)
+  }
+
+  const handleUpdatePassword = async () => {
+    if (!editingUser) return
+
+    try {
+      setSubmitting(true)
+
+      await usersApi.update(editingUser._id, {
+        password: passwordFormData.password,
+      })
+
+      toast({
+        title: "Success",
+        description: "Password updated successfully",
+      })
+
+      setPasswordDialogOpen(false)
+      setEditingUser(null)
+      setPasswordFormData({ password: "" })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update password",
+        variant: "destructive",
+      })
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const openSingleUserPermissionsDialog = (user: User) => {
+    setSelectedUsersForPermissions([user])
+    const initialMap: Record<string, Permission[]> = {
+      [user._id]: user.permissions || [],
+    }
+    setPermissionsMap(initialMap)
+    setPermissionsDialogOpen(true)
   }
 
   if (checkingAuth) {
@@ -353,12 +596,18 @@ export default function UsersPage() {
               <CardTitle>Users</CardTitle>
               <CardDescription>Total: {totalData} user(s)</CardDescription>
             </div>
-            <div className="flex gap-2 w-full sm:w-auto">
+            <div className="flex gap-2 w-full sm:w-auto flex-wrap">
               {selectedUsers.length > 0 && (
-                <Button variant="destructive" size="sm" onClick={handleBulkDelete}>
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete ({selectedUsers.length})
-                </Button>
+                <>
+                  <Button variant="outline" size="sm" onClick={openPermissionsDialog}>
+                    <Shield className="mr-2 h-4 w-4" />
+                    Permissions ({selectedUsers.length})
+                  </Button>
+                  <Button variant="destructive" size="sm" onClick={openBulkDeleteDialog}>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete ({selectedUsers.length})
+                  </Button>
+                </>
               )}
               <div className="relative flex-1 sm:w-64">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -384,19 +633,21 @@ export default function UsersPage() {
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-12">
-                        <Checkbox
-                          checked={selectedUsers.length === users.length && users.length > 0}
-                          onCheckedChange={toggleAllUsers}
-                        />
-                      </TableHead>
-                      <TableHead>User</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Phone</TableHead>
-                      <TableHead>Created</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
+                  <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox
+                        checked={selectedUsers.length === users.length && users.length > 0}
+                        onCheckedChange={toggleAllUsers}
+                      />
+                    </TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Permissions</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created At</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
                   </TableHeader>
                   <TableBody>
                     {users.map((user) => (
@@ -419,31 +670,81 @@ export default function UsersPage() {
                                 alt={user.profile?.name || user.email}
                               />
                               <AvatarFallback>
-                                {(user.profile?.name || user.email).charAt(0).toUpperCase()}
+                                {(user.profile?.name || user.email || "U").charAt(0).toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
-                            <span className="font-medium">{user.profile?.name || "No name"}</span>
+                            <div className="flex flex-col gap-1">
+                              <span className="font-medium">{user.profile?.name || "No name"}</span>
+                              {user.admin && (
+                                <Badge variant="secondary" className="w-fit text-xs">
+                                  Admin
+                                </Badge>
+                              )}
+                            </div>
                           </div>
                         </TableCell>
-                        <TableCell>{user.email}</TableCell>
+                        <TableCell>{user.email || "-"}</TableCell>
                         <TableCell>{user.profile?.phone || "-"}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {user.permissions && user.permissions.length > 0 ? (
+                              user.permissions.map((perm, idx) => (
+                                <Badge key={idx} variant="outline" className="text-xs">
+                                  {perm.method} {perm.path}
+                                </Badge>
+                              ))
+                            ) : (
+                              <span className="text-sm text-muted-foreground">No permissions</span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={user.status === "Active"}
+                              onCheckedChange={() => handleToggleStatus(user)}
+                            />
+                            <span className="text-sm text-muted-foreground">{user.status}</span>
+                          </div>
+                        </TableCell>
                         <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button variant="ghost" size="sm" onClick={() => openEditDialog(user)}>
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setDeletingUserId(user._id)
-                                setDeleteDialogOpen(true)
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => openViewDetailDialog(user)}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Detail
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => openEditDialog(user)}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit User
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => openPasswordDialog(user)}>
+                                <Key className="mr-2 h-4 w-4" />
+                                Update Password
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => openSingleUserPermissionsDialog(user)}>
+                                <Shield className="mr-2 h-4 w-4" />
+                                Update Permissions
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setDeletingUserId(user._id)
+                                  setDeleteDialogOpen(true)
+                                }}
+                                className="text-destructive"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete User
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -605,16 +906,6 @@ export default function UsersPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-password">Password (leave empty to keep current)</Label>
-              <Input
-                id="edit-password"
-                type="password"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                placeholder="Enter new password"
-              />
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="edit-name">Name</Label>
               <Input
                 id="edit-name"
@@ -687,6 +978,218 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Status Change Confirmation Dialog */}
+      <AlertDialog open={statusConfirmDialogOpen} onOpenChange={setStatusConfirmDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Status Change</AlertDialogTitle>
+            <AlertDialogDescription>
+              {toggleStatusUser?.status === "Active" ? (
+                <>
+                  Are you sure you want to <strong>deactivate</strong> this user?
+                  <br />
+                  <br />
+                  Deactivating this user will prevent them from logging in to the system.
+                </>
+              ) : (
+                <>
+                  Are you sure you want to <strong>activate</strong> this user?
+                  <br />
+                  <br />
+                  Activating this user will allow them to log in to the system.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setToggleStatusUser(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmToggleStatus}>Confirm</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Update Password Dialog */}
+      <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Update Password</DialogTitle>
+            <DialogDescription>
+              Update password for {editingUser?.profile?.name || editingUser?.email}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-password">New Password</Label>
+              <Input
+                id="new-password"
+                type="password"
+                value={passwordFormData.password}
+                onChange={(e) => setPasswordFormData({ password: e.target.value })}
+                placeholder="Enter new password"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setPasswordDialogOpen(false)
+                setEditingUser(null)
+                setPasswordFormData({ password: "" })
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleUpdatePassword} disabled={submitting || !passwordFormData.password}>
+              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Update Password
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Detail Dialog */}
+      <Dialog open={viewDetailDialogOpen} onOpenChange={setViewDetailDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>User Details</DialogTitle>
+          </DialogHeader>
+          {viewingUser && (
+            <div className="space-y-4 py-4">
+              <div className="flex items-center gap-4">
+                <Avatar className="h-16 w-16">
+                  <AvatarImage
+                    src={
+                      viewingUser.profile?.photo
+                        ? `${API_BASE_URL}/public/${viewingUser.profile.photo.provider}/${viewingUser.profile.photo.url}`
+                        : undefined
+                    }
+                    alt={viewingUser.profile?.name || viewingUser.email}
+                  />
+                  <AvatarFallback>{(viewingUser.profile?.name || viewingUser.email || "U").charAt(0).toUpperCase()}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <div className="font-semibold">{viewingUser.profile?.name || "No name"}</div>
+                  <div className="text-sm text-muted-foreground">{viewingUser.email}</div>
+                  <div className="flex gap-2 mt-1">
+                    {viewingUser.admin && (
+                      <Badge variant="secondary" className="text-xs">
+                        Admin
+                      </Badge>
+                    )}
+                    <Badge variant={viewingUser.status === "Active" ? "default" : "secondary"} className="text-xs">
+                      {viewingUser.status}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="grid gap-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Phone</Label>
+                  <div className="text-sm">{viewingUser.profile?.phone || "-"}</div>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Created At</Label>
+                  <div className="text-sm">{new Date(viewingUser.createdAt).toLocaleString()}</div>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Updated At</Label>
+                  <div className="text-sm">{new Date(viewingUser.updatedAt).toLocaleString()}</div>
+                </div>
+                {viewingUser.permissions && viewingUser.permissions.length > 0 && (
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Permissions</Label>
+                    <div className="mt-1 space-y-1">
+                      {viewingUser.permissions.map((perm, idx) => (
+                        <div key={idx} className="text-sm flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs">
+                            {perm.method}
+                          </Badge>
+                          <span className="text-muted-foreground">{perm.path}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewDetailDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Permissions Dialog */}
+      <Dialog open={permissionsDialogOpen} onOpenChange={setPermissionsDialogOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Update Permissions</DialogTitle>
+            <DialogDescription>
+              Manage permissions for {selectedUsersForPermissions.length} selected user(s)
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            {/* Available Permissions */}
+            <div className="space-y-4">
+              <div className="font-medium text-sm">Available Permissions</div>
+              <div className="border rounded-lg p-4 space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b">
+                    <div>
+                      <div className="font-medium">Create Project</div>
+                      <div className="text-xs text-muted-foreground">POST /projects</div>
+                    </div>
+                  </div>
+                  
+                  {/* User-specific checkboxes */}
+                  <div className="space-y-2 pl-4">
+                    {selectedUsersForPermissions.map((user) => (
+                      <div key={user._id} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`create-project-${user._id}`}
+                          checked={hasPermission(user._id, { path: "/projects", method: "POST" })}
+                          onCheckedChange={() =>
+                            togglePermission(user._id, { path: "/projects", method: "POST" })
+                          }
+                        />
+                        <Label htmlFor={`create-project-${user._id}`} className="text-sm cursor-pointer">
+                          {user.profile?.name || user.email}
+                          {user.admin && (
+                            <Badge variant="secondary" className="ml-2 text-xs">
+                              Admin
+                            </Badge>
+                          )}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setPermissionsDialogOpen(false)
+                setSelectedUsersForPermissions([])
+                setPermissionsMap({})
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleUpdatePermissions} disabled={submitting}>
+              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Update Permissions
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
@@ -703,6 +1206,27 @@ export default function UsersPage() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Multiple Users</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedUsers.length} selected user(s)? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmBulkDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete {selectedUsers.length} User(s)
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

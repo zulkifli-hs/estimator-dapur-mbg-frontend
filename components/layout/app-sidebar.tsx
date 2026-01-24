@@ -19,7 +19,6 @@ import {
   Package,
   User,
   FileText,
-  Bug,
 } from "lucide-react"
 import { getProfile, type UserProfile } from "@/lib/api/auth"
 
@@ -48,7 +47,6 @@ const mainNavigation: NavItem[] = [
 
 const secondaryNavigation: NavItem[] = [
   { name: "Profile", href: "/profile", icon: User },
-  { name: "Bug Report", href: "/bug-report", icon: Bug },
   // { name: "Settings", href: "/settings", icon: Settings },
   // { name: "Help & Support", href: "/help", icon: HelpCircle },
 ]

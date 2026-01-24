@@ -66,6 +66,24 @@ const STATUS_OPTIONS = [
 
 type StatusFilter = (typeof STATUS_OPTIONS)[number]["value"]
 
+const getStatusIcon = (status: string) => {
+  const normalizedStatus = status?.toLowerCase() || ""
+
+  if (normalizedStatus === "propose") {
+    return <FileText className="h-3 w-3" />
+  }
+  if (normalizedStatus === "active") {
+    return <Play className="h-3 w-3" />
+  }
+  if (normalizedStatus === "completed") {
+    return <CheckCircle className="h-3 w-3" />
+  }
+  if (normalizedStatus === "archive") {
+    return <Archive className="h-3 w-3" />
+  }
+  return null
+}
+
 const getStatusBadge = (status: string) => {
   const normalizedStatus = status?.toLowerCase() || ""
 
@@ -372,10 +390,7 @@ export default function ProjectsPage() {
                           }}
                           className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border"
                         >
-                          <span
-                            style={{ backgroundColor: getStatusBadge(project.status).dotColor }}
-                            className="h-2 w-2 rounded-full"
-                          />
+                          {getStatusIcon(project.status)}
                           {getStatusBadge(project.status).label}
                         </div>
                       </div>
@@ -473,10 +488,7 @@ export default function ProjectsPage() {
                       }}
                       className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium w-fit border"
                     >
-                      <span
-                        style={{ backgroundColor: getStatusBadge(project.status).dotColor }}
-                        className="h-2 w-2 rounded-full"
-                      />
+                      {getStatusIcon(project.status)}
                       {getStatusBadge(project.status).label}
                     </div>
                   </TableCell>
@@ -554,10 +566,7 @@ export default function ProjectsPage() {
                   border: `1px solid ${getStatusBadge(selectedProjectForStatus?.status || "").borderColor}`,
                 }}
               >
-                <span
-                  className="w-2 h-2 rounded-full"
-                  style={{ backgroundColor: getStatusBadge(selectedProjectForStatus?.status || "").dotColor }}
-                />
+                {getStatusIcon(selectedProjectForStatus?.status || "")}
                 {getStatusBadge(selectedProjectForStatus?.status || "").label}
               </div>
             </div>
@@ -566,7 +575,7 @@ export default function ProjectsPage() {
             <div>
               <p className="text-xs text-muted-foreground mb-2">Select new status:</p>
               <div className="space-y-2">
-                {selectedProjectForStatus?.status !== "propose" && (
+                {selectedProjectForStatus?.status?.toLowerCase() !== "propose" && (
                   <Button
                     variant="outline"
                     className="w-full justify-start text-amber-600 hover:text-amber-600 hover:bg-amber-50 bg-transparent"
@@ -576,7 +585,7 @@ export default function ProjectsPage() {
                     Propose
                   </Button>
                 )}
-                {selectedProjectForStatus?.status !== "active" && (
+                {selectedProjectForStatus?.status?.toLowerCase() !== "active" && (
                   <Button
                     variant="outline"
                     className="w-full justify-start text-green-600 hover:text-green-600 hover:bg-green-50 bg-transparent"
@@ -586,7 +595,7 @@ export default function ProjectsPage() {
                     Active
                   </Button>
                 )}
-                {selectedProjectForStatus?.status !== "completed" && (
+                {selectedProjectForStatus?.status?.toLowerCase() !== "completed" && (
                   <Button
                     variant="outline"
                     className="w-full justify-start text-blue-600 hover:text-blue-600 hover:bg-blue-50 bg-transparent"
@@ -596,7 +605,7 @@ export default function ProjectsPage() {
                     Completed
                   </Button>
                 )}
-                {selectedProjectForStatus?.status !== "archive" && (
+                {selectedProjectForStatus?.status?.toLowerCase() !== "archive" && (
                   <Button
                     variant="outline"
                     className="w-full justify-start text-gray-600 hover:text-gray-600 hover:bg-gray-50 bg-transparent"

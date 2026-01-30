@@ -1474,7 +1474,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                             <Input
                               value={item.brand || ""}
                               onChange={(e) => updatePreliminaryItem(index, "brand", e.target.value)}
-                              placeholder="e.g. Nike, Adidas"
+                              placeholder="e.g. Jayaboard, Elephant"
                             />
                           </div>
                           <div>
@@ -1614,7 +1614,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                                 onChange={(e) =>
                                   updateFittingOutProduct(categoryIndex, productIndex, "brand", e.target.value)
                                 }
-                                placeholder="e.g. Nike, Adidas"
+                                placeholder="e.g. Jayaboard, Elephant"
                               />
                             </div>
                             <div>
@@ -1770,7 +1770,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                                 onChange={(e) =>
                                   updateFurnitureWorkProduct(categoryIndex, productIndex, "brand", e.target.value)
                                 }
-                                placeholder="e.g. Nike, Adidas"
+                                placeholder="e.g. Jayaboard, Elephant"
                               />
                             </div>
                             <div>

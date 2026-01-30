@@ -7,7 +7,17 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Plus, Search, Trash2, Eye, Edit, Loader2 } from "lucide-react"
+import { Plus, Search, Trash2, Eye, Edit, Loader2, Copy } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { templatesApi, type BOQTemplate } from "@/lib/api/templates"
 import { getProfile } from "@/lib/api/auth"
 import { useToast } from "@/hooks/use-toast"
@@ -21,6 +31,7 @@ export default function BOQTemplatesPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedTemplates, setSelectedTemplates] = useState<string[]>([])
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -130,9 +141,12 @@ export default function BOQTemplatesPage() {
     }
   }
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = () => {
     if (selectedTemplates.length === 0) return
+    setBulkDeleteDialogOpen(true)
+  }
 
+  const confirmBulkDelete = async () => {
     try {
       await templatesApi.bulkDelete(selectedTemplates)
       toast({
@@ -148,6 +162,8 @@ export default function BOQTemplatesPage() {
         description: "Failed to delete templates",
         variant: "destructive",
       })
+    } finally {
+      setBulkDeleteDialogOpen(false)
     }
   }
 
@@ -161,6 +177,34 @@ export default function BOQTemplatesPage() {
 
   const handleCreate = () => {
     router.push("/boq-templates/new")
+  }
+
+  const handleDuplicate = async (template: BOQTemplate) => {
+    try {
+      const duplicateData = {
+        name: `Copy of ${template.name}`,
+        preliminary: template.preliminary,
+        fittingOut: template.fittingOut,
+        furnitureWork: template.furnitureWork,
+      }
+
+      const response = await templatesApi.create(duplicateData)
+      
+      if (response.success) {
+        toast({
+          title: "Success",
+          description: "Template duplicated successfully",
+        })
+        fetchTemplates()
+      }
+    } catch (error) {
+      console.error("Failed to duplicate template:", error)
+      toast({
+        title: "Error",
+        description: "Failed to duplicate template",
+        variant: "destructive",
+      })
+    }
   }
 
   const calculateTotal = (template: BOQTemplate) => {
@@ -191,6 +235,27 @@ export default function BOQTemplatesPage() {
       currency: "IDR",
       minimumFractionDigits: 0,
     }).format(value)
+  }
+
+  const calculateItemCount = (template: BOQTemplate) => {
+    let count = 0
+    count += template.preliminary?.length || 0
+    template.fittingOut?.forEach((category) => {
+      count += category.products?.length || 0
+    })
+    template.furnitureWork?.forEach((category) => {
+      count += category.products?.length || 0
+    })
+    return count
+  }
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "-"
+    return new Intl.DateTimeFormat("id-ID", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }).format(new Date(dateString))
   }
 
   return (
@@ -249,7 +314,10 @@ export default function BOQTemplatesPage() {
                       />
                     </TableHead>
                     <TableHead>Template Name</TableHead>
+                    <TableHead className="text-center">Items</TableHead>
                     <TableHead className="text-right">Total Value</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead>Last Modified</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -263,16 +331,21 @@ export default function BOQTemplatesPage() {
                         />
                       </TableCell>
                       <TableCell className="font-medium">{template.name}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(calculateTotal(template))}</TableCell>
+                      <TableCell className="text-center text-muted-foreground">
+                        {calculateItemCount(template)}
+                      </TableCell>
+                      <TableCell className="text-right font-medium">{formatCurrency(calculateTotal(template))}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm">{formatDate(template.createdAt)}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm">{formatDate(template.updatedAt)}</TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button variant="ghost" size="icon" onClick={() => handleView(template)}>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button variant="ghost" size="icon" onClick={() => handleView(template)} title="View">
                             <Eye className="h-4 w-4" />
                           </Button>
-                          {/* <Button variant="ghost" size="icon" onClick={() => handleEdit(template)}>
-                            <Edit className="h-4 w-4" />
-                          </Button> */}
-                          <Button variant="ghost" size="icon" onClick={() => handleDelete(template._id)}>
+                          <Button variant="ghost" size="icon" onClick={() => handleDuplicate(template)} title="Duplicate">
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleDelete(template._id)} title="Delete">
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -285,6 +358,48 @@ export default function BOQTemplatesPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Single Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the template.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete {selectedTemplates.length} template(s).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmBulkDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete {selectedTemplates.length} Template(s)
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

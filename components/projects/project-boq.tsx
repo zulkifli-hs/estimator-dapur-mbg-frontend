@@ -2592,16 +2592,16 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
           {/* Template Selection */}
           <div className="space-y-3">
             <h4 className="font-semibold">Select Template</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto p-2">
               {templates.map((template) => (
                 <Card
                   key={template._id}
                   className={`cursor-pointer transition-colors hover:bg-primary/50 ${
-                    selectedReplaceTemplate?._id === template._id ? "ring-2 ring-primary" : ""
+                    selectedReplaceTemplate?._id === template._id ? "ring-1 ring-primary" : ""
                   }`}
                   onClick={() => setSelectedReplaceTemplate(template)}
                 >
-                  <CardContent className="p-4">
+                  <CardContent className="p-0">
                     <h5 className="font-medium">{template.name}</h5>
                     <p className="text-xs text-muted-foreground mt-1">
                       {template.preliminary.length} preliminary • {template.fittingOut.length} fitting out •{" "}

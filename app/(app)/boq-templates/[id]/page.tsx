@@ -10,7 +10,7 @@ import { Plus, Trash2, X, ArrowLeft, Loader2, Edit, Save, ChevronsUpDown, Check,
 import { templatesApi } from "@/lib/api/templates"
 import { productsApi } from "@/lib/api/products"
 import { uploadApi } from "@/lib/api/upload"
-import { toast } from "@/hooks/use-toast" // Updated toast import
+import { useToast } from "@/hooks/use-toast"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import React from "react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -57,6 +57,7 @@ interface Category {
 export default function TemplateDetailPage() {
   const params = useParams() //
   const router = useRouter()
+  const { toast } = useToast()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [isEditMode, setIsEditMode] = useState(false)
@@ -138,7 +139,11 @@ export default function TemplateDetailPage() {
       setProducts(response.list || [])
     } catch (error) {
       console.error("[v0] Failed to fetch products:", error)
-      toast.error("Failed to load products")
+      toast({
+        title: "Error",
+        description: "Failed to load products",
+        variant: "destructive",
+      })
     } finally {
       setLoadingProducts(false)
     }
@@ -358,10 +363,17 @@ export default function TemplateDetailPage() {
       setUploadingPhoto(true)
       const response = await uploadApi.uploadFile(file)
       setNewProductPhotos([...newProductPhotos, { url: response.url, provider: response.provider }])
-      toast.success("Photo uploaded successfully")
+      toast({
+        title: "Success",
+        description: "Photo uploaded successfully",
+      })
     } catch (error) {
       console.error("[v0] Failed to upload photo:", error)
-      toast.error("Failed to upload photo")
+      toast({
+        title: "Error",
+        description: "Failed to upload photo",
+        variant: "destructive",
+      })
     } finally {
       setUploadingPhoto(false)
     }
@@ -370,7 +382,11 @@ export default function TemplateDetailPage() {
   // Create product function
   const handleCreateProduct = async () => {
     if (!newProductName.trim()) {
-      toast.error("Product name is required")
+      toast({
+        title: "Error",
+        description: "Product name is required",
+        variant: "destructive",
+      })
       return
     }
 
@@ -388,7 +404,10 @@ export default function TemplateDetailPage() {
         details: newProductDetails,
       })
 
-      toast.success("Product created successfully")
+      toast({
+        title: "Success",
+        description: "Product created successfully",
+      })
       setCreateProductDialogOpen(false)
 
       // Reset form
@@ -406,7 +425,11 @@ export default function TemplateDetailPage() {
       fetchProducts()
     } catch (error) {
       console.error("[v0] Failed to create product:", error)
-      toast.error("Failed to create product")
+      toast({
+        title: "Error",
+        description: "Failed to create product",
+        variant: "destructive",
+      })
     } finally {
       setCreatingProduct(false)
     }
@@ -414,7 +437,11 @@ export default function TemplateDetailPage() {
 
   const handleSave = async () => {
     if (!templateName?.trim()) {
-      toast.error("Template name is required")
+      toast({
+        title: "Error",
+        description: "Template name is required",
+        variant: "destructive",
+      })
       return
     }
 
@@ -458,12 +485,19 @@ export default function TemplateDetailPage() {
         })),
       })
 
-      toast.success("Template updated successfully")
+      toast({
+        title: "Success",
+        description: "Template updated successfully",
+      })
       setIsEditMode(false)
       fetchTemplate() // Re-fetch to ensure clean state after edit
     } catch (error) {
       console.error("[v0] Failed to update template:", error)
-      toast.error("Failed to update template")
+      toast({
+        title: "Error",
+        description: "Failed to update template",
+        variant: "destructive",
+      })
     } finally {
       setSaving(false)
     }

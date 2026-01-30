@@ -54,6 +54,7 @@ interface PreliminaryItem {
   price: number
   productId?: string
   location?: string
+  brand?: string
   startDate?: string // Added startDate
   endDate?: string // Added endDate
 }
@@ -65,6 +66,7 @@ interface ProductItem {
   price: number
   productId?: string
   location?: string
+  brand?: string
   startDate?: string // Added startDate
   endDate?: string // Added endDate
 }
@@ -175,6 +177,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
           price: item.price || 0,
           productId: item.productId || "",
           location: item.location || "",
+          brand: item.brand || "",
           startDate: item.startDate ? new Date(item.startDate).toISOString().split("T")[0] : "", // Format date
           endDate: item.endDate ? new Date(item.endDate).toISOString().split("T")[0] : "", // Format date
         })) || [],
@@ -192,6 +195,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
               price: product.price || 0,
               productId: product.productId || "",
               location: product.location || "",
+              brand: product.brand || "",
               startDate: product.startDate ? new Date(product.startDate).toISOString().split("T")[0] : "", // Format date
               endDate: product.endDate ? new Date(product.endDate).toISOString().split("T")[0] : "", // Format date
             })) || [],
@@ -210,6 +214,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
               price: product.price || 0,
               productId: product.productId || "",
               location: product.location || "",
+              brand: product.brand || "",
               startDate: product.startDate ? new Date(product.startDate).toISOString().split("T")[0] : "", // Format date
               endDate: product.endDate ? new Date(product.endDate).toISOString().split("T")[0] : "", // Format date
             })) || [],
@@ -546,6 +551,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       unit: product.unit,
       price: product.sellingPrice,
       productId: product._id,
+      brand: product.brand || "",
       startDate: newPreliminary[index].startDate || "", // Preserve existing dates
       endDate: newPreliminary[index].endDate || "", // Preserve existing dates
     }
@@ -564,6 +570,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       unit: product.unit,
       price: product.sellingPrice,
       productId: product._id,
+      brand: product.brand || "",
       startDate: newFittingOut[categoryIndex].products[productIndex].startDate || "", // Preserve existing dates
       endDate: newFittingOut[categoryIndex].products[productIndex].endDate || "", // Preserve existing dates
     }
@@ -582,6 +589,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       unit: product.unit,
       price: product.sellingPrice,
       productId: product._id,
+      brand: product.brand || "",
       startDate: newFurnitureWork[categoryIndex].products[productIndex].startDate || "", // Preserve existing dates
       endDate: newFurnitureWork[categoryIndex].products[productIndex].endDate || "", // Preserve existing dates
     }
@@ -734,6 +742,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
           unit: item.unit,
           price: item.price,
           location: item.location || undefined,
+          brand: item.brand || undefined,
           startDate: item.startDate || undefined,
           endDate: item.endDate || undefined,
         }))
@@ -750,6 +759,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
               unit: product.unit,
               price: product.price,
               location: product.location || undefined,
+              brand: product.brand || undefined,
               startDate: product.startDate || undefined,
               endDate: product.endDate || undefined,
             })),
@@ -768,6 +778,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
               unit: product.unit,
               price: product.price,
               location: product.location || undefined,
+              brand: product.brand || undefined,
               startDate: product.startDate || undefined,
               endDate: product.endDate || undefined,
             })),
@@ -1449,13 +1460,21 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                         </div>
                         
                         {/* Second Row: Other Fields */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pl-11">
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pl-11">
                           <div>
                             <Label className="text-xs text-muted-foreground mb-1.5 block">Location (optional)</Label>
                             <Input
                               value={item.location || ""}
                               onChange={(e) => updatePreliminaryItem(index, "location", e.target.value)}
                               placeholder="e.g. Front, Back"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground mb-1.5 block">Brand</Label>
+                            <Input
+                              value={item.brand || ""}
+                              onChange={(e) => updatePreliminaryItem(index, "brand", e.target.value)}
+                              placeholder="e.g. Nike, Adidas"
                             />
                           </div>
                           <div>
@@ -1577,7 +1596,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                           </div>
                           
                           {/* Second Row: Other Fields */}
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pl-11">
+                          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pl-11">
                             <div>
                               <Label className="text-xs text-muted-foreground mb-1.5 block">Location (optional)</Label>
                               <Input
@@ -1586,6 +1605,16 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                                   updateFittingOutProduct(categoryIndex, productIndex, "location", e.target.value)
                                 }
                                 placeholder="e.g. Front, Back"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs text-muted-foreground mb-1.5 block">Brand</Label>
+                              <Input
+                                value={product.brand || ""}
+                                onChange={(e) =>
+                                  updateFittingOutProduct(categoryIndex, productIndex, "brand", e.target.value)
+                                }
+                                placeholder="e.g. Nike, Adidas"
                               />
                             </div>
                             <div>
@@ -1723,7 +1752,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                           </div>
                           
                           {/* Second Row: Other Fields */}
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pl-11">
+                          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pl-11">
                             <div>
                               <Label className="text-xs text-muted-foreground mb-1.5 block">Location (optional)</Label>
                               <Input
@@ -1732,6 +1761,16 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                                   updateFurnitureWorkProduct(categoryIndex, productIndex, "location", e.target.value)
                                 }
                                 placeholder="e.g. Front, Back"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs text-muted-foreground mb-1.5 block">Brand</Label>
+                              <Input
+                                value={product.brand || ""}
+                                onChange={(e) =>
+                                  updateFurnitureWorkProduct(categoryIndex, productIndex, "brand", e.target.value)
+                                }
+                                placeholder="e.g. Nike, Adidas"
                               />
                             </div>
                             <div>

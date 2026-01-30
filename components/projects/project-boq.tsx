@@ -317,6 +317,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
               <TableHead className="w-[60px] px-4">No</TableHead>
               <TableHead className="min-w-[250px] max-w-[400px] px-4">Item Name</TableHead>
               <TableHead className="w-[120px] px-4">Location</TableHead>
+              <TableHead className="w-[120px] px-4">Brand</TableHead>
               <TableHead className="text-right w-[80px] px-4">Qty</TableHead>
               <TableHead className="w-[80px] px-4">Unit</TableHead>
               <TableHead className="text-right w-[150px] px-4">Unit Price</TableHead>
@@ -328,7 +329,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
             {Array.isArray(boq.preliminary) && boq.preliminary.length > 0 && (
               <>
                 <TableRow className="bg-primary/10">
-                  <TableCell colSpan={7} className="font-bold text-primary uppercase px-4 py-3">
+                  <TableCell colSpan={8} className="font-bold text-primary uppercase px-4 py-3">
                     PRELIMINARY
                   </TableCell>
                 </TableRow>
@@ -340,6 +341,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                       <TableCell className="font-medium pl-8 pr-4">{itemNumber++}</TableCell>
                       <TableCell className="whitespace-normal break-words px-4">{item.name}</TableCell>
                       <TableCell className="px-4">{item.location || "-"}</TableCell>
+                      <TableCell className="px-4">{item.brand || "-"}</TableCell>
                       <TableCell className="text-right px-4">{item.qty}</TableCell>
                       <TableCell className="px-4">{item.unit}</TableCell>
                       <TableCell className="text-right px-4">{formatCurrency(item.price)}</TableCell>
@@ -348,7 +350,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                   )
                 })}
                 <TableRow className="bg-muted/30">
-                  <TableCell colSpan={6} className="text-right font-semibold px-4 py-3">
+                  <TableCell colSpan={7} className="text-right font-semibold px-4 py-3">
                     Subtotal Preliminary
                   </TableCell>
                   <TableCell className="text-right font-semibold px-4 py-3">
@@ -364,7 +366,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
             {Array.isArray(boq.fittingOut) && boq.fittingOut.length > 0 && (
               <>
                 <TableRow className="bg-primary/10">
-                  <TableCell colSpan={7} className="font-bold text-primary uppercase px-4 py-3">
+                  <TableCell colSpan={8} className="font-bold text-primary uppercase px-4 py-3">
                     FITTING OUT
                   </TableCell>
                 </TableRow>
@@ -377,7 +379,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                   return (
                     <React.Fragment key={category._id}>
                       <TableRow className="bg-muted/50">
-                        <TableCell colSpan={7} className="font-semibold pl-8 pr-4 py-2">
+                        <TableCell colSpan={8} className="font-semibold pl-8 pr-4 py-2">
                           {category.name}
                         </TableCell>
                       </TableRow>
@@ -389,6 +391,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                               <TableCell className="font-medium pl-12 pr-4">{itemNumber++}</TableCell>
                               <TableCell className="whitespace-normal break-words px-4">{product.name}</TableCell>
                               <TableCell className="px-4">{product.location || "-"}</TableCell>
+                              <TableCell className="px-4">{product.brand || "-"}</TableCell>
                               <TableCell className="text-right px-4">{product.qty}</TableCell>
                               <TableCell className="px-4">{product.unit}</TableCell>
                               <TableCell className="text-right px-4">{formatCurrency(product.price)}</TableCell>
@@ -397,7 +400,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                           )
                         })}
                       <TableRow className="bg-muted/20">
-                        <TableCell colSpan={6} className="text-right text-sm font-medium pl-12 pr-4 py-2">
+                        <TableCell colSpan={7} className="text-right text-sm font-medium pl-12 pr-4 py-2">
                           Subtotal {category.name}
                         </TableCell>
                         <TableCell className="text-right text-sm font-medium px-4 py-2">
@@ -408,7 +411,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                   )
                 })}
                 <TableRow className="bg-muted/30">
-                  <TableCell colSpan={6} className="text-right font-semibold px-4 py-3">
+                  <TableCell colSpan={7} className="text-right font-semibold px-4 py-3">
                     Subtotal Fitting Out
                   </TableCell>
                   <TableCell className="text-right font-semibold px-4 py-3">
@@ -431,7 +434,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
             {Array.isArray(boq.furnitureWork) && boq.furnitureWork.length > 0 && (
               <>
                 <TableRow className="bg-primary/10">
-                  <TableCell colSpan={7} className="font-bold text-primary uppercase px-4 py-3">
+                  <TableCell colSpan={8} className="font-bold text-primary uppercase px-4 py-3">
                     FURNITURE WORK
                   </TableCell>
                 </TableRow>
@@ -444,7 +447,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                   return (
                     <React.Fragment key={category._id}>
                       <TableRow className="bg-muted/50">
-                        <TableCell colSpan={7} className="font-semibold pl-8 pr-4 py-2">
+                        <TableCell colSpan={8} className="font-semibold pl-8 pr-4 py-2">
                           {category.name}
                         </TableCell>
                       </TableRow>
@@ -456,6 +459,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                               <TableCell className="font-medium pl-12 pr-4">{itemNumber++}</TableCell>
                               <TableCell className="whitespace-normal break-words px-4">{product.name}</TableCell>
                               <TableCell className="px-4">{product.location || "-"}</TableCell>
+                              <TableCell className="px-4">{product.brand || "-"}</TableCell>
                               <TableCell className="text-right px-4">{product.qty}</TableCell>
                               <TableCell className="px-4">{product.unit}</TableCell>
                               <TableCell className="text-right px-4">{formatCurrency(product.price)}</TableCell>
@@ -464,7 +468,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                           )
                         })}
                       <TableRow className="bg-muted/20">
-                        <TableCell colSpan={6} className="text-right text-sm font-medium pl-12 pr-4 py-2">
+                        <TableCell colSpan={7} className="text-right text-sm font-medium pl-12 pr-4 py-2">
                           Subtotal {category.name}
                         </TableCell>
                         <TableCell className="text-right text-sm font-medium px-4 py-2">
@@ -475,7 +479,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                   )
                 })}
                 <TableRow className="bg-primary/20 font-bold">
-                  <TableCell colSpan={6} className="text-right text-lg px-4 py-4">
+                  <TableCell colSpan={7} className="text-right text-lg px-4 py-4">
                     GRAND TOTAL
                   </TableCell>
                   <TableCell className="text-right text-lg px-4 py-4">{formatCurrency(grandTotal)}</TableCell>

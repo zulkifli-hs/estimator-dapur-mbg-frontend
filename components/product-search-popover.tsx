@@ -1,11 +1,13 @@
 "use client"
 
-import { useState } from "react"
-import { Check, ChevronsUpDown, Plus } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Check, ChevronsUpDown, Plus, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { cn } from "@/lib/utils"
+import { productsApi } from "@/lib/api/products"
+import { useDebounce } from "@/hooks/use-debounce"
 
 interface Product {
   _id: string
@@ -18,28 +20,51 @@ interface Product {
 }
 
 interface ProductSearchPopoverProps {
-  products: Product[]
   selectedProductName?: string
   onSelect: (product: Product) => void
   onCreateNew?: () => void
-  loadingProducts?: boolean
   placeholder?: string
   className?: string
   formatCurrency: (amount: number) => string
 }
 
 export function ProductSearchPopover({
-  products,
   selectedProductName,
   onSelect,
   onCreateNew,
-  loadingProducts = false,
   placeholder = "Select product...",
   className,
   formatCurrency,
 }: ProductSearchPopoverProps) {
   const [open, setOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const [products, setProducts] = useState<Product[]>([])
+  const [loadingProducts, setLoadingProducts] = useState(false)
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
+  
+  const debouncedSearch = useDebounce(searchQuery, 300)
+
+  // Fetch products based on debounced search query
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoadingProducts(true)
+        const response = await productsApi.getAll(1, 50, debouncedSearch || undefined)
+        setProducts(response.list || [])
+        setFilteredProducts(response.list || [])
+      } catch (error) {
+        console.error("[v0] Failed to fetch products:", error)
+        setProducts([])
+        setFilteredProducts([])
+      } finally {
+        setLoadingProducts(false)
+      }
+    }
+
+    if (open) {
+      fetchProducts()
+    }
+  }, [debouncedSearch, open])
 
   const highlightText = (text: string, query: string) => {
     if (!query) return text
@@ -60,17 +85,6 @@ export function ProductSearchPopover({
     )
   }
 
-  const filteredProducts = products.filter((product) => {
-    const query = searchQuery.toLowerCase()
-    if (!query) return true
-    return (
-      product.name.toLowerCase().includes(query) ||
-      product.sku.toLowerCase().includes(query) ||
-      product.type.toLowerCase().includes(query) ||
-      (product.brand && product.brand.toLowerCase().includes(query))
-    )
-  })
-
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -88,9 +102,18 @@ export function ProductSearchPopover({
         <Command shouldFilter={false}>
           <CommandInput placeholder="Search product..." onValueChange={setSearchQuery} />
           <CommandList>
-            <CommandEmpty>{loadingProducts ? "Loading products..." : "No product found."}</CommandEmpty>
+            <CommandEmpty>
+              {loadingProducts ? (
+                <div className="flex items-center justify-center py-6">
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <span>Searching products...</span>
+                </div>
+              ) : (
+                "No product found."
+              )}
+            </CommandEmpty>
             <CommandGroup className="max-h-[300px] overflow-auto">
-              {filteredProducts.map((product) => (
+              {products.map((product) => (
                 <CommandItem
                   key={product._id}
                   value={product.name}

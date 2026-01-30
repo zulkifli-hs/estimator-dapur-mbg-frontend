@@ -65,19 +65,6 @@ export default function NewTemplatePage() {
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const [templateName, setTemplateName] = useState("")
-  const [products, setProducts] = useState<
-    {
-      _id: string
-      name: string
-      sku: string
-      type: string
-      brand?: string
-      qty: number
-      unit: string
-      sellingPrice: number
-    }[]
-  >([]) // Updated product type to include sku, type, and brand
-  const [loadingProducts, setLoadingProducts] = useState(false)
 
   const [preliminary, setPreliminary] = useState<PreliminaryItem[]>([{ name: "", qty: 0, unit: "", price: 0 }])
   const [fittingOut, setFittingOut] = useState<Category[]>([
@@ -108,27 +95,10 @@ export default function NewTemplatePage() {
   const [productDetails, setProductDetails] = useState<ProductDetail[]>([])
   const [submittingProduct, setSubmittingProduct] = useState(false)
   const [searchQuery, setSearchQuery] = useState<{ [key: string]: string }>({}) // State for search queries
+  const [products, setProducts] = useState<any[]>([])
+  const [loadingProducts, setLoadingProducts] = useState(false)
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      setLoadingProducts(true)
-      try {
-        const response = await productsApi.getAll(1, 1000)
-        setProducts(response.list || [])
-      } catch (error) {
-        console.error("Failed to fetch products:", error)
-        toast({
-          title: "Error",
-          description: "Failed to fetch products",
-          variant: "destructive",
-        })
-      } finally {
-        setLoadingProducts(false)
-      }
-    }
 
-    fetchProducts()
-  }, [toast])
 
   // Preliminary functions
   const addPreliminaryItem = () => {
@@ -482,10 +452,6 @@ export default function NewTemplatePage() {
 
       setCreateProductDialogOpen(false)
       resetProductForm()
-
-      // Refresh products list
-      const response = await productsApi.getAll(1, 1000)
-      setProducts(response.list || [])
     } catch (error) {
       toast({
         title: "Error",

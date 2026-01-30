@@ -65,10 +65,10 @@ export default function TemplateDetailPage() {
   const [preliminary, setPreliminary] = useState<PreliminaryItem[]>([])
   const [fittingOut, setFittingOut] = useState<Category[]>([])
   const [furnitureWork, setFurnitureWork] = useState<Category[]>([])
-
-  // Product dropdown functionality states
   const [products, setProducts] = useState<any[]>([])
   const [loadingProducts, setLoadingProducts] = useState(false)
+
+  // Product dropdown functionality states
   const [searchQuery, setSearchQuery] = useState<Record<string, string>>({})
   const [openPopovers, setOpenPopovers] = useState<Record<string, boolean>>({})
   const [createProductDialogOpen, setCreateProductDialogOpen] = useState(false)
@@ -130,29 +130,9 @@ export default function TemplateDetailPage() {
     }
   }
 
-  // Fetch products
-  const fetchProducts = async () => {
-    try {
-      setLoadingProducts(true)
-      const response = await productsApi.getAll()
-      // Handle paginated response - extract the list array
-      setProducts(response.list || [])
-    } catch (error) {
-      console.error("[v0] Failed to fetch products:", error)
-      toast({
-        title: "Error",
-        description: "Failed to load products",
-        variant: "destructive",
-      })
-    } finally {
-      setLoadingProducts(false)
-    }
-  }
-
   useEffect(() => {
     if (params.id) {
       fetchTemplate()
-      fetchProducts()
     }
   }, [params.id])
 
@@ -420,9 +400,6 @@ export default function TemplateDetailPage() {
       setNewProductBrand("")
       setNewProductPhotos([])
       setNewProductDetails([])
-
-      // Refresh products list
-      fetchProducts()
     } catch (error) {
       console.error("[v0] Failed to create product:", error)
       toast({

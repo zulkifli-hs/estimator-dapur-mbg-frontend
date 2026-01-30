@@ -93,8 +93,6 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   const [templates, setTemplates] = useState<any[]>([])
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null)
   const [showTemplatePreview, setShowTemplatePreview] = useState(false)
-  const [products, setProducts] = useState<any[]>([])
-  const [loadingProducts, setLoadingProducts] = useState(false)
   const [openPopovers, setOpenPopovers] = useState<{ [key: string]: boolean }>({})
   const [searchQuery, setSearchQuery] = useState<{ [key: string]: string }>({})
   const [createProductDialogOpen, setCreateProductDialogOpen] = useState(false)
@@ -127,6 +125,8 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   const [uploading, setUploading] = useState(false)
   const [productDetails, setProductDetails] = useState<any[]>([])
   const [submittingProduct, setSubmittingProduct] = useState(false)
+  const [products, setProducts] = useState<any[]>([])
+  const [loadingProducts, setLoadingProducts] = useState(false)
   const [summary, setSummary] = useState({
     totalBudget: 0,
     totalSpent: 0,
@@ -161,7 +161,6 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   useEffect(() => {
     fetchBOQ() // Use the renamed function
     fetchTemplates()
-    fetchProducts()
   }, [projectId])
 
   useEffect(() => {
@@ -240,11 +239,12 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   }
 
   const fetchProducts = async () => {
-    setLoadingProducts(true)
     try {
+      setLoadingProducts(true)
       const response = await productsApi.getAll()
-      // API returns paginated response directly: {page, totalData, totalPage, list}
-      setProducts(response.list || [])
+      if (response.success && response.data) {
+        setProducts(response.data)
+      }
     } catch (error) {
       console.error("Failed to fetch products:", error)
     } finally {
@@ -1017,13 +1017,12 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
           selectFurnitureWorkProduct(categoryIndex, productIndex, newProduct)
         }
         
-        setPendingProductSelection(null)
-      }
-      
-      setCreateProductDialogOpen(false)
-      resetProductForm()
-      fetchProducts()
-    } catch (error: any) {
+      setPendingProductSelection(null)
+    }
+
+    setCreateProductDialogOpen(false)
+    resetProductForm()
+  } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Error",
@@ -1445,19 +1444,16 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                             {index + 1}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <Label className="text-xs text-muted-foreground mb-1.5 block">Item Name</Label>
-                            <ProductSearchPopover
-                              products={products}
-                              selectedProductName={item.name}
-                              onSelect={(product) => selectPreliminaryProduct(index, product)}
-                              onCreateNew={() => {
-                                setPendingProductSelection({ type: 'preliminary', productIndex: index })
-                                setCreateProductDialogOpen(true)
-                              }}
-                              loadingProducts={loadingProducts}
-                              className="w-full min-h-[40px] h-auto text-left font-normal"
-                              formatCurrency={formatCurrency}
-                            />
+                  <Label className="text-xs text-muted-foreground mb-1.5 block">Item Name</Label>
+                  <ProductSearchPopover
+                    selectedProductName={item.name}
+                    onSelect={(product) => selectPreliminaryProduct(index, product)}
+                    onCreateNew={() => {
+                      setPendingProductSelection({ type: 'preliminary', productIndex: index })
+                      setCreateProductDialogOpen(true)
+                    }}
+                    formatCurrency={formatCurrency}
+                  />
                           </div>
                           <Button
                             variant="ghost"
@@ -1577,23 +1573,20 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                               {productIndex + 1}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <Label className="text-xs text-muted-foreground mb-1.5 block">Product Name</Label>
-                              <ProductSearchPopover
-                                products={products}
-                                selectedProductName={product.name}
-                                onSelect={(prod) => selectFittingOutProduct(categoryIndex, productIndex, prod)}
-                                onCreateNew={() => {
-                                  setPendingProductSelection({ 
-                                    type: 'fittingOut', 
-                                    categoryIndex, 
-                                    productIndex 
-                                  })
-                                  setCreateProductDialogOpen(true)
-                                }}
-                                loadingProducts={loadingProducts}
-                                className="w-full min-h-[40px] h-auto text-left font-normal"
-                                formatCurrency={formatCurrency}
-                              />
+                  <Label className="text-xs text-muted-foreground mb-1.5 block">Product Name</Label>
+                  <ProductSearchPopover
+                    selectedProductName={product.name}
+                    onSelect={(prod) => selectFittingOutProduct(categoryIndex, productIndex, prod)}
+                    onCreateNew={() => {
+                      setPendingProductSelection({
+                        type: 'fittingOut',
+                        categoryIndex,
+                        productIndex
+                      })
+                      setCreateProductDialogOpen(true)
+                    }}
+                    formatCurrency={formatCurrency}
+                  />
                             </div>
                             <Button
                               variant="ghost"
@@ -1733,23 +1726,20 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                               {productIndex + 1}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <Label className="text-xs text-muted-foreground mb-1.5 block">Product Name</Label>
-                              <ProductSearchPopover
-                                products={products}
-                                selectedProductName={product.name}
-                                onSelect={(prod) => selectFurnitureWorkProduct(categoryIndex, productIndex, prod)}
-                                onCreateNew={() => {
-                                  setPendingProductSelection({ 
-                                    type: 'furnitureWork', 
-                                    categoryIndex, 
-                                    productIndex 
-                                  })
-                                  setCreateProductDialogOpen(true)
-                                }}
-                                loadingProducts={loadingProducts}
-                                className="w-full min-h-[40px] h-auto text-left font-normal"
-                                formatCurrency={formatCurrency}
-                              />
+                  <Label className="text-xs text-muted-foreground mb-1.5 block">Product Name</Label>
+                  <ProductSearchPopover
+                    selectedProductName={product.name}
+                    onSelect={(prod) => selectFurnitureWorkProduct(categoryIndex, productIndex, prod)}
+                    onCreateNew={() => {
+                      setPendingProductSelection({
+                        type: 'furnitureWork',
+                        categoryIndex,
+                        productIndex
+                      })
+                      setCreateProductDialogOpen(true)
+                    }}
+                    formatCurrency={formatCurrency}
+                  />
                             </div>
                             <Button
                               variant="ghost"

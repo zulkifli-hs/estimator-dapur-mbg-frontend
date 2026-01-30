@@ -598,7 +598,7 @@ function InviteMemberDialog({ open, onOpenChange, projectId, role, onSuccess }: 
                           <div
                             key={user._id}
                             onClick={() => handleSelectUser(user)}
-                            className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-accent rounded-sm"
+                            className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-primary/50 rounded-sm"
                           >
                             <Avatar className="h-8 w-8">
                               <AvatarImage

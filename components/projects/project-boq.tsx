@@ -2553,7 +2553,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
               {templates.map((template) => (
                 <Card
                   key={template._id}
-                  className={`cursor-pointer transition-colors hover:bg-accent ${
+                  className={`cursor-pointer transition-colors hover:bg-primary/50 ${
                     selectedReplaceTemplate?._id === template._id ? "ring-2 ring-primary" : ""
                   }`}
                   onClick={() => setSelectedReplaceTemplate(template)}

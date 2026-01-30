@@ -79,7 +79,7 @@ export function AppSidebar({ collapsed = false, onCollapse, className }: AppSide
       <Link
         href={item.href}
         className={cn(
-          "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:bg-accent",
+          "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:bg-primary/50",
           isActive ? "bg-primary text-primary-foreground hover:bg-primary/90" : "text-muted-foreground",
           collapsed && "justify-center px-2",
         )}

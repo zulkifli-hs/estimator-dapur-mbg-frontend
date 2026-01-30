@@ -35,6 +35,8 @@ interface PreliminaryItem {
   unit: string
   price: number
   productId?: string // Added productId field
+  location?: string
+  brand?: string
 }
 
 interface ProductItem {
@@ -43,6 +45,8 @@ interface ProductItem {
   unit: string
   price: number
   productId?: string // Added productId field
+  location?: string
+  brand?: string
 }
 
 interface Category {
@@ -164,6 +168,7 @@ export default function NewTemplatePage() {
       unit: product.unit,
       price: product.sellingPrice,
       productId: product._id, // Store the product ID
+      brand: product.brand || "",
     }
     setPreliminary(updated)
 
@@ -242,6 +247,7 @@ export default function NewTemplatePage() {
       unit: product.unit,
       price: product.sellingPrice,
       productId: product._id, // Store the product ID
+      brand: product.brand || "",
     }
     setFittingOut(updated)
 
@@ -320,6 +326,7 @@ export default function NewTemplatePage() {
       unit: product.unit,
       price: product.sellingPrice,
       productId: product._id, // Store the product ID
+      brand: product.brand || "",
     }
     setFurnitureWork(updated)
 

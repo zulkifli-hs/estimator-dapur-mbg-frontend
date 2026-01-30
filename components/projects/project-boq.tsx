@@ -1073,6 +1073,8 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
           name: item.name,
           unit: item.unit,
           price: item.price,
+          location: item.location,
+          brand: item.brand,
         })),
         fittingOut: mainBOQ.fittingOut.map((category: any) => ({
           name: category.name,
@@ -1082,6 +1084,8 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
             name: product.name,
             unit: product.unit,
             price: product.price,
+            location: product.location,
+            brand: product.brand,
           })),
         })),
         furnitureWork: mainBOQ.furnitureWork.map((category: any) => ({
@@ -1092,6 +1096,8 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
             name: product.name,
             unit: product.unit,
             price: product.price,
+            location: product.location,
+            brand: product.brand,
           })),
         })),
       }

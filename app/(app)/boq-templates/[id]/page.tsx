@@ -26,6 +26,8 @@ interface PreliminaryItem {
   unit: string
   price: number
   productId?: string
+  location?: string
+  brand?: string
 }
 
 interface Product {
@@ -34,6 +36,8 @@ interface Product {
   unit: string
   price: number
   productId?: string
+  location?: string
+  brand?: string
 }
 
 interface Category {
@@ -192,6 +196,7 @@ export default function TemplateDetailPage() {
       unit: product.unit,
       price: product.sellingPrice,
       productId: product._id,
+      brand: product.brand || "",
     }
     setPreliminary(updated)
     setOpenPopovers({ ...openPopovers, [`preliminary-${index}`]: false })
@@ -251,6 +256,7 @@ export default function TemplateDetailPage() {
       unit: product.unit,
       price: product.sellingPrice,
       productId: product._id,
+      brand: product.brand || "",
     }
     setFittingOut(updated)
     setOpenPopovers({ ...openPopovers, [`fittingOut-${categoryIndex}-${productIndex}`]: false })
@@ -310,6 +316,7 @@ export default function TemplateDetailPage() {
       unit: product.unit,
       price: product.sellingPrice,
       productId: product._id,
+      brand: product.brand || "",
     }
     setFurnitureWork(updated)
     setOpenPopovers({ ...openPopovers, [`furnitureWork-${categoryIndex}-${productIndex}`]: false })
@@ -422,6 +429,8 @@ export default function TemplateDetailPage() {
           unit: item.unit,
           price: item.price,
           productId: item.productId,
+          location: item.location,
+          brand: item.brand,
         })),
         fittingOut: fittingOut.map((category) => ({
           name: category.name,
@@ -431,6 +440,8 @@ export default function TemplateDetailPage() {
             unit: product.unit,
             price: product.price,
             productId: product.productId,
+            location: product.location,
+            brand: product.brand,
           })),
         })),
         furnitureWork: furnitureWork.map((category) => ({
@@ -441,6 +452,8 @@ export default function TemplateDetailPage() {
             unit: product.unit,
             price: product.price,
             productId: product.productId,
+            location: product.location,
+            brand: product.brand,
           })),
         })),
       })
@@ -466,7 +479,9 @@ export default function TemplateDetailPage() {
           <TableHeader>
             <TableRow>
               <TableHead className="w-[60px] px-4">No</TableHead>
-              <TableHead className="min-w-[300px] max-w-[500px] px-4">Item Name</TableHead>
+              <TableHead className="min-w-[250px] max-w-[400px] px-4">Item Name</TableHead>
+              <TableHead className="w-[120px] px-4">Location</TableHead>
+              <TableHead className="w-[120px] px-4">Brand</TableHead>
               <TableHead className="text-right w-[80px] px-4">Qty</TableHead>
               <TableHead className="w-[80px] px-4">Unit</TableHead>
               <TableHead className="text-right w-[150px] px-4">Unit Price</TableHead>
@@ -478,7 +493,7 @@ export default function TemplateDetailPage() {
             {Array.isArray(template.preliminary) && template.preliminary.length > 0 && (
               <>
                 <TableRow className="bg-primary/10">
-                  <TableCell colSpan={6} className="font-bold text-primary uppercase px-4 py-3">
+                  <TableCell colSpan={8} className="font-bold text-primary uppercase px-4 py-3">
                     PRELIMINARY
                   </TableCell>
                 </TableRow>
@@ -489,6 +504,8 @@ export default function TemplateDetailPage() {
                     <TableRow key={item._id || `prelim-${idx}`}>
                       <TableCell className="font-medium pl-8 pr-4">{itemNumber++}</TableCell>
                       <TableCell className="whitespace-normal break-words px-4">{item.name}</TableCell>
+                      <TableCell className="px-4">{item.location || "-"}</TableCell>
+                      <TableCell className="px-4">{item.brand || "-"}</TableCell>
                       <TableCell className="text-right px-4">{item.qty}</TableCell>
                       <TableCell className="px-4">{item.unit}</TableCell>
                       <TableCell className="text-right px-4">{formatCurrency(item.price)}</TableCell>
@@ -497,7 +514,7 @@ export default function TemplateDetailPage() {
                   )
                 })}
                 <TableRow className="bg-muted/30">
-                  <TableCell colSpan={5} className="text-right font-semibold px-4 py-3">
+                  <TableCell colSpan={7} className="text-right font-semibold px-4 py-3">
                     Subtotal Preliminary
                   </TableCell>
                   <TableCell className="text-right font-semibold px-4 py-3">
@@ -516,7 +533,7 @@ export default function TemplateDetailPage() {
             {Array.isArray(template.fittingOut) && template.fittingOut.length > 0 && (
               <>
                 <TableRow className="bg-primary/10">
-                  <TableCell colSpan={6} className="font-bold text-primary uppercase px-4 py-3">
+                  <TableCell colSpan={8} className="font-bold text-primary uppercase px-4 py-3">
                     FITTING OUT
                   </TableCell>
                 </TableRow>
@@ -529,7 +546,7 @@ export default function TemplateDetailPage() {
                   return (
                     <React.Fragment key={category._id || `fitout-cat-${catIdx}`}>
                       <TableRow className="bg-muted/50">
-                        <TableCell colSpan={6} className="font-semibold pl-8 pr-4 py-2">
+                        <TableCell colSpan={8} className="font-semibold pl-8 pr-4 py-2">
                           {category.name}
                         </TableCell>
                       </TableRow>
@@ -540,6 +557,8 @@ export default function TemplateDetailPage() {
                             <TableRow key={product._id || `fitout-prod-${catIdx}-${prodIdx}`}>
                               <TableCell className="font-medium pl-12 pr-4">{itemNumber++}</TableCell>
                               <TableCell className="whitespace-normal break-words px-4">{product.name}</TableCell>
+                              <TableCell className="px-4">{product.location || "-"}</TableCell>
+                              <TableCell className="px-4">{product.brand || "-"}</TableCell>
                               <TableCell className="text-right px-4">{product.qty}</TableCell>
                               <TableCell className="px-4">{product.unit}</TableCell>
                               <TableCell className="text-right px-4">{formatCurrency(product.price)}</TableCell>
@@ -548,7 +567,7 @@ export default function TemplateDetailPage() {
                           )
                         })}
                       <TableRow className="bg-muted/20">
-                        <TableCell colSpan={5} className="text-right text-sm font-medium pl-12 pr-4 py-2">
+                        <TableCell colSpan={7} className="text-right text-sm font-medium pl-12 pr-4 py-2">
                           Subtotal {category.name}
                         </TableCell>
                         <TableCell className="text-right text-sm font-medium px-4 py-2">
@@ -559,7 +578,7 @@ export default function TemplateDetailPage() {
                   )
                 })}
                 <TableRow className="bg-muted/30">
-                  <TableCell colSpan={5} className="text-right font-semibold px-4 py-3">
+                  <TableCell colSpan={7} className="text-right font-semibold px-4 py-3">
                     Subtotal Fitting Out
                   </TableCell>
                   <TableCell className="text-right font-semibold px-4 py-3">
@@ -582,7 +601,7 @@ export default function TemplateDetailPage() {
             {Array.isArray(template.furnitureWork) && template.furnitureWork.length > 0 && (
               <>
                 <TableRow className="bg-primary/10">
-                  <TableCell colSpan={6} className="font-bold text-primary uppercase px-4 py-3">
+                  <TableCell colSpan={8} className="font-bold text-primary uppercase px-4 py-3">
                     FURNITURE WORK
                   </TableCell>
                 </TableRow>
@@ -595,7 +614,7 @@ export default function TemplateDetailPage() {
                   return (
                     <React.Fragment key={category._id || `furniture-cat-${catIdx}`}>
                       <TableRow className="bg-muted/50">
-                        <TableCell colSpan={6} className="font-semibold pl-8 pr-4 py-2">
+                        <TableCell colSpan={8} className="font-semibold pl-8 pr-4 py-2">
                           {category.name}
                         </TableCell>
                       </TableRow>
@@ -606,6 +625,8 @@ export default function TemplateDetailPage() {
                             <TableRow key={product._id || `furniture-prod-${catIdx}-${prodIdx}`}>
                               <TableCell className="font-medium pl-12 pr-4">{itemNumber++}</TableCell>
                               <TableCell className="whitespace-normal break-words px-4">{product.name}</TableCell>
+                              <TableCell className="px-4">{product.location || "-"}</TableCell>
+                              <TableCell className="px-4">{product.brand || "-"}</TableCell>
                               <TableCell className="text-right px-4">{product.qty}</TableCell>
                               <TableCell className="px-4">{product.unit}</TableCell>
                               <TableCell className="text-right px-4">{formatCurrency(product.price)}</TableCell>
@@ -614,7 +635,7 @@ export default function TemplateDetailPage() {
                           )
                         })}
                       <TableRow className="bg-muted/20">
-                        <TableCell colSpan={5} className="text-right text-sm font-medium pl-12 pr-4 py-2">
+                        <TableCell colSpan={7} className="text-right text-sm font-medium pl-12 pr-4 py-2">
                           Subtotal {category.name}
                         </TableCell>
                         <TableCell className="text-right text-sm font-medium px-4 py-2">
@@ -625,7 +646,7 @@ export default function TemplateDetailPage() {
                   )
                 })}
                 <TableRow className="bg-muted/30">
-                  <TableCell colSpan={5} className="text-right font-semibold px-4 py-3">
+                  <TableCell colSpan={7} className="text-right font-semibold px-4 py-3">
                     Subtotal Furniture Work
                   </TableCell>
                   <TableCell className="text-right font-semibold px-4 py-3">
@@ -641,15 +662,14 @@ export default function TemplateDetailPage() {
                     )}
                   </TableCell>
                 </TableRow>
+                <TableRow className="bg-primary/20 font-bold">
+                  <TableCell colSpan={7} className="text-right text-lg px-4 py-4">
+                    GRAND TOTAL
+                  </TableCell>
+                  <TableCell className="text-right text-lg px-4 py-4">{formatCurrency(grandTotal)}</TableCell>
+                </TableRow>
               </>
             )}
-
-            <TableRow className="bg-primary/20 font-bold">
-              <TableCell colSpan={5} className="text-right text-lg px-4 py-4">
-                GRAND TOTAL
-              </TableCell>
-              <TableCell className="text-right text-lg px-4 py-4">{formatCurrency(grandTotal)}</TableCell>
-            </TableRow>
           </TableBody>
         </Table>
       </div>

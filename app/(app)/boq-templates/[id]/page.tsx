@@ -742,20 +742,16 @@ export default function TemplateDetailPage() {
               <h3 className="text-lg font-semibold">I. PRELIMINARY</h3>
             </CardHeader>
             <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[40%]">Item Name</TableHead>
-                    <TableHead className="w-[15%]">Quantity</TableHead>
-                    <TableHead className="w-[15%]">Unit</TableHead>
-                    <TableHead className="w-[20%]">Price</TableHead>
-                    <TableHead className="w-[10%] text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {preliminary.map((item, index) => (
-                    <TableRow key={index}>
-                      <TableCell className="align-top">
+              <div className="divide-y">
+                {preliminary.map((item, index) => (
+                  <div key={index} className="p-4 space-y-3">
+                    {/* First Row: Number and Item Name */}
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 w-8 h-10 flex items-center justify-center font-medium text-sm">
+                        {index + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <Label className="text-xs text-muted-foreground mb-1.5 block">Item Name</Label>
                         <ProductSearchPopover
                           products={products}
                           selectedProductName={item.name}
@@ -765,8 +761,38 @@ export default function TemplateDetailPage() {
                           className="w-full min-h-[40px] h-auto text-left font-normal"
                           formatCurrency={formatCurrency}
                         />
-                      </TableCell>
-                      <TableCell className="align-top">
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removePreliminaryItem(index)}
+                        disabled={preliminary.length === 1}
+                        className="flex-shrink-0"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    
+                    {/* Second Row: Other Fields */}
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pl-11">
+                      <div>
+                        <Label className="text-xs text-muted-foreground mb-1.5 block">Location (optional)</Label>
+                        <Input
+                          value={item.location || ""}
+                          onChange={(e) => updatePreliminaryItem(index, "location", e.target.value)}
+                          placeholder="e.g. Front, Back"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground mb-1.5 block">Brand</Label>
+                        <Input
+                          value={item.brand || ""}
+                          onChange={(e) => updatePreliminaryItem(index, "brand", e.target.value)}
+                          placeholder="e.g. Jayaboard, Elephant"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground mb-1.5 block">Quantity</Label>
                         <Input
                           ref={(el) => {
                             preliminaryQtyRefs.current[index] = el
@@ -776,36 +802,28 @@ export default function TemplateDetailPage() {
                           onChange={(e) => updatePreliminaryItem(index, "qty", Number(e.target.value))}
                           placeholder="0"
                         />
-                      </TableCell>
-                      <TableCell className="align-top">
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground mb-1.5 block">Unit</Label>
                         <Input
                           value={item.unit}
                           onChange={(e) => updatePreliminaryItem(index, "unit", e.target.value)}
                           placeholder="ls, m2"
                         />
-                      </TableCell>
-                      <TableCell className="align-top">
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground mb-1.5 block">Price</Label>
                         <Input
                           type="number"
                           value={item.price}
                           onChange={(e) => updatePreliminaryItem(index, "price", Number(e.target.value))}
                           placeholder="0"
                         />
-                      </TableCell>
-                      <TableCell className="text-right align-top">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removePreliminaryItem(index)}
-                          disabled={preliminary.length === 1}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
               <div className="p-4 border-t">
                 <Button type="button" onClick={addPreliminaryItem} variant="outline" className="w-full bg-transparent">
                   <Plus className="h-4 w-4 mr-2" />
@@ -842,20 +860,16 @@ export default function TemplateDetailPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-[40%]">Product Name</TableHead>
-                        <TableHead className="w-[15%]">Quantity</TableHead>
-                        <TableHead className="w-[15%]">Unit</TableHead>
-                        <TableHead className="w-[20%]">Price</TableHead>
-                        <TableHead className="w-[10%] text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {category.products.map((product, productIndex) => (
-                        <TableRow key={productIndex}>
-                          <TableCell className="align-top">
+                  <div className="divide-y">
+                    {category.products.map((product, productIndex) => (
+                      <div key={productIndex} className="p-4 space-y-3">
+                        {/* First Row: Number and Product Name */}
+                        <div className="flex items-start gap-3">
+                          <div className="flex-shrink-0 w-8 h-10 flex items-center justify-center font-medium text-sm">
+                            {productIndex + 1}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <Label className="text-xs text-muted-foreground mb-1.5 block">Product Name</Label>
                             <ProductSearchPopover
                               products={products}
                               selectedProductName={product.name}
@@ -865,8 +879,42 @@ export default function TemplateDetailPage() {
                               className="w-full min-h-[40px] h-auto text-left font-normal"
                               formatCurrency={formatCurrency}
                             />
-                          </TableCell>
-                          <TableCell className="align-top">
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeFittingOutProduct(categoryIndex, productIndex)}
+                            disabled={category.products.length === 1}
+                            className="flex-shrink-0"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        
+                        {/* Second Row: Other Fields */}
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pl-11">
+                          <div>
+                            <Label className="text-xs text-muted-foreground mb-1.5 block">Location (optional)</Label>
+                            <Input
+                              value={product.location || ""}
+                              onChange={(e) =>
+                                updateFittingOutProduct(categoryIndex, productIndex, "location", e.target.value)
+                              }
+                              placeholder="e.g. Front, Back"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground mb-1.5 block">Brand</Label>
+                            <Input
+                              value={product.brand || ""}
+                              onChange={(e) =>
+                                updateFittingOutProduct(categoryIndex, productIndex, "brand", e.target.value)
+                              }
+                              placeholder="e.g. Jayaboard, Elephant"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground mb-1.5 block">Quantity</Label>
                             <Input
                               ref={(el) => {
                                 fittingOutQtyRefs.current[`${categoryIndex}-${productIndex}`] = el
@@ -878,8 +926,9 @@ export default function TemplateDetailPage() {
                               }
                               placeholder="0"
                             />
-                          </TableCell>
-                          <TableCell className="align-top">
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground mb-1.5 block">Unit</Label>
                             <Input
                               value={product.unit}
                               onChange={(e) =>
@@ -887,8 +936,9 @@ export default function TemplateDetailPage() {
                               }
                               placeholder="m2, unit"
                             />
-                          </TableCell>
-                          <TableCell className="align-top">
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground mb-1.5 block">Price</Label>
                             <Input
                               type="number"
                               value={product.price}
@@ -897,21 +947,11 @@ export default function TemplateDetailPage() {
                               }
                               placeholder="0"
                             />
-                          </TableCell>
-                          <TableCell className="text-right align-top">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => removeFittingOutProduct(categoryIndex, productIndex)}
-                              disabled={category.products.length === 1}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                   <div className="p-4 border-t">
                     <Button
                       type="button"
@@ -959,20 +999,16 @@ export default function TemplateDetailPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-[40%]">Product Name</TableHead>
-                        <TableHead className="w-[15%]">Quantity</TableHead>
-                        <TableHead className="w-[15%]">Unit</TableHead>
-                        <TableHead className="w-[20%]">Price</TableHead>
-                        <TableHead className="w-[10%] text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {category.products.map((product, productIndex) => (
-                        <TableRow key={productIndex}>
-                          <TableCell className="align-top">
+                  <div className="divide-y">
+                    {category.products.map((product, productIndex) => (
+                      <div key={productIndex} className="p-4 space-y-3">
+                        {/* First Row: Number and Product Name */}
+                        <div className="flex items-start gap-3">
+                          <div className="flex-shrink-0 w-8 h-10 flex items-center justify-center font-medium text-sm">
+                            {productIndex + 1}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <Label className="text-xs text-muted-foreground mb-1.5 block">Product Name</Label>
                             <ProductSearchPopover
                               products={products}
                               selectedProductName={product.name}
@@ -982,8 +1018,42 @@ export default function TemplateDetailPage() {
                               className="w-full min-h-[40px] h-auto text-left font-normal"
                               formatCurrency={formatCurrency}
                             />
-                          </TableCell>
-                          <TableCell className="align-top">
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeFurnitureWorkProduct(categoryIndex, productIndex)}
+                            disabled={category.products.length === 1}
+                            className="flex-shrink-0"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        
+                        {/* Second Row: Other Fields */}
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pl-11">
+                          <div>
+                            <Label className="text-xs text-muted-foreground mb-1.5 block">Location (optional)</Label>
+                            <Input
+                              value={product.location || ""}
+                              onChange={(e) =>
+                                updateFurnitureWorkProduct(categoryIndex, productIndex, "location", e.target.value)
+                              }
+                              placeholder="e.g. Front, Back"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground mb-1.5 block">Brand</Label>
+                            <Input
+                              value={product.brand || ""}
+                              onChange={(e) =>
+                                updateFurnitureWorkProduct(categoryIndex, productIndex, "brand", e.target.value)
+                              }
+                              placeholder="e.g. Jayaboard, Elephant"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground mb-1.5 block">Quantity</Label>
                             <Input
                               ref={(el) => {
                                 furnitureWorkQtyRefs.current[`${categoryIndex}-${productIndex}`] = el
@@ -995,8 +1065,9 @@ export default function TemplateDetailPage() {
                               }
                               placeholder="0"
                             />
-                          </TableCell>
-                          <TableCell className="align-top">
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground mb-1.5 block">Unit</Label>
                             <Input
                               value={product.unit}
                               onChange={(e) =>
@@ -1004,8 +1075,9 @@ export default function TemplateDetailPage() {
                               }
                               placeholder="m2, unit"
                             />
-                          </TableCell>
-                          <TableCell className="align-top">
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground mb-1.5 block">Price</Label>
                             <Input
                               type="number"
                               value={product.price}
@@ -1014,21 +1086,11 @@ export default function TemplateDetailPage() {
                               }
                               placeholder="0"
                             />
-                          </TableCell>
-                          <TableCell className="text-right align-top">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => removeFurnitureWorkProduct(categoryIndex, productIndex)}
-                              disabled={category.products.length === 1}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                   <div className="p-4 border-t">
                     <Button
                       type="button"

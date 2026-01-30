@@ -2607,7 +2607,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                   }`}
                   onClick={() => setSelectedReplaceTemplate(template)}
                 >
-                  <CardContent className="p-0">
+                  <CardContent className="py-4">
                     <h5 className="font-medium">{template.name}</h5>
                     <p className="text-xs text-muted-foreground mt-1">
                       {template.preliminary.length} preliminary • {template.fittingOut.length} fitting out •{" "}

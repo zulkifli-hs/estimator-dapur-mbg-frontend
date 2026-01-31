@@ -1,9 +1,8 @@
 "use client"
 
 import type React from "react"
-
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter } from 'next/navigation'
 import { AppHeader } from "@/components/layout/app-header"
 import { AppSidebar } from "@/components/layout/app-sidebar"
 import { getProfile } from "@/lib/api/auth"
@@ -34,7 +33,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         throw new Error("Failed to get profile")
       }
     } catch (error) {
-      console.error("Auth check failed:", error)
+      console.log("Auth check failed:", error instanceof Error ? error.message : "Unknown error")
       localStorage.removeItem("auth_token")
       localStorage.removeItem("user")
       router.push("/login")
@@ -56,10 +55,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <AppSidebar />
+      <div className="hidden lg:flex">
+        <AppSidebar />
+      </div>
       <div className="flex flex-1 flex-col overflow-hidden">
-        <AppHeader user={user} />
-        <main className="flex-1 overflow-y-auto bg-background p-6">{children}</main>
+        <AppHeader user={user} mobileMenuContent={<AppSidebar />} />
+        <main className="flex-1 overflow-y-auto bg-background p-3 sm:p-4 md:p-6">{children}</main>
       </div>
     </div>
   )

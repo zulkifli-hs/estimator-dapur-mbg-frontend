@@ -18,6 +18,7 @@ export interface AuthResponse {
 export interface UserProfile {
   _id: string
   email: string
+  admin?: boolean // Added optional admin field
   profile?: {
     name: string
     photo?: {

@@ -181,7 +181,7 @@ export interface CreateProjectData {
   area: number
   building: string
   floor: number
-  companyClient: {
+  companyClient?: {
     name: string
     contact?: {
       phone?: string
@@ -189,6 +189,9 @@ export interface CreateProjectData {
       website?: string
     }
     type: string
+    picEmail?: string
+    picName?: string
+    picPhone?: string
   }
   companyOwner: {
     name: string
@@ -199,20 +202,16 @@ export interface CreateProjectData {
   finances?: string[]
   designers?: string[]
   admins?: string[]
-  client: {
-    email: string
-    name: string
-    phone: string
-  }
 }
 
-const getProjects = async (params?: { page?: number; limit?: number; search?: string }): Promise<
+const getProjects = async (params?: { page?: number; limit?: number; search?: string; status?: string }): Promise<
   ApiResponse<{ list: Project[]; totalData: number; totalPage: number; page: number }>
 > => {
   const queryParams = new URLSearchParams()
   if (params?.page) queryParams.append("page", params.page.toString())
   if (params?.limit) queryParams.append("limit", params.limit.toString())
   if (params?.search) queryParams.append("search", params.search)
+  if (params?.status) queryParams.append("status", params.status)
 
   const queryString = queryParams.toString()
   return apiRequest<{ list: Project[]; totalData: number; totalPage: number; page: number }>(
@@ -258,6 +257,8 @@ const inviteMember = async (projectId: string, data: string[], role: string): Pr
 }
 
 const removeMember = async (projectId: string, data: string[], role: string): Promise<ApiResponse<any>> => {
+  console.log("[v0] API removeMember request:", { projectId, data, role })
+
   return apiRequest<any>(`/projects/${projectId}/remove`, {
     method: "POST",
     body: JSON.stringify({ data, role }),
@@ -307,8 +308,17 @@ const uploadContract = async (projectId: string, file: File): Promise<ApiRespons
   return response.json()
 }
 
+const updateProjectStatus = async (
+  id: string,
+  status: "propose" | "active" | "completed" | "archive",
+): Promise<ApiResponse<Project>> => {
+  return apiRequest<Project>(`/projects/${id}/${status}`, {
+    method: "PATCH",
+  })
+}
+
 export const projectsApi = {
-  getAll: async (params?: { page?: number; limit?: number; search?: string }) => {
+  getAll: async (params?: { page?: number; limit?: number; search?: string; status?: string }) => {
     const response = await getProjects(params)
     return {
       success: response.code === 200,
@@ -324,7 +334,11 @@ export const projectsApi = {
   },
   create: async (projectData: CreateProjectData) => {
     const response = await createProject(projectData)
-    return { success: response.code === 200, data: response.data }
+    return {
+      success: response.code === 200 || response.code === 201,
+      data: response.data,
+      message: response.message,
+    }
   },
   update: async (id: string, projectData: Partial<CreateProjectData>) => {
     const response = await updateProject(id, projectData)
@@ -356,6 +370,10 @@ export const projectsApi = {
   },
   uploadContract: async (projectId: string, file: File) => {
     const response = await uploadContract(projectId, file)
+    return { success: response.code === 200, data: response.data }
+  },
+  updateStatus: async (id: string, status: "propose" | "active" | "completed" | "archive") => {
+    const response = await updateProjectStatus(id, status)
     return { success: response.code === 200, data: response.data }
   },
 }

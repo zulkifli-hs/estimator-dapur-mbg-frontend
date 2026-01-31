@@ -1,21 +1,33 @@
 "use client"
 
 import type React from "react"
-
 import { usePathname } from "next/navigation"
 import Link from "next/link"
+import { useEffect, useState } from "react"
 import { GemaLogo } from "@/components/gema-logo"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
-import { LayoutDashboard, FolderKanban, MessageSquare, Users, Settings, HelpCircle, ChevronLeft } from "lucide-react"
+import {
+  LayoutDashboard,
+  FolderKanban,
+  MessageSquare,
+  Users,
+  Settings,
+  HelpCircle,
+  Package,
+  User,
+  FileText,
+} from "lucide-react"
+import { getProfile, type UserProfile } from "@/lib/api/auth"
 
 interface NavItem {
   name: string
   href: string
   icon: React.ComponentType<{ className?: string }>
   badge?: string | number
+  adminOnly?: boolean // Added adminOnly flag
 }
 
 interface AppSidebarProps {
@@ -28,16 +40,36 @@ const mainNavigation: NavItem[] = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Projects", href: "/projects", icon: FolderKanban },
   { name: "AI Assistant", href: "/ai-assistant", icon: MessageSquare },
-  { name: "Users", href: "/users", icon: Users },
+  { name: "User Management", href: "/users", icon: Users, adminOnly: true }, // Marked as admin only
+  { name: "Product Management", href: "/products", icon: Package, adminOnly: true }, // Marked as admin only
+  { name: "BOQ Templates", href: "/boq-templates", icon: FileText, adminOnly: true }, // Added BOQ Templates menu
 ]
 
 const secondaryNavigation: NavItem[] = [
-  { name: "Settings", href: "/settings", icon: Settings },
-  { name: "Help & Support", href: "/help", icon: HelpCircle },
+  { name: "Profile", href: "/profile", icon: User },
+  // { name: "Settings", href: "/settings", icon: Settings },
+  // { name: "Help & Support", href: "/help", icon: HelpCircle },
 ]
 
 export function AppSidebar({ collapsed = false, onCollapse, className }: AppSidebarProps) {
   const pathname = usePathname()
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null) // Added user profile state
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await getProfile()
+        setUserProfile(response.data)
+      } catch (error) {
+        console.error("Failed to fetch user profile:", error)
+      }
+    }
+    fetchProfile()
+  }, [])
+
+  const filteredMainNavigation = mainNavigation.filter(
+    (item) => !item.adminOnly || (item.adminOnly && userProfile?.admin === true),
+  )
 
   const NavLink = ({ item }: { item: NavItem }) => {
     const Icon = item.icon
@@ -47,7 +79,7 @@ export function AppSidebar({ collapsed = false, onCollapse, className }: AppSide
       <Link
         href={item.href}
         className={cn(
-          "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:bg-accent",
+          "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:bg-primary/50",
           isActive ? "bg-primary text-primary-foreground hover:bg-primary/90" : "text-muted-foreground",
           collapsed && "justify-center px-2",
         )}
@@ -76,18 +108,8 @@ export function AppSidebar({ collapsed = false, onCollapse, className }: AppSide
       )}
     >
       {/* Logo Header */}
-      <div className="flex h-16 items-center justify-between border-b px-4">
-        {!collapsed && <GemaLogo className="h-8" />}
-        {onCollapse && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => onCollapse(!collapsed)}
-            className={cn("h-8 w-8", collapsed && "mx-auto")}
-          >
-            <ChevronLeft className={cn("h-4 w-4 transition-transform", collapsed && "rotate-180")} />
-          </Button>
-        )}
+      <div className="flex h-14 sm:h-16 items-center justify-between border-b px-4">
+        {!collapsed && <GemaLogo className="h-6 sm:h-8" />}
       </div>
 
       {/* Navigation */}
@@ -96,7 +118,7 @@ export function AppSidebar({ collapsed = false, onCollapse, className }: AppSide
           {!collapsed && (
             <p className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Main Menu</p>
           )}
-          {mainNavigation.map((item) => (
+          {filteredMainNavigation.map((item) => (
             <NavLink key={item.href} item={item} />
           ))}
         </div>
@@ -112,10 +134,9 @@ export function AppSidebar({ collapsed = false, onCollapse, className }: AppSide
           ))}
         </div>
       </ScrollArea>
-
-      {/* Footer */}
+      {/* 
       {!collapsed && (
-        <div className="border-t p-4">
+        <div className="hidden lg:block border-t p-4">
           <div className="rounded-lg bg-primary/5 p-3">
             <p className="text-sm font-medium">Need Help?</p>
             <p className="text-xs text-muted-foreground mt-1">Contact our support team for assistance</p>
@@ -124,7 +145,7 @@ export function AppSidebar({ collapsed = false, onCollapse, className }: AppSide
             </Button>
           </div>
         </div>
-      )}
+      )} */}
     </aside>
   )
 }

@@ -11,9 +11,29 @@ export interface ProjectFile {
 }
 
 export const getProjectFiles = async (projectId: string): Promise<ProjectFile[]> => {
-  return apiRequest<ProjectFile[]>(`/projects/${projectId}/files`, {
-    method: "GET",
-  })
+  try {
+    const response = await apiRequest<any>(`/projects/${projectId}/files`, {
+      method: "GET",
+    })
+
+    // Handle different possible response structures
+    if (response.data) {
+      // If response has a list property (paginated)
+      if (response.data.list && Array.isArray(response.data.list)) {
+        return response.data.list
+      }
+      // If response.data is directly an array
+      if (Array.isArray(response.data)) {
+        return response.data
+      }
+    }
+
+    // Return empty array if no valid data
+    return []
+  } catch (error) {
+    console.error("[v0] Error fetching project files:", error)
+    return []
+  }
 }
 
 export const uploadFile = async (projectId: string, file: File, type: string): Promise<ProjectFile> => {
@@ -62,10 +82,89 @@ export const getFileUrl = (provider: string, url: string): string => {
   return `${API_BASE_URL}/public/${provider}/${encodeURIComponent(url)}`
 }
 
+export const uploadProjectFile = async (projectId: string, file: File, type: string): Promise<any> => {
+  const getFileExtension = (filename: string): string => {
+    const lastDot = filename.lastIndexOf(".")
+    return lastDot !== -1 ? filename.substring(lastDot + 1).toLowerCase() : ""
+  }
+
+  // Map file extensions to MIME types for CAD files
+  const getMimeType = (file: File): string => {
+    // If browser provides MIME type, use it
+    if (file.type) return file.type
+
+    // Otherwise, determine from extension
+    const ext = getFileExtension(file.name)
+    const mimeTypes: Record<string, string> = {
+      dwg: "application/acad",
+      dxf: "application/dxf",
+      dwf: "application/dwf",
+      step: "application/step",
+      stp: "application/step",
+      iges: "application/iges",
+      igs: "application/iges",
+      pdf: "application/pdf",
+    }
+    return mimeTypes[ext] || "application/octet-stream"
+  }
+
+  const fileType = getMimeType(file)
+
+  console.log("[v0] uploadProjectFile called:", {
+    projectId,
+    fileName: file.name,
+    fileSize: file.size,
+    fileType,
+    browserFileType: file.type,
+    type,
+    endpoint: `${API_BASE_URL}/projects/${projectId}/${type}`,
+  })
+
+  const formData = new FormData()
+  formData.append("file", file)
+
+  if (!file.type && fileType !== "application/octet-stream") {
+    const correctedFile = new File([file], file.name, { type: fileType })
+    formData.set("file", correctedFile)
+    console.log("[v0] Created corrected file with MIME type:", fileType)
+  }
+
+  const token = getAuthToken()
+  console.log("[v0] Token available:", !!token)
+
+  const response = await fetch(`${API_BASE_URL}/projects/${projectId}/${type}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  })
+
+  console.log("[v0] Upload response status:", response.status, response.ok)
+
+  if (!response.ok) {
+    const errorData = await response.json()
+    console.error("[v0] Upload error details:", JSON.stringify(errorData, null, 2))
+
+    // Extract the user-friendly error message
+    const errorMessage = errorData.message?.user || errorData.message || "Upload failed"
+    throw new Error(errorMessage)
+  }
+
+  const result = await response.json()
+  console.log("[v0] Upload success:", result)
+  return result
+}
+
 export const filesApi = {
   getByProject: async (projectId: string) => {
-    const data = await getProjectFiles(projectId)
-    return { success: true, data }
+    try {
+      const data = await getProjectFiles(projectId)
+      return { success: true, data: Array.isArray(data) ? data : [] }
+    } catch (error) {
+      console.error("[v0] Error in filesApi.getByProject:", error)
+      return { success: false, data: [] }
+    }
   },
   upload: async (projectId: string, file: File, type: string) => {
     const data = await uploadFile(projectId, file, type)
@@ -82,4 +181,5 @@ export const filesApi = {
     return { success: response.code === 200, data: response.data }
   },
   getFileUrl,
+  uploadProjectFile,
 }

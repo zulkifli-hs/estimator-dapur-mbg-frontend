@@ -32,6 +32,13 @@ export interface GanttChartData {
   }>
 }
 
+export interface BOQListResponse {
+  page: number
+  totalData: number
+  totalPage: number
+  list: BOQ[]
+}
+
 // Create BOQ from AI
 export const createBOQFromAI = async (projectId: string, prompt: string): Promise<BOQ> => {
   return apiRequest<BOQ>(`/projects/${projectId}/boq/ai-based`, {
@@ -69,12 +76,42 @@ export const createMainBOQ = async (
   })
 }
 
-// Create additional BOQ
 export const createAdditionalBOQ = async (
   projectId: string,
-  data: { name: string; items: Omit<BOQItem, "id">[] },
-): Promise<BOQ> => {
-  return apiRequest<BOQ>(`/projects/${projectId}/boq/additional`, {
+  data: {
+    preliminary: Array<{ qty: number; name: string; unit: string; price: number }>
+    fittingOut: Array<{
+      name: string
+      products: Array<{ qty: number; name: string; unit: string; price: number }>
+    }>
+    furnitureWork: Array<{
+      name: string
+      products: Array<{ qty: number; name: string; unit: string; price: number }>
+    }>
+  },
+): Promise<any> => {
+  return apiRequest<any>(`/projects/${projectId}/boq/additional`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  })
+}
+
+// Create BOQ with new API format
+export const createBOQ = async (
+  projectId: string,
+  data: {
+    preliminary: Array<{ qty: number; name: string; unit: string; price: number }>
+    fittingOut: Array<{
+      name: string
+      products: Array<{ qty: number; name: string; unit: string; price: number }>
+    }>
+    furnitureWork: Array<{
+      name: string
+      products: Array<{ qty: number; name: string; unit: string; price: number }>
+    }>
+  },
+): Promise<any> => {
+  return apiRequest<any>(`/projects/${projectId}/boq`, {
     method: "POST",
     body: JSON.stringify(data),
   })
@@ -82,9 +119,14 @@ export const createAdditionalBOQ = async (
 
 // Get all BOQs for a project
 export const getBOQList = async (projectId: string): Promise<BOQ[]> => {
-  return apiRequest<BOQ[]>(`/projects/${projectId}/boq`, {
-    method: "GET",
-  })
+  const response = await apiRequest<{ code: number; message: any; data: BOQListResponse }>(
+    `/projects/${projectId}/boq`,
+    {
+      method: "GET",
+    },
+  )
+  // Return the list array from the paginated data
+  return response.data?.list || []
 }
 
 // Get specific BOQ
@@ -94,9 +136,23 @@ export const getBOQ = async (projectId: string, boqId: string): Promise<BOQ> => 
   })
 }
 
-// Update BOQ
-export const updateBOQ = async (projectId: string, boqId: string, data: Partial<BOQ>): Promise<BOQ> => {
-  return apiRequest<BOQ>(`/projects/${projectId}/boq/${boqId}`, {
+// Update BOQ with new API format
+export const updateBOQ = async (
+  projectId: string,
+  boqId: string,
+  data: {
+    preliminary: Array<{ qty: number; name: string; unit: string; price: number; startDate?: string; endDate?: string }>
+    fittingOut: Array<{
+      name: string
+      products: Array<{ qty: number; name: string; unit: string; price: number; startDate?: string; endDate?: string }>
+    }>
+    furnitureWork: Array<{
+      name: string
+      products: Array<{ qty: number; name: string; unit: string; price: number; startDate?: string; endDate?: string }>
+    }>
+  },
+): Promise<any> => {
+  return apiRequest<any>(`/projects/${projectId}/boq/${boqId}`, {
     method: "PUT",
     body: JSON.stringify(data),
   })
@@ -124,6 +180,28 @@ export const generateGanttChart = async (projectId: string, boqId: string): Prom
   })
 }
 
+// Update Gantt chart dates
+export const updateGanttChart = async (
+  projectId: string,
+  boqId: string,
+  data: {
+    preliminary: Array<{ startDate: string; endDate: string }>
+    fittingOut: Array<{
+      name: string
+      products: Array<{ startDate: string; endDate: string }>
+    }>
+    furnitureWork: Array<{
+      name: string
+      products: Array<{ startDate: string; endDate: string }>
+    }>
+  },
+): Promise<any> => {
+  return apiRequest<any>(`/projects/${projectId}/boq/${boqId}/gantt-chart`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  })
+}
+
 // Request BOQ approval
 export const requestBOQApproval = async (projectId: string, boqId: string): Promise<void> => {
   return apiRequest<void>(`/projects/${projectId}/boq/${boqId}/request`, {
@@ -147,8 +225,13 @@ export const rejectBOQ = async (projectId: string, boqId: string, token: string,
 
 export const boqApi = {
   getByProject: async (projectId: string) => {
-    const data = await getBOQList(projectId)
-    return { success: true, data }
+    try {
+      const data = await getBOQList(projectId)
+      return { success: true, data }
+    } catch (error) {
+      console.error("[v0] BOQ API error:", error)
+      return { success: false, data: [] }
+    }
   },
   getById: async (projectId: string, boqId: string) => {
     const data = await getBOQ(projectId, boqId)
@@ -166,11 +249,76 @@ export const boqApi = {
     const data = await createMainBOQ(projectId, boqData)
     return { success: true, data }
   },
-  createAdditional: async (projectId: string, boqData: { name: string; items: Omit<BOQItem, "id">[] }) => {
+  createAdditional: async (
+    projectId: string,
+    boqData: {
+      preliminary: Array<{ qty: number; name: string; unit: string; price: number }>
+      fittingOut: Array<{
+        name: string
+        products: Array<{ qty: number; name: string; unit: string; price: number }>
+      }>
+      furnitureWork: Array<{
+        name: string
+        products: Array<{ qty: number; name: string; unit: string; price: number }>
+      }>
+    },
+  ) => {
     const data = await createAdditionalBOQ(projectId, boqData)
     return { success: true, data }
   },
-  update: async (projectId: string, boqId: string, boqData: Partial<BOQ>) => {
+  create: async (
+    projectId: string,
+    boqData: {
+      preliminary: Array<{ qty: number; name: string; unit: string; price: number }>
+      fittingOut: Array<{
+        name: string
+        products: Array<{ qty: number; name: string; unit: string; price: number }>
+      }>
+      furnitureWork: Array<{
+        name: string
+        products: Array<{ qty: number; name: string; unit: string; price: number }>
+      }>
+    },
+  ) => {
+    const data = await createBOQ(projectId, boqData)
+    return { success: true, data }
+  },
+  update: async (
+    projectId: string,
+    boqId: string,
+    boqData: {
+      preliminary: Array<{
+        qty: number
+        name: string
+        unit: string
+        price: number
+        startDate?: string
+        endDate?: string
+      }>
+      fittingOut: Array<{
+        name: string
+        products: Array<{
+          qty: number
+          name: string
+          unit: string
+          price: number
+          startDate?: string
+          endDate?: string
+        }>
+      }>
+      furnitureWork: Array<{
+        name: string
+        products: Array<{
+          qty: number
+          name: string
+          unit: string
+          price: number
+          startDate?: string
+          endDate?: string
+        }>
+      }>
+    },
+  ) => {
     const data = await updateBOQ(projectId, boqId, boqData)
     return { success: true, data }
   },
@@ -197,5 +345,23 @@ export const boqApi = {
   reject: async (projectId: string, boqId: string, token: string, reason: string) => {
     await rejectBOQ(projectId, boqId, token, reason)
     return { success: true }
+  },
+  updateGanttChart: async (
+    projectId: string,
+    boqId: string,
+    data: {
+      preliminary: Array<{ startDate: string; endDate: string }>
+      fittingOut: Array<{
+        name: string
+        products: Array<{ startDate: string; endDate: string }>
+      }>
+      furnitureWork: Array<{
+        name: string
+        products: Array<{ startDate: string; endDate: string }>
+      }>
+    },
+  ) => {
+    const result = await updateGanttChart(projectId, boqId, data)
+    return { success: true, data: result }
   },
 }

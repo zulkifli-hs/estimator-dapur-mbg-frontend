@@ -4,13 +4,26 @@ import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Edit, Trash2 } from "lucide-react"
+import {
+  ArrowLeft,
+  Edit,
+  Trash2,
+  LayoutDashboard,
+  Layout,
+  Calculator,
+  TrendingUp,
+  FileText,
+  FolderOpen,
+  Users,
+} from "lucide-react"
 import { projectsApi } from "@/lib/api/projects"
 import { ProjectOverview } from "@/components/projects/project-overview"
-import { ProjectDocuments } from "@/components/projects/project-documents"
-import { ProjectAlbums } from "@/components/projects/project-albums"
+import { ProjectLayout } from "@/components/projects/project-layout"
 import { ProjectBOQ } from "@/components/projects/project-boq"
-import { ProjectTermin } from "@/components/projects/project-termin"
+import { ProjectProgress } from "@/components/projects/project-progress"
+import { ProjectInvoice } from "@/components/projects/project-invoice"
+import { ProjectDocuments } from "@/components/projects/project-documents"
+import { ProjectMembers } from "@/components/projects/project-members"
 import Link from "next/link"
 
 export default function ProjectDetailPage() {
@@ -59,53 +72,81 @@ export default function ProjectDetailPage() {
     )
   }
 
+  const tabs = [
+    { value: "overview", label: "Overview", icon: LayoutDashboard },
+    { value: "layout", label: "Layout", icon: Layout },
+    { value: "boq", label: "BOQ", icon: Calculator },
+    { value: "project", label: "Project", icon: TrendingUp },
+    { value: "invoice", label: "Invoice", icon: FileText },
+    { value: "documents", label: "Documents", icon: FolderOpen },
+    { value: "members", label: "Members", icon: Users },
+  ]
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex items-center gap-2 md:gap-4">
         <Link href="/projects">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-5 w-5" />
+          <Button variant="ghost" size="icon" className="h-8 w-8 md:h-10 md:w-10">
+            <ArrowLeft className="h-4 w-4 md:h-5 md:w-5" />
           </Button>
         </Link>
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold tracking-tight">{project.name}</h1>
-          <p className="text-muted-foreground">{project.companyClient?.name || "No client"}</p>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-xl md:text-3xl font-bold tracking-tight truncate">{project.name}</h1>
+          <p className="text-sm text-muted-foreground truncate">{project.companyClient?.name || "No client"}</p>
         </div>
-        <Button variant="outline" size="icon">
-          <Edit className="h-4 w-4" />
+        {/* <Button variant="outline" size="icon" className="h-8 w-8 md:h-10 md:w-10 bg-transparent">
+          <Edit className="h-3 w-3 md:h-4 md:w-4" />
         </Button>
-        <Button variant="outline" size="icon">
-          <Trash2 className="h-4 w-4" />
-        </Button>
+        <Button variant="outline" size="icon" className="h-8 w-8 md:h-10 md:w-10 bg-transparent">
+          <Trash2 className="h-3 w-3 md:h-4 md:w-4" />
+        </Button> */}
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="documents">Documents</TabsTrigger>
-          <TabsTrigger value="albums">Albums</TabsTrigger>
-          <TabsTrigger value="boq">BOQ</TabsTrigger>
-          <TabsTrigger value="termin">Termin</TabsTrigger>
-        </TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 md:space-y-6">
+        <div className="relative">
+          <TabsList className="inline-flex w-full md:grid md:grid-cols-7 h-auto p-1 overflow-x-auto scrollbar-hide">
+            {tabs.map((tab) => {
+              const Icon = tab.icon
+              return (
+                <TabsTrigger
+                  key={tab.value}
+                  value={tab.value}
+                  className="flex items-center justify-center gap-1.5 md:gap-2 whitespace-nowrap px-3 md:px-4 py-2 text-sm data-[state=active]:bg-background"
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                </TabsTrigger>
+              )
+            })}
+          </TabsList>
+        </div>
 
         <TabsContent value="overview">
           <ProjectOverview project={project} onUpdate={loadProject} />
         </TabsContent>
 
-        <TabsContent value="documents">
-          <ProjectDocuments projectId={project._id} />
-        </TabsContent>
-
-        <TabsContent value="albums">
-          <ProjectAlbums projectId={project._id} />
+        <TabsContent value="layout">
+          <ProjectLayout projectId={project._id} project={project} onUpdate={loadProject} />
         </TabsContent>
 
         <TabsContent value="boq">
           <ProjectBOQ projectId={project._id} />
         </TabsContent>
 
-        <TabsContent value="termin">
-          <ProjectTermin projectId={project._id} />
+        <TabsContent value="project">
+          <ProjectProgress projectId={project._id} />
+        </TabsContent>
+
+        <TabsContent value="invoice">
+          <ProjectInvoice projectId={project._id} />
+        </TabsContent>
+
+        <TabsContent value="documents">
+          <ProjectDocuments projectId={project._id} />
+        </TabsContent>
+
+        <TabsContent value="members">
+          <ProjectMembers project={project} onUpdate={loadProject} />
         </TabsContent>
       </Tabs>
     </div>

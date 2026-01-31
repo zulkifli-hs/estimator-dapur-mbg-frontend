@@ -1,23 +1,36 @@
 import { apiRequest } from "./config"
 
 export interface Termin {
-  id: string
+  _id: string
   name: string
-  percentage: number
-  amount: number
-  status: "pending" | "sent" | "approved" | "rejected"
-  photos: string[]
-  tax_files: string[]
-  slip_url?: string
-  due_date: string
-  created_at: string
-  updated_at: string
+  status: "Draft" | "Pending" | "Sent" | "Approved" | "Rejected"
+  value: number
+  category: "DP" | "BAPP" | "BAST"
+  valueType: "%" | "IDR"
+  createdBy: {
+    _id: string
+    email: string
+    profile: {
+      name: string
+      photo?: {
+        url: string
+        provider: string
+      }
+      phone: string
+    }
+  }
+  updatedBy: string
+  photos: any[]
+  taxes: any[]
+  rejections: any[]
+  createdAt: string
+  updatedAt: string
 }
 
 // Create termin format
 export const createTerminFormat = async (
   projectId: string,
-  termins: Array<{ name: string; percentage: number }>,
+  termins: Array<{ name: string; value: number; valueType: string }>,
 ): Promise<Termin[]> => {
   return apiRequest<Termin[]>(`/projects/${projectId}/termin`, {
     method: "POST",
@@ -38,9 +51,27 @@ export const updateTerminFormat = async (
 
 // Get all termins for a project
 export const getTerminList = async (projectId: string): Promise<Termin[]> => {
-  return apiRequest<Termin[]>(`/projects/${projectId}/termin`, {
+  const response = await apiRequest<any>(`/projects/${projectId}/termin`, {
     method: "GET",
   })
+
+  // Handle paginated response structure
+  if (response.data && Array.isArray(response.data.list)) {
+    return response.data.list
+  }
+
+  // Handle direct array response
+  if (response.data && Array.isArray(response.data.termins)) {
+    return response.data.termins
+  }
+
+  // Handle direct array in data
+  if (Array.isArray(response.data)) {
+    return response.data
+  }
+
+  console.error("[v0] Unexpected termin response structure:", response)
+  return []
 }
 
 // Get specific termin
@@ -173,15 +204,29 @@ export const terminApi = {
   acceptTerminSlip,
   rejectTerminSlip,
   getByProject: async (projectId: string) => {
-    const data = await getTerminList(projectId)
-    return { success: true, data }
+    try {
+      const data = await getTerminList(projectId)
+      return { success: true, data }
+    } catch (error: any) {
+      // If 404, return empty array (no termins exist yet)
+      if (error?.status === 404 || error?.code === 404) {
+        return { success: true, data: [] }
+      }
+      throw error
+    }
   },
   getById: async (projectId: string, terminId: string) => {
     const data = await getTermin(projectId, terminId)
     return { success: true, data }
   },
-  createFormat: async (projectId: string, termins: Array<{ name: string; percentage: number }>) => {
-    const data = await createTerminFormat(projectId, termins)
+  createFormat: async (projectId: string, termins: Array<{ name: string; percentage: number; note?: string }>) => {
+    const transformedTermins = termins.map((t) => ({
+      name: t.name,
+      value: t.percentage,
+      valueType: "%",
+      ...(t.note && { note: t.note }),
+    }))
+    const data = await createTerminFormat(projectId, transformedTermins)
     return { success: true, data }
   },
   updateFormat: async (projectId: string, termins: Array<{ id: string; name: string; percentage: number }>) => {

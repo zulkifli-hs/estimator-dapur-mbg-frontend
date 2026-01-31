@@ -59,6 +59,8 @@ export const addPhotoToAlbum = async (
   url: string,
   provider: string,
 ): Promise<ApiResponse<Album>> => {
+  console.log("[v0] Adding photo to album API call:", { projectId, albumId, url, provider })
+
   return apiRequest<Album>(`/projects/${projectId}/album/${albumId}/add`, {
     method: "POST",
     body: JSON.stringify({ url, provider }),
@@ -76,6 +78,17 @@ export const deletePhotoFromAlbum = async (
   })
 }
 
+export const renameAlbum = async (
+  projectId: string,
+  albumId: string,
+  name: string,
+): Promise<ApiResponse<Album>> => {
+  return apiRequest<Album>(`/projects/${projectId}/album/${albumId}`, {
+    method: "PUT",
+    body: JSON.stringify({ name }),
+  })
+}
+
 export const albumsApi = {
   getByProject: async (projectId: string, params?: { page?: number; limit?: number }) => {
     const response = await getAlbums(projectId, params)
@@ -83,7 +96,7 @@ export const albumsApi = {
   },
   create: async (data: { projectId: string; name: string }) => {
     const response = await createAlbum(data.projectId, data.name)
-    return { success: response.code === 200, data: response.data }
+    return { success: response.code === 200 || response.code === 201, data: response.data }
   },
   delete: async (albumId: string, projectId?: string) => {
     if (projectId) {
@@ -102,10 +115,15 @@ export const albumsApi = {
   },
   addPhoto: async (projectId: string, albumId: string, url: string, provider: string) => {
     const response = await addPhotoToAlbum(projectId, albumId, url, provider)
-    return { success: response.code === 200, data: response.data }
+    console.log("[v0] addPhoto response:", response)
+    return { success: response.code === 200 || response.code === 201, data: response.data }
   },
   deletePhoto: async (projectId: string, albumId: string, indexes: number[]) => {
     const response = await deletePhotoFromAlbum(projectId, albumId, indexes)
     return { success: response.code === 200 }
+  },
+  rename: async (projectId: string, albumId: string, name: string) => {
+    const response = await renameAlbum(projectId, albumId, name)
+    return { success: response.code === 200, data: response.data }
   },
 }

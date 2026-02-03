@@ -316,8 +316,8 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
             <TableRow>
               <TableHead className="w-[60px] px-4">No</TableHead>
               <TableHead className="min-w-[250px] max-w-[400px] px-4">Item Name</TableHead>
+              <TableHead className="w-[120px] px-4">Brand/Equal</TableHead>
               <TableHead className="w-[120px] px-4">Location</TableHead>
-              <TableHead className="w-[120px] px-4">Brand</TableHead>
               <TableHead className="text-right w-[80px] px-4">Qty</TableHead>
               <TableHead className="w-[80px] px-4">Unit</TableHead>
               <TableHead className="text-right w-[150px] px-4">Unit Price</TableHead>
@@ -340,8 +340,8 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                     <TableRow key={item._id}>
                       <TableCell className="font-medium pl-8 pr-4">{itemNumber++}</TableCell>
                       <TableCell className="whitespace-normal break-words px-4">{item.name}</TableCell>
-                      <TableCell className="px-4">{item.location || "-"}</TableCell>
                       <TableCell className="px-4">{item.brand || "-"}</TableCell>
+                      <TableCell className="px-4">{item.location || "-"}</TableCell>
                       <TableCell className="text-right px-4">{item.qty}</TableCell>
                       <TableCell className="px-4">{item.unit}</TableCell>
                       <TableCell className="text-right px-4">{formatCurrency(item.price)}</TableCell>
@@ -390,8 +390,8 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                             <TableRow key={product._id}>
                               <TableCell className="font-medium pl-12 pr-4">{itemNumber++}</TableCell>
                               <TableCell className="whitespace-normal break-words px-4">{product.name}</TableCell>
-                              <TableCell className="px-4">{product.location || "-"}</TableCell>
                               <TableCell className="px-4">{product.brand || "-"}</TableCell>
+                              <TableCell className="px-4">{product.location || "-"}</TableCell>
                               <TableCell className="text-right px-4">{product.qty}</TableCell>
                               <TableCell className="px-4">{product.unit}</TableCell>
                               <TableCell className="text-right px-4">{formatCurrency(product.price)}</TableCell>
@@ -458,8 +458,8 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                             <TableRow key={product._id}>
                               <TableCell className="font-medium pl-12 pr-4">{itemNumber++}</TableCell>
                               <TableCell className="whitespace-normal break-words px-4">{product.name}</TableCell>
-                              <TableCell className="px-4">{product.location || "-"}</TableCell>
                               <TableCell className="px-4">{product.brand || "-"}</TableCell>
+                              <TableCell className="px-4">{product.location || "-"}</TableCell>
                               <TableCell className="text-right px-4">{product.qty}</TableCell>
                               <TableCell className="px-4">{product.unit}</TableCell>
                               <TableCell className="text-right px-4">{formatCurrency(product.price)}</TableCell>
@@ -1468,19 +1468,19 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                         {/* Second Row: Other Fields */}
                         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pl-11">
                           <div>
+                            <Label className="text-xs text-muted-foreground mb-1.5 block">Brand/Equal</Label>
+                            <Input
+                              value={item.brand || ""}
+                              onChange={(e) => updatePreliminaryItem(index, "brand", e.target.value)}
+                              placeholder="e.g. Jayaboard, Elephant"
+                            />
+                          </div>
+                          <div>
                             <Label className="text-xs text-muted-foreground mb-1.5 block">Location (optional)</Label>
                             <Input
                               value={item.location || ""}
                               onChange={(e) => updatePreliminaryItem(index, "location", e.target.value)}
                               placeholder="e.g. Front, Back"
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-xs text-muted-foreground mb-1.5 block">Brand</Label>
-                            <Input
-                              value={item.brand || ""}
-                              onChange={(e) => updatePreliminaryItem(index, "brand", e.target.value)}
-                              placeholder="e.g. Jayaboard, Elephant"
                             />
                           </div>
                           <div>
@@ -1601,6 +1601,16 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                           {/* Second Row: Other Fields */}
                           <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pl-11">
                             <div>
+                              <Label className="text-xs text-muted-foreground mb-1.5 block">Brand/Equal</Label>
+                              <Input
+                                value={product.brand || ""}
+                                onChange={(e) =>
+                                  updateFittingOutProduct(categoryIndex, productIndex, "brand", e.target.value)
+                                }
+                                placeholder="e.g. Jayaboard, Elephant"
+                              />
+                            </div>
+                            <div>
                               <Label className="text-xs text-muted-foreground mb-1.5 block">Location (optional)</Label>
                               <Input
                                 value={product.location || ""}
@@ -1608,16 +1618,6 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                                   updateFittingOutProduct(categoryIndex, productIndex, "location", e.target.value)
                                 }
                                 placeholder="e.g. Front, Back"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs text-muted-foreground mb-1.5 block">Brand</Label>
-                              <Input
-                                value={product.brand || ""}
-                                onChange={(e) =>
-                                  updateFittingOutProduct(categoryIndex, productIndex, "brand", e.target.value)
-                                }
-                                placeholder="e.g. Jayaboard, Elephant"
                               />
                             </div>
                             <div>
@@ -1754,6 +1754,16 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                           {/* Second Row: Other Fields */}
                           <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pl-11">
                             <div>
+                              <Label className="text-xs text-muted-foreground mb-1.5 block">Brand/Equal</Label>
+                              <Input
+                                value={product.brand || ""}
+                                onChange={(e) =>
+                                  updateFurnitureWorkProduct(categoryIndex, productIndex, "brand", e.target.value)
+                                }
+                                placeholder="e.g. Jayaboard, Elephant"
+                              />
+                            </div>
+                            <div>
                               <Label className="text-xs text-muted-foreground mb-1.5 block">Location (optional)</Label>
                               <Input
                                 value={product.location || ""}
@@ -1761,16 +1771,6 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                                   updateFurnitureWorkProduct(categoryIndex, productIndex, "location", e.target.value)
                                 }
                                 placeholder="e.g. Front, Back"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs text-muted-foreground mb-1.5 block">Brand</Label>
-                              <Input
-                                value={product.brand || ""}
-                                onChange={(e) =>
-                                  updateFurnitureWorkProduct(categoryIndex, productIndex, "brand", e.target.value)
-                                }
-                                placeholder="e.g. Jayaboard, Elephant"
                               />
                             </div>
                             <div>

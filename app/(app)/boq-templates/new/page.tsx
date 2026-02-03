@@ -668,22 +668,22 @@ export default function NewTemplatePage() {
                   
                   {/* Second Row: Other Fields */}
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pl-11">
-                    <div>
-                      <Label className="text-xs text-muted-foreground mb-1.5 block">Location (optional)</Label>
-                      <Input
-                        value={item.location || ""}
-                        onChange={(e) => updatePreliminaryItem(index, "location", e.target.value)}
-                        placeholder="e.g. Front, Back"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs text-muted-foreground mb-1.5 block">Brand</Label>
-                      <Input
-                        value={item.brand || ""}
-                        onChange={(e) => updatePreliminaryItem(index, "brand", e.target.value)}
-                        placeholder="e.g. Jayaboard, Elephant"
-                      />
-                    </div>
+                  <div>
+                  <Label className="text-xs text-muted-foreground mb-1.5 block">Brand/Equal</Label>
+                  <Input
+                  value={item.brand || ""}
+                  onChange={(e) => updatePreliminaryItem(index, "brand", e.target.value)}
+                  placeholder="e.g. Jayaboard, Elephant"
+                  />
+                  </div>
+                  <div>
+                  <Label className="text-xs text-muted-foreground mb-1.5 block">Location (optional)</Label>
+                  <Input
+                  value={item.location || ""}
+                  onChange={(e) => updatePreliminaryItem(index, "location", e.target.value)}
+                  placeholder="e.g. Front, Back"
+                  />
+                  </div>
                     <div>
                       <Label className="text-xs text-muted-foreground mb-1.5 block">Quantity</Label>
                       <Input
@@ -890,28 +890,26 @@ export default function NewTemplatePage() {
                       
                       {/* Second Row: Other Fields */}
                       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pl-11">
-                        <div>
-                          <Label className="text-xs text-muted-foreground mb-1.5 block">Location (optional)</Label>
-                          <Input
-                            value={product.location || ""}
-                            onChange={(e) =>
-                              updateFittingOutProduct(categoryIndex, productIndex, "location", e.target.value)
-                            }
-                            placeholder="e.g. Front, Back"
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs text-muted-foreground mb-1.5 block">Brand</Label>
-                          <Input
-                            value={product.brand || ""}
-                            onChange={(e) =>
-                              updateFittingOutProduct(categoryIndex, productIndex, "brand", e.target.value)
-                            }
-                            placeholder="e.g. Jayaboard, Elephant"
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs text-muted-foreground mb-1.5 block">Quantity</Label>
+                      <div>
+                      <Label className="text-xs text-muted-foreground mb-1.5 block">Brand/Equal</Label>
+                      <Input
+                      value={product.brand || ""}
+                      onChange={(e) => updateFittingOutProduct(categoryIndex, productIndex, "brand", e.target.value)}
+                      placeholder="e.g. Jayaboard, Elephant"
+                      />
+                      </div>
+                      <div>
+                      <Label className="text-xs text-muted-foreground mb-1.5 block">Location (optional)</Label>
+                      <Input
+                      value={product.location || ""}
+                      onChange={(e) =>
+                      updateFittingOutProduct(categoryIndex, productIndex, "location", e.target.value)
+                      }
+                      placeholder="e.g. Front, Back"
+                      />
+                      </div>
+                      <div>
+                      <Label className="text-xs text-muted-foreground mb-1.5 block">Quantity</Label>
                           <Input
                             ref={(el) => {
                               fittingOutQtyRefs.current[`${categoryIndex}-${productIndex}`] = el
@@ -1133,28 +1131,28 @@ export default function NewTemplatePage() {
                       
                       {/* Second Row: Other Fields */}
                       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pl-11">
-                        <div>
-                          <Label className="text-xs text-muted-foreground mb-1.5 block">Location (optional)</Label>
-                          <Input
-                            value={product.location || ""}
-                            onChange={(e) =>
-                              updateFurnitureWorkProduct(categoryIndex, productIndex, "location", e.target.value)
-                            }
-                            placeholder="e.g. Front, Back"
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs text-muted-foreground mb-1.5 block">Brand</Label>
-                          <Input
-                            value={product.brand || ""}
-                            onChange={(e) =>
-                              updateFurnitureWorkProduct(categoryIndex, productIndex, "brand", e.target.value)
-                            }
-                            placeholder="e.g. Jayaboard, Elephant"
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs text-muted-foreground mb-1.5 block">Quantity</Label>
+                      <div>
+                      <Label className="text-xs text-muted-foreground mb-1.5 block">Brand/Equal</Label>
+                      <Input
+                      value={product.brand || ""}
+                      onChange={(e) =>
+                      updateFurnitureWorkProduct(categoryIndex, productIndex, "brand", e.target.value)
+                      }
+                      placeholder="e.g. Jayaboard, Elephant"
+                      />
+                      </div>
+                      <div>
+                      <Label className="text-xs text-muted-foreground mb-1.5 block">Location (optional)</Label>
+                      <Input
+                      value={product.location || ""}
+                      onChange={(e) =>
+                      updateFurnitureWorkProduct(categoryIndex, productIndex, "location", e.target.value)
+                      }
+                      placeholder="e.g. Front, Back"
+                      />
+                      </div>
+                      <div>
+                      <Label className="text-xs text-muted-foreground mb-1.5 block">Quantity</Label>
                           <Input
                             ref={(el) => {
                               furnitureWorkQtyRefs.current[`${categoryIndex}-${productIndex}`] = el

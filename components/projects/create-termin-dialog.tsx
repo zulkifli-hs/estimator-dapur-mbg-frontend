@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,15 +16,18 @@ interface CreateTerminDialogProps {
   onOpenChange: (open: boolean) => void
   projectId: string
   onSuccess: () => void
+  existingTermins?: any[]
+  mode?: "create" | "update"
 }
 
 interface TerminEntry {
+  id?: string
   name: string
   percentage: number
   note?: string
 }
 
-export function CreateTerminDialog({ open, onOpenChange, projectId, onSuccess }: CreateTerminDialogProps) {
+export function CreateTerminDialog({ open, onOpenChange, projectId, onSuccess, existingTermins, mode = "create" }: CreateTerminDialogProps) {
   const [termins, setTermins] = useState<TerminEntry[]>([
     { name: "Down Payment", percentage: 30, note: "" },
     { name: "Progress 1", percentage: 30, note: "" },
@@ -33,6 +36,19 @@ export function CreateTerminDialog({ open, onOpenChange, projectId, onSuccess }:
   ])
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
+
+  // Load existing termins when in update mode
+  useEffect(() => {
+    if (mode === "update" && existingTermins && existingTermins.length > 0) {
+      const mappedTermins = existingTermins.map((t) => ({
+        id: t._id,
+        name: t.name,
+        percentage: t.valueType === "%" ? t.value : 0,
+        note: t.note || "",
+      }))
+      setTermins(mappedTermins)
+    }
+  }, [mode, existingTermins])
 
   const handleAddTermin = () => {
     setTermins([...termins, { name: "", percentage: 0, note: "" }])
@@ -96,25 +112,43 @@ export function CreateTerminDialog({ open, onOpenChange, projectId, onSuccess }:
 
     setLoading(true)
     try {
-      await terminApi.createFormat(projectId, termins)
-      toast({
-        title: "Success",
-        description: "Payment terms created successfully",
-      })
+      if (mode === "update") {
+        // Update existing termins
+        await terminApi.updateFormat(projectId, termins.map(t => ({
+          id: t.id || "",
+          name: t.name,
+          value: t.percentage,
+          valueType: "%",
+          note: t.note || ""
+        })))
+        toast({
+          title: "Success",
+          description: "Payment terms updated successfully",
+        })
+      } else {
+        // Create new termins
+        await terminApi.createFormat(projectId, termins)
+        toast({
+          title: "Success",
+          description: "Payment terms created successfully",
+        })
+      }
       onSuccess()
       onOpenChange(false)
       // Reset form
-      setTermins([
-        { name: "Down Payment", percentage: 30, note: "" },
-        { name: "Progress 1", percentage: 30, note: "" },
-        { name: "Progress 2", percentage: 30, note: "" },
-        { name: "Final Payment", percentage: 10, note: "" },
-      ])
+      if (mode === "create") {
+        setTermins([
+          { name: "Down Payment", percentage: 30, note: "" },
+          { name: "Progress 1", percentage: 30, note: "" },
+          { name: "Progress 2", percentage: 30, note: "" },
+          { name: "Final Payment", percentage: 10, note: "" },
+        ])
+      }
     } catch (error) {
-      console.error("Failed to create termins:", error)
+      console.error(`Failed to ${mode} termins:`, error)
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create payment terms",
+        description: error instanceof Error ? error.message : `Failed to ${mode} payment terms`,
         variant: "destructive",
       })
     } finally {
@@ -128,9 +162,12 @@ export function CreateTerminDialog({ open, onOpenChange, projectId, onSuccess }:
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create Payment Terms (Termin)</DialogTitle>
+          <DialogTitle>{mode === "update" ? "Update Payment Terms (Termin)" : "Create Payment Terms (Termin)"}</DialogTitle>
           <DialogDescription>
-            Define the payment schedule for this project. Total percentage must equal 100%.
+            {mode === "update" 
+              ? "Update the payment schedule for this project. Total percentage must equal 100%."
+              : "Define the payment schedule for this project. Total percentage must equal 100%."
+            }
           </DialogDescription>
         </DialogHeader>
 
@@ -207,7 +244,10 @@ export function CreateTerminDialog({ open, onOpenChange, projectId, onSuccess }:
               Cancel
             </Button>
             <Button type="submit" disabled={loading || totalPercentage !== 100}>
-              {loading ? "Creating..." : "Create Payment Terms"}
+              {loading 
+                ? (mode === "update" ? "Updating..." : "Creating...") 
+                : (mode === "update" ? "Update Payment Terms" : "Create Payment Terms")
+              }
             </Button>
           </div>
         </form>

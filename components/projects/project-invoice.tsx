@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Upload, FileText } from 'lucide-react'
+import { Plus, FileText, Edit, Upload } from 'lucide-react'
 import { Badge } from "@/components/ui/badge"
 import { terminApi } from "@/lib/api/termin"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -19,6 +19,7 @@ export function ProjectInvoice({ projectId }: ProjectInvoiceProps) {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("termin")
   const [showCreateTermin, setShowCreateTermin] = useState(false)
+  const [terminMode, setTerminMode] = useState<"create" | "update">("create")
 
   useEffect(() => {
     loadTermins()
@@ -42,6 +43,15 @@ export function ProjectInvoice({ projectId }: ProjectInvoiceProps) {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleOpenTerminDialog = () => {
+    if (termins.length > 0) {
+      setTerminMode("update")
+    } else {
+      setTerminMode("create")
+    }
+    setShowCreateTermin(true)
   }
 
   // Dummy invoice data
@@ -93,6 +103,8 @@ export function ProjectInvoice({ projectId }: ProjectInvoiceProps) {
         onOpenChange={setShowCreateTermin}
         projectId={projectId}
         onSuccess={loadTermins}
+        existingTermins={termins}
+        mode={terminMode}
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -129,9 +141,13 @@ export function ProjectInvoice({ projectId }: ProjectInvoiceProps) {
                   <CardTitle>Payment Terms (Termin)</CardTitle>
                   <CardDescription>Project payment schedule and milestones</CardDescription>
                 </div>
-                <Button onClick={() => setShowCreateTermin(true)} disabled={termins.length > 0}>
-                  <Upload className="h-4 w-4 mr-2" />
-                  {termins.length > 0 ? "Terms Created" : "Create Terms"}
+                <Button onClick={handleOpenTerminDialog}>
+                  {termins.length > 0 ? (
+                    <Edit className="h-4 w-4 mr-2" />
+                  ) : (
+                    <Plus className="h-4 w-4 mr-2" />
+                  )}
+                  {termins.length > 0 ? "Update Terms" : "Create Terms"}
                 </Button>
               </div>
             </CardHeader>
@@ -141,8 +157,8 @@ export function ProjectInvoice({ projectId }: ProjectInvoiceProps) {
               ) : termins.length === 0 ? (
                 <div className="text-center py-12">
                   <p className="text-muted-foreground mb-4">No payment terms defined yet</p>
-                  <Button onClick={() => setShowCreateTermin(true)} variant="outline">
-                    <Upload className="h-4 w-4 mr-2" />
+                  <Button onClick={handleOpenTerminDialog} variant="outline">
+                    <Plus className="h-4 w-4 mr-2" />
                     Create Payment Terms
                   </Button>
                 </div>
@@ -163,6 +179,11 @@ export function ProjectInvoice({ projectId }: ProjectInvoiceProps) {
                             {termin.value}
                             {termin.valueType === "%" ? "%" : " IDR"} • Category: {termin.category}
                           </p>
+                          {termin.note && (
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Note: {termin.note}
+                            </p>
+                          )}
                         </div>
                       </div>
                       <Badge 

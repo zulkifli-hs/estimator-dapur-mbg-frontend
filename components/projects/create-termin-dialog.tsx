@@ -117,7 +117,8 @@ export function CreateTerminDialog({ open, onOpenChange, projectId, onSuccess, e
         await terminApi.updateFormat(projectId, termins.map(t => ({
           id: t.id || "",
           name: t.name,
-          percentage: t.percentage
+          value: t.percentage,
+          valueType: "%"
         })))
         toast({
           title: "Success",

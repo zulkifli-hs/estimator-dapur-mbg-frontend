@@ -118,7 +118,8 @@ export function CreateTerminDialog({ open, onOpenChange, projectId, onSuccess, e
           id: t.id || "",
           name: t.name,
           value: t.percentage,
-          valueType: "%"
+          valueType: "%",
+          note: t.note || ""
         })))
         toast({
           title: "Success",

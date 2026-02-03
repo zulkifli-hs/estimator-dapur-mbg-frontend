@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Upload, FileText } from 'lucide-react'
+import { Plus, FileText, Edit, Upload } from 'lucide-react'
 import { Badge } from "@/components/ui/badge"
 import { terminApi } from "@/lib/api/termin"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -142,7 +142,11 @@ export function ProjectInvoice({ projectId }: ProjectInvoiceProps) {
                   <CardDescription>Project payment schedule and milestones</CardDescription>
                 </div>
                 <Button onClick={handleOpenTerminDialog}>
-                  <Upload className="h-4 w-4 mr-2" />
+                  {termins.length > 0 ? (
+                    <Edit className="h-4 w-4 mr-2" />
+                  ) : (
+                    <Plus className="h-4 w-4 mr-2" />
+                  )}
                   {termins.length > 0 ? "Update Terms" : "Create Terms"}
                 </Button>
               </div>
@@ -154,7 +158,7 @@ export function ProjectInvoice({ projectId }: ProjectInvoiceProps) {
                 <div className="text-center py-12">
                   <p className="text-muted-foreground mb-4">No payment terms defined yet</p>
                   <Button onClick={handleOpenTerminDialog} variant="outline">
-                    <Upload className="h-4 w-4 mr-2" />
+                    <Plus className="h-4 w-4 mr-2" />
                     Create Payment Terms
                   </Button>
                 </div>

@@ -175,6 +175,11 @@ export function ProjectInvoice({ projectId }: ProjectInvoiceProps) {
                             {termin.value}
                             {termin.valueType === "%" ? "%" : " IDR"} • Category: {termin.category}
                           </p>
+                          {termin.note && (
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Note: {termin.note}
+                            </p>
+                          )}
                         </div>
                       </div>
                       <Badge 

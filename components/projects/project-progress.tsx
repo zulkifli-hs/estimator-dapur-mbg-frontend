@@ -1,8 +1,16 @@
 "use client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { DialogTitle } from "@/components/ui/dialog"
+
+import { DialogHeader } from "@/components/ui/dialog"
+
+import { DialogContent } from "@/components/ui/dialog"
+
+import { Dialog } from "@/components/ui/dialog"
+
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Upload, Calendar, ImageIcon, TrendingUp, FileCheck, Edit, Plus, X, Download } from 'lucide-react'
+import { Upload, Calendar, ImageIcon, TrendingUp, FileCheck, Edit, Plus, X, Download, Eye } from 'lucide-react'
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useEffect, useState } from "react"
@@ -24,7 +32,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react' // Import Loader2
 
 interface ProjectProgressProps {
   projectId: string
@@ -44,6 +52,7 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
   const [deleteAlbumConfirm, setDeleteAlbumConfirm] = useState<{ id: string; name: string } | null>(null)
   const [deletingAlbum, setDeletingAlbum] = useState(false)
   const [exportingPdf, setExportingPdf] = useState<string | null>(null)
+  const [previewPdf, setPreviewPdf] = useState<{ url: string; name: string } | null>(null)
   const { toast } = useToast()
 
   const tabs = [
@@ -189,93 +198,105 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
     }
   }
 
+  const generatePdfDocument = async (album: any) => {
+    // Dynamically import jsPDF
+    const { default: jsPDF } = await import('jspdf')
+
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    })
+
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const pageHeight = doc.internal.pageSize.getHeight()
+    const margin = 15
+    const columnGap = 10
+    const imgWidth = (pageWidth - (margin * 2) - columnGap) / 2
+    
+    // Add centered title
+    doc.setFontSize(20)
+    doc.setFont('helvetica', 'bold')
+    const titleWidth = doc.getTextWidth(album.name)
+    doc.text(album.name, (pageWidth - titleWidth) / 2, margin + 5)
+
+    let yPosition = margin + 15
+    let column = 0
+
+    // Load and add images
+    if (album.list && album.list.length > 0) {
+      for (let i = 0; i < album.list.length; i++) {
+        const photo = album.list[i]
+        if (!photo.provider || !photo.url) continue
+
+        try {
+          const imageUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${photo.provider}/${photo.url}`
+          
+          // Load image as base64
+          const response = await fetch(imageUrl)
+          const blob = await response.blob()
+          const reader = new FileReader()
+          
+          await new Promise((resolve, reject) => {
+            reader.onload = () => resolve(reader.result)
+            reader.onerror = reject
+            reader.readAsDataURL(blob)
+          })
+
+          const base64Image = reader.result as string
+
+          // Create a temporary image to get original dimensions
+          const img = new Image()
+          await new Promise((resolve) => {
+            img.onload = resolve
+            img.src = base64Image
+          })
+
+          // Calculate image height maintaining aspect ratio
+          const aspectRatio = img.height / img.width
+          const imgHeight = imgWidth * aspectRatio
+
+          // Calculate x position based on column
+          const xPosition = column === 0 ? margin : margin + imgWidth + columnGap
+          
+          // Check if we need a new page
+          if (yPosition + imgHeight + 15 > pageHeight - margin) {
+            doc.addPage()
+            yPosition = margin
+            column = 0
+          }
+
+          // Add image maintaining aspect ratio
+          doc.addImage(base64Image, 'JPEG', xPosition, yPosition, imgWidth, imgHeight)
+          
+          // Add photo number below image
+          doc.setFontSize(9)
+          doc.setFont('helvetica', 'normal')
+          const photoLabel = `Photo ${i + 1}`
+          const labelWidth = doc.getTextWidth(photoLabel)
+          doc.text(photoLabel, xPosition + (imgWidth - labelWidth) / 2, yPosition + imgHeight + 5)
+
+          // Move to next column or row
+          if (column === 0) {
+            column = 1
+          } else {
+            column = 0
+            yPosition += imgHeight + 15
+          }
+
+        } catch (error) {
+          console.error(`Failed to load image ${i + 1}:`, error)
+        }
+      }
+    }
+
+    return doc
+  }
+
   const handleExportPdf = async (album: any) => {
     setExportingPdf(album._id)
     try {
-      // Dynamically import jsPDF
-      const { default: jsPDF } = await import('jspdf')
-
-      const doc = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-      })
-
-      const pageWidth = doc.internal.pageSize.getWidth()
-      const pageHeight = doc.internal.pageSize.getHeight()
-      const margin = 20
-      const contentWidth = pageWidth - (margin * 2)
-
-      // Add title
-      doc.setFontSize(20)
-      doc.setFont('helvetica', 'bold')
-      doc.text(album.name, margin, margin)
-
-      // Add date
-      doc.setFontSize(10)
-      doc.setFont('helvetica', 'normal')
-      doc.text(`Created: ${new Date(album.createdAt).toLocaleDateString('id-ID')}`, margin, margin + 8)
-      doc.text(`Total Photos: ${album.list?.length || 0}`, margin, margin + 14)
-
-      let yPosition = margin + 25
-
-      // Load and add images
-      if (album.list && album.list.length > 0) {
-        for (let i = 0; i < album.list.length; i++) {
-          const photo = album.list[i]
-          if (!photo.provider || !photo.url) continue
-
-          try {
-            const imageUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${photo.provider}/${photo.url}`
-            
-            // Load image as base64
-            const response = await fetch(imageUrl)
-            const blob = await response.blob()
-            const reader = new FileReader()
-            
-            await new Promise((resolve, reject) => {
-              reader.onload = () => resolve(reader.result)
-              reader.onerror = reject
-              reader.readAsDataURL(blob)
-            })
-
-            const base64Image = reader.result as string
-
-            // Calculate image dimensions to fit the page
-            const imgHeight = 80 // Fixed height for consistency
-            
-            // Check if we need a new page
-            if (yPosition + imgHeight + 20 > pageHeight - margin) {
-              doc.addPage()
-              yPosition = margin
-            }
-
-            // Add photo number
-            doc.setFontSize(10)
-            doc.setFont('helvetica', 'bold')
-            doc.text(`Photo ${i + 1}`, margin, yPosition)
-            yPosition += 6
-
-            // Add image
-            doc.addImage(base64Image, 'JPEG', margin, yPosition, contentWidth, imgHeight)
-            yPosition += imgHeight + 10
-
-            // Add caption if available
-            if (photo.caption) {
-              doc.setFontSize(9)
-              doc.setFont('helvetica', 'italic')
-              const splitCaption = doc.splitTextToSize(photo.caption, contentWidth)
-              doc.text(splitCaption, margin, yPosition)
-              yPosition += splitCaption.length * 4 + 5
-            }
-
-          } catch (error) {
-            console.error(`Failed to load image ${i + 1}:`, error)
-          }
-        }
-      }
-
-      // Save the PDF
+      const doc = await generatePdfDocument(album)
       doc.save(`${album.name}.pdf`)
 
       toast({
@@ -287,6 +308,26 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
       toast({
         title: "Error",
         description: error.message || "Failed to export PDF",
+        variant: "destructive",
+      })
+    } finally {
+      setExportingPdf(null)
+    }
+  }
+
+  const handlePreviewPdf = async (album: any) => {
+    setExportingPdf(album._id)
+    try {
+      const doc = await generatePdfDocument(album)
+      const pdfBlob = doc.output('blob')
+      const pdfUrl = URL.createObjectURL(pdfBlob)
+      
+      setPreviewPdf({ url: pdfUrl, name: album.name })
+    } catch (error: any) {
+      console.error("Failed to preview PDF:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to preview PDF",
         variant: "destructive",
       })
     } finally {
@@ -520,6 +561,22 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
                               className="opacity-0 group-hover:opacity-100 transition-opacity"
                               onClick={(e) => {
                                 e.stopPropagation()
+                                handlePreviewPdf(album)
+                              }}
+                              disabled={exportingPdf === album._id || !album.list || album.list.length === 0}
+                            >
+                              {exportingPdf === album._id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={(e) => {
+                                e.stopPropagation()
                                 handleExportPdf(album)
                               }}
                               disabled={exportingPdf === album._id || !album.list || album.list.length === 0}
@@ -688,7 +745,7 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
             >
               {deletingAlbum ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <X className="h-4 w-4 mr-2 animate-spin" />
                   Deleting...
                 </>
               ) : (
@@ -698,6 +755,30 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={!!previewPdf} onOpenChange={(open) => {
+        if (!open) {
+          if (previewPdf?.url) {
+            URL.revokeObjectURL(previewPdf.url)
+          }
+          setPreviewPdf(null)
+        }
+      }}>
+        <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>{previewPdf?.name} - Preview</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-hidden">
+            {previewPdf && (
+              <iframe
+                src={previewPdf.url}
+                className="w-full h-full border-0"
+                title="PDF Preview"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

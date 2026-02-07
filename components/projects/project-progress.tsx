@@ -222,6 +222,7 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
 
     let yPosition = margin + 15
     let column = 0
+    let maxRowHeight = 0
 
     // Load and add images
     if (album.list && album.list.length > 0) {
@@ -264,6 +265,7 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
             doc.addPage()
             yPosition = margin
             column = 0
+            maxRowHeight = 0
           }
 
           // Add image maintaining aspect ratio
@@ -276,12 +278,16 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
           const labelWidth = doc.getTextWidth(photoLabel)
           doc.text(photoLabel, xPosition + (imgWidth - labelWidth) / 2, yPosition + imgHeight + 5)
 
+          // Track the maximum height in the current row
+          maxRowHeight = Math.max(maxRowHeight, imgHeight)
+
           // Move to next column or row
           if (column === 0) {
             column = 1
           } else {
             column = 0
-            yPosition += imgHeight + 15
+            yPosition += maxRowHeight + 15
+            maxRowHeight = 0
           }
 
         } catch (error) {

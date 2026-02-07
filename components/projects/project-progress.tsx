@@ -2,7 +2,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Upload, Calendar, ImageIcon, TrendingUp, FileCheck, Edit, Plus, X } from 'lucide-react'
+import { Upload, Calendar, ImageIcon, TrendingUp, FileCheck, Edit, Plus, X, Download } from 'lucide-react'
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useEffect, useState } from "react"
@@ -43,6 +43,7 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
   const [selectedAlbum, setSelectedAlbum] = useState<{ id: string; name: string } | null>(null)
   const [deleteAlbumConfirm, setDeleteAlbumConfirm] = useState<{ id: string; name: string } | null>(null)
   const [deletingAlbum, setDeletingAlbum] = useState(false)
+  const [exportingPdf, setExportingPdf] = useState<string | null>(null)
   const { toast } = useToast()
 
   const tabs = [
@@ -185,6 +186,111 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
     } finally {
       setDeletingAlbum(false)
       setDeleteAlbumConfirm(null)
+    }
+  }
+
+  const handleExportPdf = async (album: any) => {
+    setExportingPdf(album._id)
+    try {
+      // Dynamically import jsPDF
+      const { default: jsPDF } = await import('jspdf')
+
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      })
+
+      const pageWidth = doc.internal.pageSize.getWidth()
+      const pageHeight = doc.internal.pageSize.getHeight()
+      const margin = 20
+      const contentWidth = pageWidth - (margin * 2)
+
+      // Add title
+      doc.setFontSize(20)
+      doc.setFont('helvetica', 'bold')
+      doc.text(album.name, margin, margin)
+
+      // Add date
+      doc.setFontSize(10)
+      doc.setFont('helvetica', 'normal')
+      doc.text(`Created: ${new Date(album.createdAt).toLocaleDateString('id-ID')}`, margin, margin + 8)
+      doc.text(`Total Photos: ${album.list?.length || 0}`, margin, margin + 14)
+
+      let yPosition = margin + 25
+
+      // Load and add images
+      if (album.list && album.list.length > 0) {
+        for (let i = 0; i < album.list.length; i++) {
+          const photo = album.list[i]
+          if (!photo.provider || !photo.url) continue
+
+          try {
+            const imageUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${photo.provider}/${photo.url}`
+            
+            // Load image as base64
+            const response = await fetch(imageUrl)
+            const blob = await response.blob()
+            const reader = new FileReader()
+            
+            await new Promise((resolve, reject) => {
+              reader.onload = () => resolve(reader.result)
+              reader.onerror = reject
+              reader.readAsDataURL(blob)
+            })
+
+            const base64Image = reader.result as string
+
+            // Calculate image dimensions to fit the page
+            const imgHeight = 80 // Fixed height for consistency
+            
+            // Check if we need a new page
+            if (yPosition + imgHeight + 20 > pageHeight - margin) {
+              doc.addPage()
+              yPosition = margin
+            }
+
+            // Add photo number
+            doc.setFontSize(10)
+            doc.setFont('helvetica', 'bold')
+            doc.text(`Photo ${i + 1}`, margin, yPosition)
+            yPosition += 6
+
+            // Add image
+            doc.addImage(base64Image, 'JPEG', margin, yPosition, contentWidth, imgHeight)
+            yPosition += imgHeight + 10
+
+            // Add caption if available
+            if (photo.caption) {
+              doc.setFontSize(9)
+              doc.setFont('helvetica', 'italic')
+              const splitCaption = doc.splitTextToSize(photo.caption, contentWidth)
+              doc.text(splitCaption, margin, yPosition)
+              yPosition += splitCaption.length * 4 + 5
+            }
+
+          } catch (error) {
+            console.error(`Failed to load image ${i + 1}:`, error)
+          }
+        }
+      }
+
+      // Save the PDF
+      doc.save(`${album.name}.pdf`)
+
+      toast({
+        title: "Success",
+        description: "PDF exported successfully",
+      })
+    } catch (error: any) {
+      console.error("Failed to export PDF:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to export PDF",
+        variant: "destructive",
+      })
+    } finally {
+      setExportingPdf(null)
     }
   }
 
@@ -407,17 +513,35 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
                               {album.list?.length || 0} photo{album.list?.length !== 1 ? "s" : ""}
                             </Badge>
                           </div>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setDeleteAlbumConfirm({ id: album._id, name: album.name })
-                            }}
-                          >
-                            <X className="h-4 w-4 text-destructive" />
-                          </Button>
+                          <div className="flex gap-1">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleExportPdf(album)
+                              }}
+                              disabled={exportingPdf === album._id || !album.list || album.list.length === 0}
+                            >
+                              {exportingPdf === album._id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Download className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setDeleteAlbumConfirm({ id: album._id, name: album.name })
+                              }}
+                            >
+                              <X className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>

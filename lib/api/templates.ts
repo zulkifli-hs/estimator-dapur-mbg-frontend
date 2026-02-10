@@ -18,6 +18,7 @@ export interface BOQTemplate {
   preliminary: TemplateItem[]
   fittingOut: TemplateCategory[]
   furnitureWork: TemplateCategory[]
+  mechanicalElectrical: TemplateCategory[]
   createdAt?: string
   updatedAt?: string
 }
@@ -27,6 +28,7 @@ export interface CreateTemplateInput {
   preliminary: TemplateItem[]
   fittingOut: TemplateCategory[]
   furnitureWork: TemplateCategory[]
+  mechanicalElectrical: TemplateCategory[]
 }
 
 export interface TemplateListResponse {

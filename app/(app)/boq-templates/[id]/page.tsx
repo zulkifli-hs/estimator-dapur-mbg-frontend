@@ -65,6 +65,7 @@ export default function TemplateDetailPage() {
   const [preliminary, setPreliminary] = useState<PreliminaryItem[]>([])
   const [fittingOut, setFittingOut] = useState<Category[]>([])
   const [furnitureWork, setFurnitureWork] = useState<Category[]>([])
+  const [mechanicalElectrical, setMechanicalElectrical] = useState<Category[]>([])
   const [products, setProducts] = useState<any[]>([])
   const [loadingProducts, setLoadingProducts] = useState(false)
 
@@ -77,6 +78,7 @@ export default function TemplateDetailPage() {
   const preliminaryQtyRefs = useRef<Record<number, HTMLInputElement | null>>({})
   const fittingOutQtyRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const furnitureWorkQtyRefs = useRef<Record<string, HTMLInputElement | null>>({})
+  const mechanicalElectricalQtyRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
   // Create product form states
   const [newProductName, setNewProductName] = useState("")
@@ -110,6 +112,7 @@ export default function TemplateDetailPage() {
         setPreliminary(template.preliminary || [])
         setFittingOut(template.fittingOut || [])
         setFurnitureWork(template.furnitureWork || [])
+        setMechanicalElectrical(template.mechanicalElectrical || [])
       } else {
         toast({
           title: "Error",
@@ -308,6 +311,66 @@ export default function TemplateDetailPage() {
     setTimeout(() => furnitureWorkQtyRefs.current[`${categoryIndex}-${productIndex}`]?.focus(), 100)
   }
 
+  // Mechanical / Electrical / Plumbing functions
+  const addMechanicalElectricalCategory = () => {
+    setMechanicalElectrical([...mechanicalElectrical, { name: "", products: [{ name: "", qty: 0, unit: "", price: 0 }] }])
+  }
+
+  const removeMechanicalElectricalCategory = (index: number) => {
+    if (mechanicalElectrical.length > 1) {
+      setMechanicalElectrical(mechanicalElectrical.filter((_, i) => i !== index))
+    }
+  }
+
+  const updateMechanicalElectricalCategory = (index: number, value: string) => {
+    const updated = [...mechanicalElectrical]
+    updated[index].name = value
+    setMechanicalElectrical(updated)
+  }
+
+  const addMechanicalElectricalProduct = (categoryIndex: number) => {
+    const updated = [...mechanicalElectrical]
+    updated[categoryIndex].products.push({ name: "", qty: 0, unit: "", price: 0 })
+    setMechanicalElectrical(updated)
+  }
+
+  const removeMechanicalElectricalProduct = (categoryIndex: number, productIndex: number) => {
+    const updated = [...mechanicalElectrical]
+    if (updated[categoryIndex].products.length > 1) {
+      updated[categoryIndex].products = updated[categoryIndex].products.filter((_, i) => i !== productIndex)
+      setMechanicalElectrical(updated)
+    }
+  }
+
+  const updateMechanicalElectricalProduct = (
+    categoryIndex: number,
+    productIndex: number,
+    field: keyof Product,
+    value: string | number,
+  ) => {
+    const updated = [...mechanicalElectrical]
+    updated[categoryIndex].products[productIndex] = {
+      ...updated[categoryIndex].products[productIndex],
+      [field]: value,
+    }
+    setMechanicalElectrical(updated)
+  }
+
+  const selectMechanicalElectricalProduct = (categoryIndex: number, productIndex: number, product: any) => {
+    const updated = [...mechanicalElectrical]
+    updated[categoryIndex].products[productIndex] = {
+      ...updated[categoryIndex].products[productIndex],
+      name: product.name,
+      unit: product.unit,
+      price: product.sellingPrice,
+      productId: product._id,
+      brand: product.brand || "",
+    }
+    setMechanicalElectrical(updated)
+    setOpenPopovers({ ...openPopovers, [`mechanicalElectrical-${categoryIndex}-${productIndex}`]: false })
+    setTimeout(() => mechanicalElectricalQtyRefs.current[`${categoryIndex}-${productIndex}`]?.focus(), 100)
+  }
+
   // SKU generation function
   const generateSKU = () => {
     const getAbbreviation = (text: string) => {
@@ -449,6 +512,18 @@ export default function TemplateDetailPage() {
           })),
         })),
         furnitureWork: furnitureWork.map((category) => ({
+          name: category.name,
+          products: category.products.map((product) => ({
+            name: product.name,
+            qty: product.qty,
+            unit: product.unit,
+            price: product.price,
+            productId: product.productId,
+            location: product.location,
+            brand: product.brand,
+          })),
+        })),
+        mechanicalElectrical: mechanicalElectrical.map((category) => ({
           name: category.name,
           products: category.products.map((product) => ({
             name: product.name,

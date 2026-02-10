@@ -748,14 +748,89 @@ export default function TemplateDetailPage() {
                     )}
                   </TableCell>
                 </TableRow>
-                <TableRow className="bg-primary/20 font-bold">
-                  <TableCell colSpan={7} className="text-right text-lg px-4 py-4">
-                    GRAND TOTAL
+              </>
+            )}
+
+            {/* MECHANICAL / ELECTRICAL / PLUMBING SECTION */}
+            {Array.isArray(template.mechanicalElectrical) && template.mechanicalElectrical.length > 0 && (
+              <>
+                <TableRow className="bg-primary/10">
+                  <TableCell colSpan={8} className="font-bold text-primary uppercase px-4 py-3">
+                    MECHANICAL / ELECTRICAL / PLUMBING
                   </TableCell>
-                  <TableCell className="text-right text-lg px-4 py-4">{formatCurrency(grandTotal)}</TableCell>
+                </TableRow>
+                {template.mechanicalElectrical.map((category: any, catIdx: number) => {
+                  const categoryTotal =
+                    Array.isArray(category.products) &&
+                    category.products.reduce((sum: number, p: any) => sum + (p.qty || 0) * (p.price || 0), 0)
+                  grandTotal += categoryTotal || 0
+
+                  return (
+                    <React.Fragment key={category._id || `mep-cat-${catIdx}`}>
+                      <TableRow className="bg-muted/50">
+                        <TableCell colSpan={8} className="font-semibold pl-8 pr-4 py-2">
+                          {category.name}
+                        </TableCell>
+                      </TableRow>
+                      {Array.isArray(category.products) &&
+                        category.products.map((product: any, prodIdx: number) => {
+                          const total = (product.qty || 0) * (product.price || 0)
+                          return (
+                            <TableRow key={product._id || `mep-prod-${catIdx}-${prodIdx}`}>
+                              <TableCell className="font-medium pl-12 pr-4">{itemNumber++}</TableCell>
+                              <TableCell className="whitespace-normal break-words px-4">{product.name}</TableCell>
+                              <TableCell className="px-4">{product.brand || "-"}</TableCell>
+                              <TableCell className="px-4">{product.location || "-"}</TableCell>
+                              <TableCell className="text-right px-4">{product.qty}</TableCell>
+                              <TableCell className="px-4">{product.unit}</TableCell>
+                              <TableCell className="text-right px-4">{formatCurrency(product.price)}</TableCell>
+                              <TableCell className="text-right font-medium px-4">{formatCurrency(total)}</TableCell>
+                            </TableRow>
+                          )
+                        })}
+                      <TableRow className="bg-muted/20">
+                        <TableCell colSpan={7} className="text-right text-sm font-medium pl-12 pr-4 py-2">
+                          Subtotal {category.name}
+                        </TableCell>
+                        <TableCell className="text-right text-sm font-medium px-4 py-2">
+                          {formatCurrency(categoryTotal || 0)}
+                        </TableCell>
+                      </TableRow>
+                    </React.Fragment>
+                  )
+                })}
+                <TableRow className="bg-muted/30">
+                  <TableCell colSpan={7} className="text-right font-semibold px-4 py-3">
+                    Subtotal Mechanical / Electrical / Plumbing
+                  </TableCell>
+                  <TableCell className="text-right font-semibold px-4 py-3">
+                    {formatCurrency(
+                      template.mechanicalElectrical.reduce(
+                        (sum: number, cat: any) =>
+                          sum +
+                          (Array.isArray(cat.products)
+                            ? cat.products.reduce((s: number, p: any) => s + (p.qty || 0) * (p.price || 0), 0)
+                            : 0),
+                        0,
+                      ),
+                    )}
+                  </TableCell>
                 </TableRow>
               </>
             )}
+
+            {/* GRAND TOTAL */}
+            {(Array.isArray(template.preliminary) && template.preliminary.length > 0) ||
+            (Array.isArray(template.fittingOut) && template.fittingOut.length > 0) ||
+            (Array.isArray(template.furnitureWork) && template.furnitureWork.length > 0) ||
+            (Array.isArray(template.mechanicalElectrical) && template.mechanicalElectrical.length > 0) ? (
+              <TableRow className="bg-primary/20 font-bold">
+                <TableCell colSpan={7} className="text-right text-lg px-4 py-4">
+                  GRAND TOTAL
+                </TableCell>
+                <TableCell className="text-right text-lg px-4 py-4">{formatCurrency(grandTotal)}</TableCell>
+              </TableRow>
+            ) : null}
           </TableBody>
         </Table>
       </div>
@@ -1199,9 +1274,147 @@ export default function TemplateDetailPage() {
               Add Category
             </Button>
           </div>
+
+          {/* Mechanical / Electrical / Plumbing Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">IV. MECHANICAL / ELECTRICAL / PLUMBING</h3>
+            {mechanicalElectrical.map((category, categoryIndex) => (
+              <Card key={categoryIndex}>
+                <CardHeader>
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1">
+                      <Label>Category Name</Label>
+                      <Input
+                        value={category.name}
+                        onChange={(e) => updateMechanicalElectricalCategory(categoryIndex, e.target.value)}
+                        placeholder="e.g., Electrical Installation, Plumbing, HVAC"
+                      />
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeMechanicalElectricalCategory(categoryIndex)}
+                      disabled={mechanicalElectrical.length === 1}
+                      className="mt-6"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="divide-y">
+                    {category.products.map((product, productIndex) => (
+                      <div key={productIndex} className="p-4 space-y-3">
+                        <div className="flex items-start gap-3">
+                          <div className="flex-shrink-0 w-8 h-10 flex items-center justify-center font-medium text-sm">
+                            {productIndex + 1}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <Label className="text-xs text-muted-foreground mb-1.5 block">Product Name</Label>
+                            <ProductSearchPopover
+                              selectedProductName={product.name}
+                              onSelect={(prod) => selectMechanicalElectricalProduct(categoryIndex, productIndex, prod)}
+                              onCreateNew={() => setCreateProductDialogOpen(true)}
+                              formatCurrency={formatCurrency}
+                            />
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeMechanicalElectricalProduct(categoryIndex, productIndex)}
+                            disabled={category.products.length === 1}
+                            className="flex-shrink-0"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pl-11">
+                          <div>
+                            <Label className="text-xs text-muted-foreground mb-1.5 block">Brand/Equal</Label>
+                            <Input
+                              value={product.brand || ""}
+                              onChange={(e) =>
+                                updateMechanicalElectricalProduct(categoryIndex, productIndex, "brand", e.target.value)
+                              }
+                              placeholder="e.g. Panasonic"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground mb-1.5 block">Location</Label>
+                            <Input
+                              value={product.location || ""}
+                              onChange={(e) =>
+                                updateMechanicalElectricalProduct(categoryIndex, productIndex, "location", e.target.value)
+                              }
+                              placeholder="Optional"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground mb-1.5 block">Quantity</Label>
+                            <Input
+                              ref={(el) => {
+                                mechanicalElectricalQtyRefs.current[`${categoryIndex}-${productIndex}`] = el
+                              }}
+                              type="number"
+                              value={product.qty}
+                              onChange={(e) =>
+                                updateMechanicalElectricalProduct(categoryIndex, productIndex, "qty", Number(e.target.value))
+                              }
+                              placeholder="0"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground mb-1.5 block">Unit</Label>
+                            <Input
+                              value={product.unit}
+                              onChange={(e) =>
+                                updateMechanicalElectricalProduct(categoryIndex, productIndex, "unit", e.target.value)
+                              }
+                              placeholder="m2, unit"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground mb-1.5 block">Price</Label>
+                            <Input
+                              type="number"
+                              value={product.price}
+                              onChange={(e) =>
+                                updateMechanicalElectricalProduct(categoryIndex, productIndex, "price", Number(e.target.value))
+                              }
+                              placeholder="0"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="p-4 border-t">
+                    <Button
+                      type="button"
+                      onClick={() => addMechanicalElectricalProduct(categoryIndex)}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Product
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+            <Button
+              type="button"
+              onClick={addMechanicalElectricalCategory}
+              variant="outline"
+              className="w-full bg-transparent"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Category
+            </Button>
+          </div>
         </div>
       ) : (
-        <div className="space-y-4">{renderBOQTable({ preliminary, fittingOut, furnitureWork })}</div>
+        <div className="space-y-4">{renderBOQTable({ preliminary, fittingOut, furnitureWork, mechanicalElectrical })}</div>
       )}
 
       <Dialog open={createProductDialogOpen} onOpenChange={setCreateProductDialogOpen}>

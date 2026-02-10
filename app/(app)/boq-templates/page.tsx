@@ -186,6 +186,7 @@ export default function BOQTemplatesPage() {
         preliminary: template.preliminary,
         fittingOut: template.fittingOut,
         furnitureWork: template.furnitureWork,
+        mechanicalElectrical: template.mechanicalElectrical || [],
       }
 
       const response = await templatesApi.create(duplicateData)
@@ -226,6 +227,12 @@ export default function BOQTemplatesPage() {
       })
     })
 
+    template.mechanicalElectrical?.forEach((category) => {
+      category.products?.forEach((product) => {
+        total += (product.qty || 0) * (product.price || 0)
+      })
+    })
+
     return total
   }
 
@@ -244,6 +251,9 @@ export default function BOQTemplatesPage() {
       count += category.products?.length || 0
     })
     template.furnitureWork?.forEach((category) => {
+      count += category.products?.length || 0
+    })
+    template.mechanicalElectrical?.forEach((category) => {
       count += category.products?.length || 0
     })
     return count

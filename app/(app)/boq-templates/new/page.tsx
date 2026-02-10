@@ -73,12 +73,16 @@ export default function NewTemplatePage() {
   const [furnitureWork, setFurnitureWork] = useState<Category[]>([
     { name: "", products: [{ name: "", qty: 0, unit: "", price: 0 }] },
   ])
+  const [mechanicalElectrical, setMechanicalElectrical] = useState<Category[]>([
+    { name: "", products: [{ name: "", qty: 0, unit: "", price: 0 }] },
+  ])
 
   const [openPopovers, setOpenPopovers] = useState<{ [key: string]: boolean }>({})
 
   const preliminaryQtyRefs = useRef<{ [key: number]: HTMLInputElement | null }>({})
   const fittingOutQtyRefs = useRef<{ [key: string]: HTMLInputElement | null }>({})
   const furnitureWorkQtyRefs = useRef<{ [key: string]: HTMLInputElement | null }>({})
+  const mechanicalElectricalQtyRefs = useRef<{ [key: string]: HTMLInputElement | null }>({})
 
   const [createProductDialogOpen, setCreateProductDialogOpen] = useState(false)
   const [productFormData, setProductFormData] = useState({
@@ -308,6 +312,85 @@ export default function NewTemplatePage() {
     }, 100)
   }
 
+  // Mechanical / Electrical / Plumbing functions
+  const addMechanicalElectricalCategory = () => {
+    setMechanicalElectrical([...mechanicalElectrical, { name: "", products: [{ name: "", qty: 0, unit: "", price: 0 }] }])
+  }
+
+  const removeMechanicalElectricalCategory = (index: number) => {
+    if (mechanicalElectrical.length > 1) {
+      setMechanicalElectrical(mechanicalElectrical.filter((_, i) => i !== index))
+    }
+  }
+
+  const updateMechanicalElectricalCategory = (index: number, value: string) => {
+    const updated = [...mechanicalElectrical]
+    updated[index].name = value
+    setMechanicalElectrical(updated)
+  }
+
+  const addMechanicalElectricalProduct = (categoryIndex: number) => {
+    const updated = [...mechanicalElectrical]
+    updated[categoryIndex].products.push({ name: "", qty: 0, unit: "", price: 0 })
+    setMechanicalElectrical(updated)
+  }
+
+  const removeMechanicalElectricalProduct = (categoryIndex: number, productIndex: number) => {
+    const updated = [...mechanicalElectrical]
+    if (updated[categoryIndex].products.length > 1) {
+      updated[categoryIndex].products = updated[categoryIndex].products.filter((_, i) => i !== productIndex)
+      setMechanicalElectrical(updated)
+    }
+  }
+
+  const updateMechanicalElectricalProduct = (
+    categoryIndex: number,
+    productIndex: number,
+    field: keyof ProductItem,
+    value: string | number,
+  ) => {
+    const updated = [...mechanicalElectrical]
+    updated[categoryIndex].products[productIndex] = {
+      ...updated[categoryIndex].products[productIndex],
+      [field]: value,
+    }
+    setMechanicalElectrical(updated)
+  }
+
+  const selectMechanicalElectricalProduct = (
+    categoryIndex: number,
+    productIndex: number,
+    product: {
+      _id: string
+      name: string
+      sku: string
+      type: string
+      brand?: string
+      qty: number
+      unit: string
+      sellingPrice: number
+    },
+  ) => {
+    const updated = [...mechanicalElectrical]
+    updated[categoryIndex].products[productIndex] = {
+      ...updated[categoryIndex].products[productIndex],
+      name: product.name,
+      unit: product.unit,
+      price: product.sellingPrice,
+      productId: product._id,
+      brand: product.brand || "",
+    }
+    setMechanicalElectrical(updated)
+
+    // Close the popover
+    setOpenPopovers((prev) => ({ ...prev, [`mechanicalElectrical-${categoryIndex}-${productIndex}`]: false }))
+
+    // Focus on quantity input
+    setTimeout(() => {
+      mechanicalElectricalQtyRefs.current[`${categoryIndex}-${productIndex}`]?.focus()
+    }, 100)
+  }
+
   const highlightText = (text: string, query: string) => {
     if (!query) return text
     const parts = text.split(new RegExp(`(${query})`, "gi"))
@@ -480,6 +563,7 @@ export default function NewTemplatePage() {
         preliminary,
         fittingOut,
         furnitureWork,
+        mechanicalElectrical,
       })
 
       toast({
@@ -1205,6 +1289,139 @@ export default function NewTemplatePage() {
             </Card>
           ))}
           <Button type="button" onClick={addFurnitureWorkCategory} variant="outline" className="w-full bg-transparent">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Category
+          </Button>
+        </div>
+
+        {/* Mechanical / Electrical / Plumbing Section */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">IV. MECHANICAL / ELECTRICAL / PLUMBING</h3>
+          {mechanicalElectrical.map((category, categoryIndex) => (
+            <Card key={categoryIndex}>
+              <CardHeader>
+                <div className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <Label>Category Name</Label>
+                    <Input
+                      value={category.name}
+                      onChange={(e) => updateMechanicalElectricalCategory(categoryIndex, e.target.value)}
+                      placeholder="e.g., Electrical Installation, Plumbing, HVAC"
+                    />
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeMechanicalElectricalCategory(categoryIndex)}
+                    disabled={mechanicalElectrical.length === 1}
+                    className="mt-6"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="divide-y">
+                  {category.products.map((product, productIndex) => (
+                    <div key={productIndex} className="p-4 space-y-3">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-8 h-10 flex items-center justify-center font-medium text-sm">
+                          {productIndex + 1}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <Label className="text-xs text-muted-foreground mb-1.5 block">Product Name</Label>
+                          <ProductSearchPopover
+                            selectedProductName={product.name}
+                            onSelect={(prod) => selectMechanicalElectricalProduct(categoryIndex, productIndex, prod)}
+                            onCreateNew={() => {
+                              setCreateProductDialogOpen(true)
+                            }}
+                            formatCurrency={formatCurrency}
+                          />
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeMechanicalElectricalProduct(categoryIndex, productIndex)}
+                          disabled={category.products.length === 1}
+                          className="flex-shrink-0"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pl-11">
+                      <div>
+                      <Label className="text-xs text-muted-foreground mb-1.5 block">Brand/Equal</Label>
+                      <Input
+                      value={product.brand || ""}
+                      onChange={(e) =>
+                      updateMechanicalElectricalProduct(categoryIndex, productIndex, "brand", e.target.value)
+                      }
+                      placeholder="e.g. Panasonic, Schneider"
+                      />
+                      </div>
+                      <div>
+                      <Label className="text-xs text-muted-foreground mb-1.5 block">Location (optional)</Label>
+                      <Input
+                      value={product.location || ""}
+                      onChange={(e) =>
+                      updateMechanicalElectricalProduct(categoryIndex, productIndex, "location", e.target.value)
+                      }
+                      placeholder="e.g. Floor 1, Ceiling"
+                      />
+                      </div>
+                      <div>
+                      <Label className="text-xs text-muted-foreground mb-1.5 block">Quantity</Label>
+                          <Input
+                            ref={(el) => {
+                              mechanicalElectricalQtyRefs.current[`${categoryIndex}-${productIndex}`] = el
+                            }}
+                            type="number"
+                            value={product.qty}
+                            onChange={(e) =>
+                              updateMechanicalElectricalProduct(categoryIndex, productIndex, "qty", Number(e.target.value))
+                            }
+                            placeholder="0"
+                          />
+                      </div>
+                      <div>
+                      <Label className="text-xs text-muted-foreground mb-1.5 block">Unit</Label>
+                      <Input
+                      value={product.unit}
+                      onChange={(e) => updateMechanicalElectricalProduct(categoryIndex, productIndex, "unit", e.target.value)}
+                      placeholder="ls, set, pcs"
+                      />
+                      </div>
+                      <div>
+                      <Label className="text-xs text-muted-foreground mb-1.5 block">Price</Label>
+                      <Input
+                      type="number"
+                      value={product.price}
+                      onChange={(e) =>
+                      updateMechanicalElectricalProduct(categoryIndex, productIndex, "price", Number(e.target.value))
+                      }
+                      placeholder="0"
+                      />
+                      </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="p-4 border-t">
+                  <Button
+                    type="button"
+                    onClick={() => addMechanicalElectricalProduct(categoryIndex)}
+                    variant="outline"
+                    className="w-full bg-transparent"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Product
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+          <Button type="button" onClick={addMechanicalElectricalCategory} variant="outline" className="w-full bg-transparent">
             <Plus className="h-4 w-4 mr-2" />
             Add Category
           </Button>

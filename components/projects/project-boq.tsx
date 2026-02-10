@@ -97,7 +97,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   const [searchQuery, setSearchQuery] = useState<{ [key: string]: string }>({})
   const [createProductDialogOpen, setCreateProductDialogOpen] = useState(false)
   const [pendingProductSelection, setPendingProductSelection] = useState<{
-    type: 'preliminary' | 'fittingOut' | 'furnitureWork'
+    type: 'preliminary' | 'fittingOut' | 'furnitureWork' | 'mechanicalElectrical'
     categoryIndex?: number
     productIndex: number
   } | null>(null)
@@ -106,10 +106,12 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   const [preliminary, setPreliminary] = useState<PreliminaryItem[]>([])
   const [fittingOut, setFittingOut] = useState<Category[]>([])
   const [furnitureWork, setFurnitureWork] = useState<Category[]>([])
+  const [mechanicalElectrical, setMechanicalElectrical] = useState<Category[]>([])
 
   const preliminaryQtyRefs = useRef<{ [key: number]: HTMLInputElement | null }>({})
   const fittingOutQtyRefs = useRef<{ [key: string]: HTMLInputElement | null }>({})
   const furnitureWorkQtyRefs = useRef<{ [key: string]: HTMLInputElement | null }>({})
+  const mechanicalElectricalQtyRefs = useRef<{ [key: string]: HTMLInputElement | null }>({})
 
   // Product creation form states
   const [productFormData, setProductFormData] = useState({
@@ -219,11 +221,31 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
             })) || [],
         })) || [],
       )
+
+      // Populate mechanical / electrical / plumbing categories
+      setMechanicalElectrical(
+        editingBOQ.mechanicalElectrical?.map((category: any) => ({
+          name: category.name || "",
+          products:
+            category.products?.map((product: any) => ({
+              name: product.name || "",
+              qty: product.qty || 0,
+              unit: product.unit || "",
+              price: product.price || 0,
+              productId: product.productId || "",
+              location: product.location || "",
+              brand: product.brand || "",
+              startDate: product.startDate ? new Date(product.startDate).toISOString().split("T")[0] : "", // Format date
+              endDate: product.endDate ? new Date(product.endDate).toISOString().split("T")[0] : "", // Format date
+            })) || [],
+        })) || [],
+      )
     } else if (creationMode === "blank" && !editingBOQ) {
       console.log("[v0] Resetting form for new BOQ")
       setPreliminary([])
       setFittingOut([])
       setFurnitureWork([])
+      setMechanicalElectrical([])
     }
   }, [editingBOQ, creationMode])
 
@@ -284,6 +306,17 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       // Calculate from furnitureWork categories
       if (Array.isArray(boq.furnitureWork)) {
         boq.furnitureWork.forEach((category: any) => {
+          if (Array.isArray(category.products)) {
+            category.products.forEach((product: any) => {
+              totalBudget += (product.qty || 0) * (product.price || 0)
+            })
+          }
+        })
+      }
+
+      // Calculate from mechanicalElectrical categories
+      if (Array.isArray(boq.mechanicalElectrical)) {
+        boq.mechanicalElectrical.forEach((category: any) => {
           if (Array.isArray(category.products)) {
             category.products.forEach((product: any) => {
               totalBudget += (product.qty || 0) * (product.price || 0)
@@ -478,6 +511,100 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                     </React.Fragment>
                   )
                 })}
+                <TableRow className="bg-muted/30">
+                  <TableCell colSpan={7} className="text-right font-semibold px-4 py-3">
+                    Subtotal Furniture Work
+                  </TableCell>
+                  <TableCell className="text-right font-semibold px-4 py-3">
+                    {formatCurrency(
+                      boq.furnitureWork.reduce(
+                        (sum: number, cat: any) =>
+                          sum +
+                          (Array.isArray(cat.products)
+                            ? cat.products.reduce((s: number, p: any) => s + (p.qty || 0) * (p.price || 0), 0)
+                            : 0),
+                        0,
+                      ),
+                    )}
+                  </TableCell>
+                </TableRow>
+              </>
+            )}
+
+            {/* MECHANICAL / ELECTRICAL / PLUMBING SECTION */}
+            {Array.isArray(boq.mechanicalElectrical) && boq.mechanicalElectrical.length > 0 && (
+              <>
+                <TableRow className="bg-primary/10">
+                  <TableCell colSpan={8} className="font-bold text-primary uppercase px-4 py-3">
+                    MECHANICAL / ELECTRICAL / PLUMBING
+                  </TableCell>
+                </TableRow>
+                {boq.mechanicalElectrical.map((category: any) => {
+                  const categoryTotal =
+                    Array.isArray(category.products) &&
+                    category.products.reduce((sum: number, p: any) => sum + (p.qty || 0) * (p.price || 0), 0)
+                  grandTotal += categoryTotal || 0
+
+                  return (
+                    <React.Fragment key={category._id}>
+                      <TableRow className="bg-muted/50">
+                        <TableCell colSpan={8} className="font-semibold pl-8 pr-4 py-2">
+                          {category.name}
+                        </TableCell>
+                      </TableRow>
+                      {Array.isArray(category.products) &&
+                        category.products.map((product: any) => {
+                          const total = (product.qty || 0) * (product.price || 0)
+                          return (
+                            <TableRow key={product._id}>
+                              <TableCell className="font-medium pl-12 pr-4">{itemNumber++}</TableCell>
+                              <TableCell className="whitespace-normal break-words px-4">{product.name}</TableCell>
+                              <TableCell className="px-4">{product.brand || "-"}</TableCell>
+                              <TableCell className="px-4">{product.location || "-"}</TableCell>
+                              <TableCell className="text-right px-4">{product.qty}</TableCell>
+                              <TableCell className="px-4">{product.unit}</TableCell>
+                              <TableCell className="text-right px-4">{formatCurrency(product.price)}</TableCell>
+                              <TableCell className="text-right font-medium px-4">{formatCurrency(total)}</TableCell>
+                            </TableRow>
+                          )
+                        })}
+                      <TableRow className="bg-muted/20">
+                        <TableCell colSpan={7} className="text-right text-sm font-medium pl-12 pr-4 py-2">
+                          Subtotal {category.name}
+                        </TableCell>
+                        <TableCell className="text-right text-sm font-medium px-4 py-2">
+                          {formatCurrency(categoryTotal || 0)}
+                        </TableCell>
+                      </TableRow>
+                    </React.Fragment>
+                  )
+                })}
+                <TableRow className="bg-muted/30">
+                  <TableCell colSpan={7} className="text-right font-semibold px-4 py-3">
+                    Subtotal Mechanical / Electrical / Plumbing
+                  </TableCell>
+                  <TableCell className="text-right font-semibold px-4 py-3">
+                    {formatCurrency(
+                      boq.mechanicalElectrical.reduce(
+                        (sum: number, cat: any) =>
+                          sum +
+                          (Array.isArray(cat.products)
+                            ? cat.products.reduce((s: number, p: any) => s + (p.qty || 0) * (p.price || 0), 0)
+                            : 0),
+                        0,
+                      ),
+                    )}
+                  </TableCell>
+                </TableRow>
+              </>
+            )}
+
+            {/* GRAND TOTAL */}
+            {(Array.isArray(boq.preliminary) && boq.preliminary.length > 0) ||
+            (Array.isArray(boq.fittingOut) && boq.fittingOut.length > 0) ||
+            (Array.isArray(boq.furnitureWork) && boq.furnitureWork.length > 0) ||
+            (Array.isArray(boq.mechanicalElectrical) && boq.mechanicalElectrical.length > 0) ? (
+              <>
                 <TableRow className="bg-primary/20 font-bold">
                   <TableCell colSpan={7} className="text-right text-lg px-4 py-4">
                     GRAND TOTAL
@@ -485,7 +612,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                   <TableCell className="text-right text-lg px-4 py-4">{formatCurrency(grandTotal)}</TableCell>
                 </TableRow>
               </>
-            )}
+            ) : null}
           </TableBody>
         </Table>
       </div>
@@ -724,6 +851,77 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     }
   }
 
+  // Mechanical / Electrical / Plumbing functions
+  const selectMechanicalElectricalProduct = (categoryIndex: number, productIndex: number, product: any) => {
+    const newMechanicalElectrical = [...mechanicalElectrical]
+    newMechanicalElectrical[categoryIndex].products[productIndex] = {
+      name: product.name,
+      qty: newMechanicalElectrical[categoryIndex].products[productIndex].qty || 0,
+      unit: product.unit,
+      price: product.sellingPrice,
+      productId: product._id,
+      brand: product.brand || "",
+      startDate: newMechanicalElectrical[categoryIndex].products[productIndex].startDate || "", // Preserve existing dates
+      endDate: newMechanicalElectrical[categoryIndex].products[productIndex].endDate || "", // Preserve existing dates
+    }
+    setMechanicalElectrical(newMechanicalElectrical)
+    setOpenPopovers({ ...openPopovers, [`mechanicalElectrical-${categoryIndex}-${productIndex}`]: false })
+    setTimeout(() => {
+      mechanicalElectricalQtyRefs.current[`${categoryIndex}-${productIndex}`]?.focus()
+    }, 100)
+  }
+
+  const updateMechanicalElectricalCategory = (categoryIndex: number, name: string) => {
+    const newMechanicalElectrical = [...mechanicalElectrical]
+    newMechanicalElectrical[categoryIndex].name = name
+    setMechanicalElectrical(newMechanicalElectrical)
+  }
+
+  const updateMechanicalElectricalProduct = (categoryIndex: number, productIndex: number, field: string, value: any) => {
+    const newMechanicalElectrical = [...mechanicalElectrical]
+    newMechanicalElectrical[categoryIndex].products[productIndex] = {
+      ...newMechanicalElectrical[categoryIndex].products[productIndex],
+      [field]: value,
+    }
+    setMechanicalElectrical(newMechanicalElectrical)
+  }
+
+  const addMechanicalElectricalProduct = (categoryIndex: number) => {
+    const newMechanicalElectrical = [...mechanicalElectrical]
+    newMechanicalElectrical[categoryIndex].products.push({ name: "", qty: 0, unit: "", price: 0, startDate: "", endDate: "" })
+    setMechanicalElectrical(newMechanicalElectrical)
+  }
+
+  const removeMechanicalElectricalProduct = (categoryIndex: number, productIndex: number) => {
+    const newMechanicalElectrical = [...mechanicalElectrical]
+    if (newMechanicalElectrical[categoryIndex].products.length > 1) {
+      newMechanicalElectrical[categoryIndex].products = newMechanicalElectrical[categoryIndex].products.filter(
+        (_, i) => i !== productIndex,
+      )
+      setMechanicalElectrical(newMechanicalElectrical)
+    } else {
+      // Clear the single product instead of removing it if it's the last one in the category
+      newMechanicalElectrical[categoryIndex].products = [{ name: "", qty: 0, unit: "", price: 0, startDate: "", endDate: "" }]
+      setMechanicalElectrical(newMechanicalElectrical)
+    }
+  }
+
+  const addMechanicalElectricalCategory = () => {
+    setMechanicalElectrical([
+      ...mechanicalElectrical,
+      { name: "", products: [{ name: "", qty: 0, unit: "", price: 0, startDate: "", endDate: "" }] },
+    ])
+  }
+
+  const removeMechanicalElectricalCategory = (categoryIndex: number) => {
+    if (mechanicalElectrical.length > 1) {
+      setMechanicalElectrical(mechanicalElectrical.filter((_, i) => i !== categoryIndex))
+    } else {
+      // Clear the single category instead of removing it if it's the last one
+      setMechanicalElectrical([{ name: "", products: [{ name: "", qty: 0, unit: "", price: 0, startDate: "", endDate: "" }] }])
+    }
+  }
+
   // Handlers for creating BOQ
   const handleCreateMainBOQ = async () => {
     try {
@@ -789,7 +987,26 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         }))
         .filter((category) => category.name && category.products.length > 0)
 
-      if (filteredPreliminary.length === 0 && filteredFittingOut.length === 0 && filteredFurnitureWork.length === 0) {
+      const filteredMechanicalElectrical = mechanicalElectrical
+        .map((category) => ({
+          name: category.name,
+          products: category.products
+            .filter((product) => product.name && product.qty > 0 && product.unit && product.price >= 0)
+            .map((product) => ({
+              productId: product.productId,
+              qty: product.qty,
+              name: product.name,
+              unit: product.unit,
+              price: product.price,
+              location: product.location || undefined,
+              brand: product.brand || undefined,
+              startDate: product.startDate || undefined,
+              endDate: product.endDate || undefined,
+            })),
+        }))
+        .filter((category) => category.name && category.products.length > 0)
+
+      if (filteredPreliminary.length === 0 && filteredFittingOut.length === 0 && filteredFurnitureWork.length === 0 && filteredMechanicalElectrical.length === 0) {
         toast({
           title: "Validation Error",
           description: "Please add at least one item to any section before creating BOQ",
@@ -802,6 +1019,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         preliminary: filteredPreliminary,
         fittingOut: filteredFittingOut,
         furnitureWork: filteredFurnitureWork,
+        mechanicalElectrical: filteredMechanicalElectrical,
       }
 
       if (editingBOQ) {
@@ -824,6 +1042,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       setPreliminary([])
       setFittingOut([])
       setFurnitureWork([])
+      setMechanicalElectrical([])
       fetchBOQ() // Use renamed function
     } catch (error: any) {
       toast({
@@ -843,6 +1062,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         preliminary: template.preliminary || [],
         fittingOut: template.fittingOut || [],
         furnitureWork: template.furnitureWork || [],
+        mechanicalElectrical: template.mechanicalElectrical || [],
       })
 
       if (response.success) {
@@ -1099,6 +1319,18 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
             brand: product.brand,
           })),
         })),
+        mechanicalElectrical: (mainBOQ.mechanicalElectrical || []).map((category: any) => ({
+          name: category.name,
+          products: category.products.map((product: any) => ({
+            productId: product.productId,
+            qty: product.qty,
+            name: product.name,
+            unit: product.unit,
+            price: product.price,
+            location: product.location,
+            brand: product.brand,
+          })),
+        })),
       }
 
       await templatesApi.create(templateData)
@@ -1144,6 +1376,16 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
           })),
         })),
         furnitureWork: selectedReplaceTemplate.furnitureWork.map((category: any) => ({
+          name: category.name,
+          products: category.products.map((product: any) => ({
+            productId: product.productId,
+            qty: product.qty,
+            name: product.name,
+            unit: product.unit,
+            price: product.price,
+          })),
+        })),
+        mechanicalElectrical: (selectedReplaceTemplate.mechanicalElectrical || []).map((category: any) => ({
           name: category.name,
           products: category.products.map((product: any) => ({
             productId: product.productId,
@@ -1337,6 +1579,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                   <div>Preliminary: {template.preliminary?.length || 0} items</div>
                   <div>Fitting Out: {template.fittingOut?.length || 0} categories</div>
                   <div>Furniture Work: {template.furnitureWork?.length || 0} categories</div>
+                  <div>MEP: {template.mechanicalElectrical?.length || 0} categories</div>
                 </div>
                 <div className="flex gap-2">
                   <Button
@@ -1829,6 +2072,157 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
             ))
           )}
           <Button type="button" onClick={addFurnitureWorkCategory} variant="outline" className="w-full bg-transparent">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Category
+          </Button>
+        </div>
+
+        {/* Mechanical / Electrical / Plumbing Section */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">IV. MECHANICAL / ELECTRICAL / PLUMBING</h3>
+          {mechanicalElectrical.length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground">
+                No categories yet. Click "Add Category" button below to start adding MEP categories.
+              </CardContent>
+            </Card>
+          ) : (
+            mechanicalElectrical.map((category, categoryIndex) => (
+              <Card key={categoryIndex}>
+                <CardHeader>
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1">
+                      <Label>Category Name</Label>
+                      <Input
+                        value={category.name}
+                        onChange={(e) => updateMechanicalElectricalCategory(categoryIndex, e.target.value)}
+                        placeholder="e.g., Electrical Installation, Plumbing, HVAC"
+                      />
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeMechanicalElectricalCategory(categoryIndex)}
+                      className="mt-6"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="border-t">
+                    <div className="divide-y">
+                      {category.products.map((product, productIndex) => (
+                        <div key={productIndex} className="p-4 space-y-3">
+                          {/* First Row: Number and Product Name */}
+                          <div className="flex items-start gap-3">
+                            <div className="flex-shrink-0 w-8 h-10 flex items-center justify-center font-medium text-sm">
+                              {productIndex + 1}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                  <Label className="text-xs text-muted-foreground mb-1.5 block">Product Name</Label>
+                  <ProductSearchPopover
+                    selectedProductName={product.name}
+                    onSelect={(prod) => selectMechanicalElectricalProduct(categoryIndex, productIndex, prod)}
+                    onCreateNew={() => {
+                      setPendingProductSelection({
+                        type: 'mechanicalElectrical',
+                        categoryIndex,
+                        productIndex
+                      })
+                      setCreateProductDialogOpen(true)
+                    }}
+                    formatCurrency={formatCurrency}
+                  />
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeMechanicalElectricalProduct(categoryIndex, productIndex)}
+                              className="flex-shrink-0"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          
+                          {/* Second Row: Other Fields */}
+                          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pl-11">
+                            <div>
+                              <Label className="text-xs text-muted-foreground mb-1.5 block">Brand/Equal</Label>
+                              <Input
+                                value={product.brand || ""}
+                                onChange={(e) =>
+                                  updateMechanicalElectricalProduct(categoryIndex, productIndex, "brand", e.target.value)
+                                }
+                                placeholder="e.g. Panasonic, Schneider"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs text-muted-foreground mb-1.5 block">Location (optional)</Label>
+                              <Input
+                                value={product.location || ""}
+                                onChange={(e) =>
+                                  updateMechanicalElectricalProduct(categoryIndex, productIndex, "location", e.target.value)
+                                }
+                                placeholder="e.g. Floor 1, Ceiling"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs text-muted-foreground mb-1.5 block">Quantity</Label>
+                              <Input
+                                ref={(el) => {
+                                  mechanicalElectricalQtyRefs.current[`${categoryIndex}-${productIndex}`] = el
+                                }}
+                                type="number"
+                                value={product.qty}
+                                onChange={(e) =>
+                                  updateMechanicalElectricalProduct(categoryIndex, productIndex, "qty", Number(e.target.value))
+                                }
+                                placeholder="0"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs text-muted-foreground mb-1.5 block">Unit</Label>
+                              <Input
+                                value={product.unit}
+                                onChange={(e) =>
+                                  updateMechanicalElectricalProduct(categoryIndex, productIndex, "unit", e.target.value)
+                                }
+                                placeholder="ls, set, pcs"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs text-muted-foreground mb-1.5 block">Price</Label>
+                              <Input
+                                type="number"
+                                value={product.price}
+                                onChange={(e) =>
+                                  updateMechanicalElectricalProduct(categoryIndex, productIndex, "price", Number(e.target.value))
+                                }
+                                placeholder="0"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="p-4 border-t">
+                    <Button
+                      type="button"
+                      onClick={() => addMechanicalElectricalProduct(categoryIndex)}
+                      variant="outline"
+                      className="w-full bg-transparent"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Product
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+          <Button type="button" onClick={addMechanicalElectricalCategory} variant="outline" className="w-full bg-transparent">
             <Plus className="h-4 w-4 mr-2" />
             Add Category
           </Button>
@@ -2601,7 +2995,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                     <h5 className="font-medium">{template.name}</h5>
                     <p className="text-xs text-muted-foreground mt-1">
                       {template.preliminary.length} preliminary • {template.fittingOut.length} fitting out •{" "}
-                      {template.furnitureWork.length} furniture
+                      {template.furnitureWork.length} furniture • {(template.mechanicalElectrical || []).length} MEP
                     </p>
                     <Button
                       variant="link"
@@ -2644,6 +3038,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                 preliminary: selectedReplaceTemplate.preliminary,
                 fittingOut: selectedReplaceTemplate.fittingOut,
                 furnitureWork: selectedReplaceTemplate.furnitureWork,
+                mechanicalElectrical: selectedReplaceTemplate.mechanicalElectrical || [],
               })}
             </div>
           )}

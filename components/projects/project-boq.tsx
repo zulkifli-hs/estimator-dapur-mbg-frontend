@@ -1385,6 +1385,16 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
             price: product.price,
           })),
         })),
+        mechanicalElectrical: (selectedReplaceTemplate.mechanicalElectrical || []).map((category: any) => ({
+          name: category.name,
+          products: category.products.map((product: any) => ({
+            productId: product.productId,
+            qty: product.qty,
+            name: product.name,
+            unit: product.unit,
+            price: product.price,
+          })),
+        })),
       }
 
       await boqApi.update(projectId, mainBOQ._id, boqData)
@@ -1569,6 +1579,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                   <div>Preliminary: {template.preliminary?.length || 0} items</div>
                   <div>Fitting Out: {template.fittingOut?.length || 0} categories</div>
                   <div>Furniture Work: {template.furnitureWork?.length || 0} categories</div>
+                  <div>MEP: {template.mechanicalElectrical?.length || 0} categories</div>
                 </div>
                 <div className="flex gap-2">
                   <Button
@@ -2984,7 +2995,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                     <h5 className="font-medium">{template.name}</h5>
                     <p className="text-xs text-muted-foreground mt-1">
                       {template.preliminary.length} preliminary • {template.fittingOut.length} fitting out •{" "}
-                      {template.furnitureWork.length} furniture
+                      {template.furnitureWork.length} furniture • {(template.mechanicalElectrical || []).length} MEP
                     </p>
                     <Button
                       variant="link"
@@ -3027,6 +3038,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                 preliminary: selectedReplaceTemplate.preliminary,
                 fittingOut: selectedReplaceTemplate.fittingOut,
                 furnitureWork: selectedReplaceTemplate.furnitureWork,
+                mechanicalElectrical: selectedReplaceTemplate.mechanicalElectrical || [],
               })}
             </div>
           )}

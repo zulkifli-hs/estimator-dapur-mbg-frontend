@@ -419,12 +419,13 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess, editProject
         }
 
         if (showClientPIC) {
-          if (!formData.companyClient.picEmail) {
-            setError("PIC Email is required when adding a Person in Charge")
-            setLoading(false)
-            return
-          }
-          companyClientData.picEmail = formData.companyClient.picEmail
+          // if (!formData.companyClient.picEmail) {
+          //   setError("PIC Email is required when adding a Person in Charge")
+          //   setLoading(false)
+          //   return
+          // }
+          // companyClientData.picEmail = formData.companyClient.picEmail
+          if (formData.companyClient.picEmail) companyClientData.picEmail = formData.companyClient.picEmail
           if (formData.companyClient.picName) companyClientData.picName = formData.companyClient.picName
           if (formData.companyClient.picPhone) companyClientData.picPhone = formData.companyClient.picPhone
         }

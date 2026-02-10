@@ -55,6 +55,15 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+  PaginationEllipsis,
+} from "@/components/ui/pagination"
 
 const STATUS_OPTIONS = [
   { value: "all", label: "All" },
@@ -191,7 +200,7 @@ export default function ProjectsPage() {
       setLoading(true)
       const response = await projectsApi.getAll({
         page,
-        limit: 10,
+        limit: 12,
         status: statusFilter !== "all" ? statusFilter : undefined,
       })
 
@@ -531,6 +540,58 @@ export default function ProjectsPage() {
             </TableBody>
           </Table>
         </div>
+      )}
+
+      {!loading && filteredProjects.length > 0 && totalPages > 1 && (
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                onClick={() => {
+                  if (page > 1) setPage(page - 1)
+                }}
+                className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+              />
+            </PaginationItem>
+            
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => {
+              // Show first page, last page, current page, and pages around current page
+              if (
+                pageNum === 1 ||
+                pageNum === totalPages ||
+                (pageNum >= page - 1 && pageNum <= page + 1)
+              ) {
+                return (
+                  <PaginationItem key={pageNum}>
+                    <PaginationLink
+                      onClick={() => setPage(pageNum)}
+                      isActive={page === pageNum}
+                      className="cursor-pointer"
+                    >
+                      {pageNum}
+                    </PaginationLink>
+                  </PaginationItem>
+                )
+              } else if (pageNum === page - 2 || pageNum === page + 2) {
+                return (
+                  <PaginationItem key={pageNum}>
+                    <PaginationEllipsis />
+                  </PaginationItem>
+                )
+              }
+              return null
+            })}
+
+            <PaginationItem>
+              <PaginationNext
+                onClick={() => {
+                  if (page < totalPages) setPage(page + 1)
+                }}
+                className={page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
       )}
 
       <CreateProjectDialog

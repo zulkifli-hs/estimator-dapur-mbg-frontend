@@ -465,8 +465,8 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
 }
 
 const tabs = [
+  { value: "contract", label: "Contract Files" },
   { value: "termin", label: "Termin" },
   { value: "invoice", label: "Invoice" },
   { value: "tax", label: "Tax Invoice" },
-  { value: "contract", label: "Contract Files" },
 ]

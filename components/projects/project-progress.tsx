@@ -10,7 +10,13 @@ import { Dialog } from "@/components/ui/dialog"
 
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Upload, Calendar, ImageIcon, TrendingUp, FileCheck, Edit, Plus, X, Download, Eye } from 'lucide-react'
+import { Upload, Calendar, ImageIcon, TrendingUp, FileCheck, Edit, Plus, X, Download, Eye, MoreVertical } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useEffect, useState } from "react"
@@ -271,12 +277,21 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
           // Add image maintaining aspect ratio
           doc.addImage(base64Image, 'JPEG', xPosition, yPosition, imgWidth, imgHeight)
           
-          // Add photo number below image
-          doc.setFontSize(9)
-          doc.setFont('helvetica', 'normal')
-          const photoLabel = `Photo ${i + 1}`
-          const labelWidth = doc.getTextWidth(photoLabel)
-          doc.text(photoLabel, xPosition + (imgWidth - labelWidth) / 2, yPosition + imgHeight + 5)
+          // Add photo note below image (if exists)
+          if (photo.note) {
+            doc.setFontSize(9)
+            doc.setFont('helvetica', 'normal')
+            const labelWidth = doc.getTextWidth(photo.note)
+            const maxLabelWidth = imgWidth - 2
+            
+            if (labelWidth <= maxLabelWidth) {
+              doc.text(photo.note, xPosition + (imgWidth - labelWidth) / 2, yPosition + imgHeight + 5)
+            } else {
+              // If text is too long, wrap it
+              const lines = doc.splitTextToSize(photo.note, maxLabelWidth)
+              doc.text(lines, xPosition + 1, yPosition + imgHeight + 5)
+            }
+          }
 
           // Track the maximum height in the current row
           maxRowHeight = Math.max(maxRowHeight, imgHeight)
@@ -560,51 +575,50 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
                               {album.list?.length || 0} photo{album.list?.length !== 1 ? "s" : ""}
                             </Badge>
                           </div>
-                          <div className="flex gap-1">
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handlePreviewPdf(album)
-                              }}
-                              disabled={exportingPdf === album._id || !album.list || album.list.length === 0}
-                            >
-                              {exportingPdf === album._id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Eye className="h-4 w-4" />
-                              )}
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleExportPdf(album)
-                              }}
-                              disabled={exportingPdf === album._id || !album.list || album.list.length === 0}
-                            >
-                              {exportingPdf === album._id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Download className="h-4 w-4" />
-                              )}
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setDeleteAlbumConfirm({ id: album._id, name: album.name })
-                              }}
-                            >
-                              <X className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handlePreviewPdf(album)
+                                }}
+                                disabled={exportingPdf === album._id || !album.list || album.list.length === 0}
+                              >
+                                <Eye className="h-4 w-4 mr-2" />
+                                Preview PDF
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleExportPdf(album)
+                                }}
+                                disabled={exportingPdf === album._id || !album.list || album.list.length === 0}
+                              >
+                                <Download className="h-4 w-4 mr-2" />
+                                Download PDF
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setDeleteAlbumConfirm({ id: album._id, name: album.name })
+                                }}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <X className="h-4 w-4 mr-2" />
+                                Delete Album
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </CardContent>
                     </Card>
@@ -730,6 +744,18 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
           albumId={selectedAlbum.id}
           albumName={selectedAlbum.name}
           onPhotoAdded={loadAlbums}
+          onPreviewPdf={() => {
+            const album = albums.find((a) => a._id === selectedAlbum.id)
+            if (album) handlePreviewPdf(album)
+          }}
+          onDownloadPdf={() => {
+            const album = albums.find((a) => a._id === selectedAlbum.id)
+            if (album) handleExportPdf(album)
+          }}
+          onDeleteAlbum={() => {
+            setDeleteAlbumConfirm({ id: selectedAlbum.id, name: selectedAlbum.name })
+          }}
+          isExportingPdf={exportingPdf === selectedAlbum.id}
         />
       )}
 

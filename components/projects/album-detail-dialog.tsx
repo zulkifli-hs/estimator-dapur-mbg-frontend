@@ -16,7 +16,15 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
-import { Upload, X, Loader2, Download, Maximize2 } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Upload, X, Loader2, Download, Maximize2, Eye, MoreVertical } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { albumsApi } from "@/lib/api/albums"
 import { uploadApi } from "@/lib/api/upload"
 import { useToast } from "@/hooks/use-toast"
@@ -29,6 +37,10 @@ interface AlbumDetailDialogProps {
   albumId: string
   albumName: string
   onPhotoAdded?: () => void
+  onPreviewPdf?: () => void
+  onDownloadPdf?: () => void
+  onDeleteAlbum?: () => void
+  isExportingPdf?: boolean
 }
 
 export function AlbumDetailDialog({
@@ -38,6 +50,10 @@ export function AlbumDetailDialog({
   albumId,
   albumName,
   onPhotoAdded,
+  onPreviewPdf,
+  onDownloadPdf,
+  onDeleteAlbum,
+  isExportingPdf = false,
 }: AlbumDetailDialogProps) {
   const [album, setAlbum] = useState<any>(null)
   const [loading, setLoading] = useState(false)
@@ -46,6 +62,7 @@ export function AlbumDetailDialog({
   const [photoToDelete, setPhotoToDelete] = useState<number | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [fullPhotoUrl, setFullPhotoUrl] = useState<string | null>(null)
+  const [photoNote, setPhotoNote] = useState("")
   const { toast } = useToast()
 
   useEffect(() => {
@@ -89,13 +106,20 @@ export function AlbumDetailDialog({
     try {
       const uploadResponse = await uploadApi.uploadPhoto(file)
 
-      const response = await albumsApi.addPhoto(projectId, albumId, uploadResponse.url, uploadResponse.provider)
+      const response = await albumsApi.addPhoto(
+        projectId,
+        albumId,
+        uploadResponse.url,
+        uploadResponse.provider,
+        photoNote || undefined
+      )
 
       if (response.success) {
         toast({
           title: "Success",
           description: "Photo uploaded and added to album successfully",
         })
+        setPhotoNote("")
         await loadAlbum()
         onPhotoAdded?.()
       } else {
@@ -157,15 +181,59 @@ export function AlbumDetailDialog({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{albumName}</DialogTitle>
-            <DialogDescription>
-              {album?.list?.length || 0} photo{album?.list?.length !== 1 ? "s" : ""}
-            </DialogDescription>
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <DialogTitle>{albumName}</DialogTitle>
+                <DialogDescription>
+                  {album?.list?.length || 0} photo{album?.list?.length !== 1 ? "s" : ""}
+                </DialogDescription>
+              </div>
+              {/* <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="icon" variant="ghost">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={onPreviewPdf}
+                    disabled={isExportingPdf || !album?.list || album.list.length === 0}
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    Preview PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={onDownloadPdf}
+                    disabled={isExportingPdf || !album?.list || album.list.length === 0}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={onDeleteAlbum}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Delete Album
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu> */}
+            </div>
           </DialogHeader>
 
           <div className="space-y-4">
             {/* Upload Button */}
-            <div>
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label htmlFor="photo-note">Note (Optional)</Label>
+                <Input
+                  id="photo-note"
+                  placeholder="Add a note for the photo..."
+                  value={photoNote}
+                  onChange={(e) => setPhotoNote(e.target.value)}
+                  disabled={uploading}
+                />
+              </div>
               <Button onClick={() => document.getElementById(`album-upload-${albumId}`)?.click()} disabled={uploading}>
                 {uploading ? (
                   <>
@@ -197,17 +265,22 @@ export function AlbumDetailDialog({
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {album.list.map((photo: any, index: number) => (
                   <div key={photo._id} className="relative group">
-                    <div className="aspect-square bg-muted rounded-lg overflow-hidden">
-                      {getPhotoUrl(photo) ? (
-                        <img
-                          src={(getPhotoUrl(photo) as string) || "/placeholder.svg"}
-                          alt={photo.name || "Photo"}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <ImageIcon className="h-12 w-12 text-muted-foreground" />
-                        </div>
+                    <div className="space-y-2">
+                      <div className="aspect-square bg-muted rounded-lg overflow-hidden">
+                        {getPhotoUrl(photo) ? (
+                          <img
+                            src={(getPhotoUrl(photo) as string) || "/placeholder.svg"}
+                            alt={photo.name || "Photo"}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <ImageIcon className="h-12 w-12 text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
+                      {photo.note && (
+                        <p className="text-xs text-muted-foreground px-1 line-clamp-2">{photo.note}</p>
                       )}
                     </div>
                     {/* Action buttons */}

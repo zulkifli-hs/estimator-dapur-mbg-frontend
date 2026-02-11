@@ -18,7 +18,13 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Upload, X, Loader2, Download, Maximize2 } from "lucide-react"
+import { Upload, X, Loader2, Download, Maximize2, Eye, MoreVertical } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { albumsApi } from "@/lib/api/albums"
 import { uploadApi } from "@/lib/api/upload"
 import { useToast } from "@/hooks/use-toast"
@@ -31,6 +37,10 @@ interface AlbumDetailDialogProps {
   albumId: string
   albumName: string
   onPhotoAdded?: () => void
+  onPreviewPdf?: () => void
+  onDownloadPdf?: () => void
+  onDeleteAlbum?: () => void
+  isExportingPdf?: boolean
 }
 
 export function AlbumDetailDialog({
@@ -40,6 +50,10 @@ export function AlbumDetailDialog({
   albumId,
   albumName,
   onPhotoAdded,
+  onPreviewPdf,
+  onDownloadPdf,
+  onDeleteAlbum,
+  isExportingPdf = false,
 }: AlbumDetailDialogProps) {
   const [album, setAlbum] = useState<any>(null)
   const [loading, setLoading] = useState(false)
@@ -167,10 +181,44 @@ export function AlbumDetailDialog({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{albumName}</DialogTitle>
-            <DialogDescription>
-              {album?.list?.length || 0} photo{album?.list?.length !== 1 ? "s" : ""}
-            </DialogDescription>
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <DialogTitle>{albumName}</DialogTitle>
+                <DialogDescription>
+                  {album?.list?.length || 0} photo{album?.list?.length !== 1 ? "s" : ""}
+                </DialogDescription>
+              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="icon" variant="ghost">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={onPreviewPdf}
+                    disabled={isExportingPdf || !album?.list || album.list.length === 0}
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    Preview PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={onDownloadPdf}
+                    disabled={isExportingPdf || !album?.list || album.list.length === 0}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={onDeleteAlbum}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Delete Album
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </DialogHeader>
 
           <div className="space-y-4">

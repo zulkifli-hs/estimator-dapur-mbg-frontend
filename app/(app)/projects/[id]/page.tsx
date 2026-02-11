@@ -138,7 +138,7 @@ export default function ProjectDetailPage() {
         </TabsContent>
 
         <TabsContent value="invoice">
-          <ProjectInvoice projectId={project._id} />
+          <ProjectInvoice projectId={project._id} project={project} onUpdate={loadProject} />
         </TabsContent>
 
         <TabsContent value="documents">

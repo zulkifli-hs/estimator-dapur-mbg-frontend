@@ -1,25 +1,39 @@
 "use client"
 
+import React from "react"
+
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Plus, FileText, Edit, Upload } from 'lucide-react'
+import { Plus, FileText, Edit, Upload, Download, Eye } from 'lucide-react'
 import { Badge } from "@/components/ui/badge"
 import { terminApi } from "@/lib/api/termin"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { CreateTerminDialog } from "./create-termin-dialog"
+import { Input } from "@/components/ui/input"
+import { uploadProjectFile } from "@/lib/api/files"
+import { useToast } from "@/hooks/use-toast"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 interface ProjectInvoiceProps {
   projectId: string
+  project?: any
+  onUpdate?: () => void
 }
 
-export function ProjectInvoice({ projectId }: ProjectInvoiceProps) {
+export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceProps) {
   const [termins, setTermins] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("termin")
   const [showCreateTermin, setShowCreateTermin] = useState(false)
   const [terminMode, setTerminMode] = useState<"create" | "update">("create")
+  const [uploading, setUploading] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const { toast } = useToast()
+
+  const contractFiles = project?.detail?.contract || []
 
   useEffect(() => {
     loadTermins()
@@ -52,6 +66,69 @@ export function ProjectInvoice({ projectId }: ProjectInvoiceProps) {
       setTerminMode("create")
     }
     setShowCreateTermin(true)
+  }
+
+  const getFileUrl = (provider: string, url: string) => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.gema-interior.com"
+    return `${baseUrl}/public/${provider}/${url}`
+  }
+
+  const handleDownload = (provider: string, url: string, filename: string) => {
+    const fileUrl = getFileUrl(provider, url)
+    window.open(fileUrl, "_blank")
+  }
+
+  const handleView = (provider: string, url: string, filename?: string) => {
+    const fileUrl = getFileUrl(provider, url)
+    setPreviewUrl(fileUrl)
+    setPreviewOpen(true)
+  }
+
+  const handleFileUpload = async (file: File, type: string) => {
+    if (!file) return
+
+    setUploading(true)
+    try {
+      await uploadProjectFile(projectId, file, type)
+
+      toast({
+        title: "Success",
+        description: "File uploaded successfully",
+      })
+
+      if (onUpdate) {
+        onUpdate()
+      }
+    } catch (error) {
+      let errorMessage = "Failed to upload file"
+      if (error instanceof Error) {
+        errorMessage = error.message
+      }
+
+      toast({
+        title: "Upload Failed",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: string) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      handleFileUpload(file, type)
+    }
+    e.target.value = ""
+  }
+
+  const getUserName = (createdBy: any) => {
+    if (!createdBy) return "Unknown"
+    if (typeof createdBy === "string") return createdBy
+    if (createdBy.profile?.name) return createdBy.profile.name
+    if (createdBy.email) return createdBy.email
+    return "Unknown"
   }
 
   // Dummy invoice data
@@ -125,7 +202,7 @@ export function ProjectInvoice({ projectId }: ProjectInvoiceProps) {
         </div>
 
         {/* Desktop: Tabs */}
-        <TabsList className="hidden md:grid w-full grid-cols-3">
+        <TabsList className="hidden md:grid w-full grid-cols-4">
           {tabs.map((tab) => (
             <TabsTrigger key={tab.value} value={tab.value}>
               {tab.label}
@@ -284,12 +361,111 @@ export function ProjectInvoice({ projectId }: ProjectInvoiceProps) {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="contract">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Contract Files</CardTitle>
+                  <CardDescription>Upload and manage contract documents</CardDescription>
+                </div>
+                <div>
+                  <Input
+                    id="contract-upload"
+                    type="file"
+                    accept=".pdf"
+                    className="hidden"
+                    onChange={(e) => onFileChange(e, "contract")}
+                    disabled={uploading}
+                  />
+                  <Button asChild disabled={uploading}>
+                    <label htmlFor="contract-upload" className="cursor-pointer">
+                      <Upload className="h-4 w-4 mr-2" />
+                      {uploading ? "Uploading..." : "Upload Contract"}
+                    </label>
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {contractFiles.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No contract files uploaded yet</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {contractFiles.map((contract: any) => (
+                    <div
+                      key={contract._id}
+                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-4">
+                        <FileText className="h-8 w-8 text-green-500" />
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{contract.name}</p>
+                            <Badge variant="default">v{contract.version || 1}.0</Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            Uploaded by {getUserName(contract.createdBy)} •{" "}
+                            {contract.createdAt
+                              ? new Date(contract.createdAt).toLocaleString("en-US", {
+                                  year: "numeric",
+                                  month: "2-digit",
+                                  day: "2-digit",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })
+                              : "N/A"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleView(contract.provider, contract.url, contract.name)}
+                          title="View file"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDownload(contract.provider, contract.url, contract.name)}
+                          title="Download file"
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
+
+      {/* Preview Dialog */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-4xl h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>File Preview</DialogTitle>
+          </DialogHeader>
+          {previewUrl && (
+            <iframe src={previewUrl} className="w-full h-full" title="File preview" />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
 
 const tabs = [
+  { value: "contract", label: "Contract Files" },
   { value: "termin", label: "Termin" },
   { value: "invoice", label: "Invoice" },
   { value: "tax", label: "Tax Invoice" },

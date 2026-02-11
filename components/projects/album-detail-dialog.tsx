@@ -188,7 +188,7 @@ export function AlbumDetailDialog({
                   {album?.list?.length || 0} photo{album?.list?.length !== 1 ? "s" : ""}
                 </DialogDescription>
               </div>
-              <DropdownMenu>
+              {/* <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button size="icon" variant="ghost">
                     <MoreVertical className="h-4 w-4" />
@@ -217,7 +217,7 @@ export function AlbumDetailDialog({
                     Delete Album
                   </DropdownMenuItem>
                 </DropdownMenuContent>
-              </DropdownMenu>
+              </DropdownMenu> */}
             </div>
           </DialogHeader>
 

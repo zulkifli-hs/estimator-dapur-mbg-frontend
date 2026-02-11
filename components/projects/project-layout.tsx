@@ -48,8 +48,8 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
     { value: "cad", label: "CAD Files" },
     { value: "fitout", label: "Fitout Drawing" },
     { value: "furniture", label: "Furniture Drawing" },
-    { value: "material", label: "Approved Material" },
-    { value: "approved-furniture", label: "Approved Furniture" },
+    // { value: "material", label: "Approved Material" },
+    // { value: "approved-furniture", label: "Approved Furniture" },
   ]
 
   const getFileUrl = (provider: string, url: string) => {

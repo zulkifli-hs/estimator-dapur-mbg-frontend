@@ -6,15 +6,26 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Plus, FileText, Edit, Upload, Download, Eye } from 'lucide-react'
+import { Plus, FileText, Edit, Upload, Download, Eye, Trash2 } from 'lucide-react'
 import { Badge } from "@/components/ui/badge"
 import { terminApi } from "@/lib/api/termin"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { CreateTerminDialog } from "./create-termin-dialog"
 import { Input } from "@/components/ui/input"
-import { uploadProjectFile } from "@/lib/api/files"
+import { uploadProjectFile, deleteProjectFiles } from "@/lib/api/files"
 import { useToast } from "@/hooks/use-toast"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Checkbox } from "@/components/ui/checkbox"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 interface ProjectInvoiceProps {
   projectId: string
@@ -31,6 +42,9 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
   const [uploading, setUploading] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
+  const [selectedFiles, setSelectedFiles] = useState<number[]>([])
+  const [deleting, setDeleting] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState<{ indexes: number[] } | null>(null)
   const { toast } = useToast()
 
   const contractFiles = project?.detail?.contract || []
@@ -129,6 +143,67 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
     if (createdBy.profile?.name) return createdBy.profile.name
     if (createdBy.email) return createdBy.email
     return "Unknown"
+  }
+
+  const handleFileSelect = (index: number, checked: boolean) => {
+    setSelectedFiles((prev) => {
+      if (checked) {
+        return [...prev, index]
+      }
+      return prev.filter((i) => i !== index)
+    })
+  }
+
+  const handleSelectAll = (fileCount: number, checked: boolean) => {
+    if (checked) {
+      setSelectedFiles(Array.from({ length: fileCount }, (_, i) => i))
+    } else {
+      setSelectedFiles([])
+    }
+  }
+
+  const handleDeleteSingle = (index: number) => {
+    setDeleteConfirm({ indexes: [index] })
+  }
+
+  const handleBulkDelete = () => {
+    if (selectedFiles.length > 0) {
+      setDeleteConfirm({ indexes: selectedFiles })
+    }
+  }
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm) return
+
+    setDeleting(true)
+    try {
+      await deleteProjectFiles(projectId, "contract", deleteConfirm.indexes)
+
+      toast({
+        title: "Success",
+        description: `${deleteConfirm.indexes.length} file(s) deleted successfully`,
+      })
+
+      setSelectedFiles([])
+
+      if (onUpdate) {
+        onUpdate()
+      }
+    } catch (error) {
+      let errorMessage = "Failed to delete file(s)"
+      if (error instanceof Error) {
+        errorMessage = error.message
+      }
+
+      toast({
+        title: "Delete Failed",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    } finally {
+      setDeleting(false)
+      setDeleteConfirm(null)
+    }
   }
 
   // Dummy invoice data
@@ -370,7 +445,18 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
                   <CardTitle>Contract Files</CardTitle>
                   <CardDescription>Upload and manage contract documents</CardDescription>
                 </div>
-                <div>
+                <div className="flex gap-2">
+                  {selectedFiles.length > 0 && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleBulkDelete}
+                      disabled={deleting}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete ({selectedFiles.length})
+                    </Button>
+                  )}
                   <Input
                     id="contract-upload"
                     type="file"
@@ -396,12 +482,27 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {contractFiles.map((contract: any) => (
+                  {contractFiles.length > 1 && (
+                    <div className="flex items-center gap-2 pb-2 border-b">
+                      <Checkbox
+                        checked={selectedFiles.length === contractFiles.length && contractFiles.length > 0}
+                        onCheckedChange={(checked) =>
+                          handleSelectAll(contractFiles.length, checked as boolean)
+                        }
+                      />
+                      <span className="text-sm text-muted-foreground">Select All</span>
+                    </div>
+                  )}
+                  {contractFiles.map((contract: any, index: number) => (
                     <div
                       key={contract._id}
                       className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                     >
                       <div className="flex items-center gap-4">
+                        <Checkbox
+                          checked={selectedFiles.includes(index)}
+                          onCheckedChange={(checked) => handleFileSelect(index, checked as boolean)}
+                        />
                         <FileText className="h-8 w-8 text-green-500" />
                         <div>
                           <div className="flex items-center gap-2">
@@ -439,6 +540,15 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
                         >
                           <Download className="h-4 w-4" />
                         </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteSingle(index)}
+                          title="Delete file"
+                          disabled={deleting}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
                       </div>
                     </div>
                   ))}
@@ -460,6 +570,28 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete {deleteConfirm?.indexes.length || 0} file(s). This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDelete} 
+              disabled={deleting} 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

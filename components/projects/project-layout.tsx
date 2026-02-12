@@ -169,9 +169,17 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
   const confirmDelete = async () => {
     if (!deleteConfirm) return
 
+    console.log("[v0] confirmDelete called:", {
+      projectId,
+      type: deleteConfirm.type,
+      indexes: deleteConfirm.indexes,
+    })
+
     setDeleting(true)
     try {
+      console.log("[v0] Calling deleteProjectFiles...")
       await deleteProjectFiles(projectId, deleteConfirm.type, deleteConfirm.indexes)
+      console.log("[v0] Delete completed successfully")
 
       toast({
         title: "Success",
@@ -182,9 +190,12 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
       setSelectedFiles((prev) => ({ ...prev, [deleteConfirm.type]: [] }))
 
       if (onUpdate) {
+        console.log("[v0] Calling onUpdate to refresh data")
         onUpdate()
       }
     } catch (error) {
+      console.error("[v0] Delete error in confirmDelete:", error)
+      
       let errorMessage = "Failed to delete file(s)"
       if (error instanceof Error) {
         errorMessage = error.message
@@ -198,6 +209,7 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
     } finally {
       setDeleting(false)
       setDeleteConfirm(null)
+      console.log("[v0] Delete process completed")
     }
   }
 

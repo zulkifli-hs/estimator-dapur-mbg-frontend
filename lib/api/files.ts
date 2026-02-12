@@ -83,6 +83,13 @@ export const getFileUrl = (provider: string, url: string): string => {
 }
 
 export const deleteProjectFiles = async (projectId: string, type: string, indexes: number[]): Promise<any> => {
+  console.log("[v0] deleteProjectFiles called:", {
+    projectId,
+    type,
+    indexes,
+    endpoint: `${API_BASE_URL}/projects/${projectId}/${type}/delete`,
+  })
+
   const token = getAuthToken()
   
   const response = await fetch(`${API_BASE_URL}/projects/${projectId}/${type}/delete`, {
@@ -94,13 +101,18 @@ export const deleteProjectFiles = async (projectId: string, type: string, indexe
     body: JSON.stringify({ indexes }),
   })
 
+  console.log("[v0] Delete response status:", response.status, response.ok)
+
   if (!response.ok) {
     const errorData = await response.json()
+    console.error("[v0] Delete error details:", JSON.stringify(errorData, null, 2))
     const errorMessage = errorData.message?.user || errorData.message || "Delete failed"
     throw new Error(errorMessage)
   }
 
-  return response.json()
+  const result = await response.json()
+  console.log("[v0] Delete success:", result)
+  return result
 }
 
 export const uploadProjectFile = async (projectId: string, file: File, type: string): Promise<any> => {

@@ -54,7 +54,7 @@ export default function ProjectDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex items-center justify-center min-h-100">
         <p className="text-muted-foreground">Loading project...</p>
       </div>
     )
@@ -62,7 +62,7 @@ export default function ProjectDetailPage() {
 
   if (!project) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+      <div className="flex flex-col items-center justify-center min-h-100 gap-4">
         <p className="text-muted-foreground">Project not found</p>
         <Button onClick={() => router.push("/projects")}>
           <ArrowLeft className="h-4 w-4 mr-2" />

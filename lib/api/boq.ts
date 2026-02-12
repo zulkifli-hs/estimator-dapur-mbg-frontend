@@ -88,6 +88,10 @@ export const createAdditionalBOQ = async (
       name: string
       products: Array<{ qty: number; name: string; unit: string; price: number }>
     }>
+    mechanicalElectrical: Array<{
+      name: string
+      products: Array<{ qty: number; name: string; unit: string; price: number }>
+    }>
   },
 ): Promise<any> => {
   return apiRequest<any>(`/projects/${projectId}/boq/additional`, {
@@ -106,6 +110,10 @@ export const createBOQ = async (
       products: Array<{ qty: number; name: string; unit: string; price: number }>
     }>
     furnitureWork: Array<{
+      name: string
+      products: Array<{ qty: number; name: string; unit: string; price: number }>
+    }>
+    mechanicalElectrical: Array<{
       name: string
       products: Array<{ qty: number; name: string; unit: string; price: number }>
     }>

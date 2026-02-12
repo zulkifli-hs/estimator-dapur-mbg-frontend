@@ -90,6 +90,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
 
   // Creation mode states
   const [creationMode, setCreationMode] = useState<"blank" | "template" | null>(null)
+  const [boqType, setBOQType] = useState<"main" | "additional">("main") // Track whether creating main or additional BOQ
   const [templates, setTemplates] = useState<any[]>([])
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null)
   const [showTemplatePreview, setShowTemplatePreview] = useState(false)
@@ -264,8 +265,8 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     try {
       setLoadingProducts(true)
       const response = await productsApi.getAll()
-      if (response.success && response.data) {
-        setProducts(response.data)
+      if (response && response.list) {
+        setProducts(response.list)
       }
     } catch (error) {
       console.error("Failed to fetch products:", error)
@@ -636,6 +637,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
 
   const handleCreateAdditionalBOQ = () => {
     setIsCreatingAdditional(true)
+    setBOQType("additional") // Set to create additional BOQ
     // In the new implementation, this action leads to the blank creation form
     setCreationMode("blank")
   }
@@ -935,6 +937,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         return `${year}-${month}-${day}`
       }
 
+      // Filter preliminary items
       const filteredPreliminary = preliminary
         .filter((item) => item.name && item.qty > 0 && item.unit && item.price >= 0)
         .map((item) => ({
@@ -1028,7 +1031,15 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
           title: "Success",
           description: "BOQ updated successfully",
         })
+      } else if (boqType === "additional") {
+        // Create additional BOQ using the additional endpoint
+        await boqApi.createAdditional(projectId, boqData)
+        toast({
+          title: "Success",
+          description: "Additional BOQ created successfully",
+        })
       } else {
+        // Create main BOQ
         await boqApi.create(projectId, boqData)
         toast({
           title: "Success",
@@ -1039,6 +1050,8 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       // Reset states
       setCreationMode(null)
       setEditingBOQ(null)
+      setBOQType("main") // Reset to main
+      setIsCreatingAdditional(false)
       setPreliminary([])
       setFittingOut([])
       setFurnitureWork([])
@@ -1058,23 +1071,35 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   const handleUseTemplate = async (template: any) => {
     try {
       setLoading(true)
-      const response = await boqApi.create(projectId, {
+      const templateData = {
         preliminary: template.preliminary || [],
         fittingOut: template.fittingOut || [],
         furnitureWork: template.furnitureWork || [],
         mechanicalElectrical: template.mechanicalElectrical || [],
-      })
+      }
 
-      if (response.success) {
+      if (boqType === "additional") {
+        await boqApi.createAdditional(projectId, templateData)
         toast({
           title: "Success",
-          description: "Main BOQ created from template successfully",
+          description: "Additional BOQ created from template successfully",
         })
-        fetchBOQ() // Use renamed function
-        setCreationMode(null)
-        setSelectedTemplate(null)
-        setShowTemplatePreview(false)
+      } else {
+        const response = await boqApi.create(projectId, templateData)
+        if (response.success) {
+          toast({
+            title: "Success",
+            description: "Main BOQ created from template successfully",
+          })
+        }
       }
+
+      fetchBOQ() // Use renamed function
+      setCreationMode(null)
+      setSelectedTemplate(null)
+      setShowTemplatePreview(false)
+      setBOQType("main") // Reset to main
+      setIsCreatingAdditional(false)
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -1515,7 +1540,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     )
   }
 
-  if (!mainBOQ && !creationMode) {
+  if (!mainBOQ && !creationMode && boqType === "main") {
     return (
       <div className="space-y-6">
         <Card>
@@ -1554,15 +1579,61 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     )
   }
 
-  if (!mainBOQ && creationMode === "template") {
+  // Show template or blank selection for additional BOQ
+  if (mainBOQ && boqType === "additional" && !creationMode) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Create Additional BOQ</CardTitle>
+            <CardDescription>Choose how you want to create your Additional Bill of Quantities</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Button
+                variant="outline"
+                className="h-32 flex flex-col items-center justify-center gap-3 bg-transparent"
+                onClick={() => setCreationMode("blank")}
+              >
+                <FileSpreadsheet className="h-8 w-8" />
+                <div className="text-center">
+                  <div className="font-semibold">Create from Blank</div>
+                  <div className="text-sm text-muted-foreground">Start with an empty BOQ</div>
+                </div>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-32 flex flex-col items-center justify-center gap-3 bg-transparent"
+                onClick={() => setCreationMode("template")}
+              >
+                <Sparkles className="h-8 w-8" />
+                <div className="text-center">
+                  <div className="font-semibold">Import from Template</div>
+                  <div className="text-sm text-muted-foreground">Use a pre-made template</div>
+                </div>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if ((!mainBOQ || boqType === "additional") && creationMode === "template") {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold">Select Template</h2>
-            <p className="text-muted-foreground">Choose a template to create your BOQ</p>
+            <p className="text-muted-foreground">Choose a template to create your {boqType === "additional" ? "Additional" : "Main"} BOQ</p>
           </div>
-          <Button variant="outline" onClick={() => setCreationMode(null)}>
+          <Button variant="outline" onClick={() => {
+            setCreationMode(null)
+            setBOQType("main")
+            if (boqType === "additional") {
+              setActiveTab("additional")
+            }
+          }}>
             <X className="h-4 w-4 mr-2" />
             Cancel
           </Button>
@@ -1636,12 +1707,12 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     )
   }
 
-  if ((editingBOQ && creationMode === "blank") || (!mainBOQ && creationMode === "blank")) {
+  if ((editingBOQ && creationMode === "blank") || (!mainBOQ && creationMode === "blank") || (boqType === "additional" && creationMode === "blank")) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold">{editingBOQ ? "Edit Main BOQ" : "Create Main BOQ"}</h2>
+            <h2 className="text-2xl font-bold">{editingBOQ ? "Edit BOQ" : boqType === "additional" ? "Create Additional BOQ" : "Create Main BOQ"}</h2>
             <p className="text-muted-foreground">Fill in the details for your Bill of Quantities</p>
           </div>
           <div className="flex gap-2">
@@ -1650,6 +1721,10 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
               onClick={() => {
                 setCreationMode(null)
                 setEditingBOQ(null)
+                setBOQType("main")
+                if (boqType === "additional") {
+                  setActiveTab("additional")
+                }
                 setPreliminary([])
                 setFittingOut([])
                 setFurnitureWork([])
@@ -2457,15 +2532,12 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         </div>
         {/* This button logic is now handled by the creation mode state */}
         {!mainBOQ && !creationMode && (
-          <Button onClick={() => setCreationMode("blank")} className="w-full sm:w-auto">
+          <Button onClick={() => {
+            setBOQType("main")
+            setCreationMode("blank")
+          }} className="w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
             Add Main BOQ
-          </Button>
-        )}
-        {mainBOQ && !creationMode && (
-          <Button onClick={handleCreateAdditionalBOQ} className="w-full sm:w-auto">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Additional BOQ
           </Button>
         )}
       </div>
@@ -2613,7 +2685,39 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         </TabsContent>
 
         <TabsContent value="additional" className="space-y-4">
-          {additionalBOQs.length === 0 ? (
+          {!creationMode && boqType === "main" && mainBOQ && !editingBOQ && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Button
+                variant="outline"
+                className="h-24 flex flex-col items-center justify-center gap-2 bg-transparent"
+                onClick={() => {
+                  setBOQType("additional")
+                  setCreationMode("blank")
+                }}
+              >
+                <FileSpreadsheet className="h-6 w-6" />
+                <div className="text-center">
+                  <div className="font-semibold text-sm">Create from Blank</div>
+                  <div className="text-xs text-muted-foreground">Start with empty template</div>
+                </div>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-24 flex flex-col items-center justify-center gap-2 bg-transparent"
+                onClick={() => {
+                  setBOQType("additional")
+                  setCreationMode("template")
+                }}
+              >
+                <Sparkles className="h-6 w-6" />
+                <div className="text-center">
+                  <div className="font-semibold text-sm">Create from Template</div>
+                  <div className="text-xs text-muted-foreground">Use pre-made template</div>
+                </div>
+              </Button>
+            </div>
+          )}
+          {additionalBOQs.length === 0 && !creationMode && boqType === "main" ? (
             <Card>
               <CardContent className="py-8">
                 <Alert>
@@ -3035,9 +3139,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
           {selectedReplaceTemplate && (
             <div className="space-y-4">
               {renderBOQTable({
-                preliminary: selectedReplaceTemplate.preliminary,
-                fittingOut: selectedReplaceTemplate.fittingOut,
-                furnitureWork: selectedReplaceTemplate.furnitureWork,
+                ...selectedReplaceTemplate,
                 mechanicalElectrical: selectedReplaceTemplate.mechanicalElectrical || [],
               })}
             </div>

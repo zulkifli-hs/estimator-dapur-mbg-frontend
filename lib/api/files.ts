@@ -82,6 +82,46 @@ export const getFileUrl = (provider: string, url: string): string => {
   return `${API_BASE_URL}/public/${provider}/${encodeURIComponent(url)}`
 }
 
+export const deleteProjectFiles = async (projectId: string, type: string, indexes: number[]): Promise<any> => {
+  const token = getAuthToken()
+  
+  const response = await fetch(`${API_BASE_URL}/projects/${projectId}/${type}/delete`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ indexes }),
+  })
+
+  if (!response.ok) {
+    // Handle 404 - endpoint not found
+    if (response.status === 404) {
+      const contentType = response.headers.get("content-type")
+      console.error("[v0] 404 Error - Content-Type:", contentType)
+      
+      // If HTML is returned, the endpoint doesn't exist
+      if (contentType?.includes("text/html")) {
+        throw new Error(
+          `Delete endpoint tidak tersedia di backend. Pastikan endpoint POST /projects/{projectId}/${type}/delete sudah dibuat di backend API.`
+        )
+      }
+    }
+
+    // Try to parse JSON error response
+    try {
+      const errorData = await response.json()
+      const errorMessage = errorData.message?.user || errorData.message || "Delete failed"
+      throw new Error(errorMessage)
+    } catch (parseError) {
+      // If JSON parsing fails, provide generic error
+      throw new Error(`Delete failed with status ${response.status}. Backend mungkin belum mengimplementasikan endpoint delete ini.`)
+    }
+  }
+
+  return response.json()
+}
+
 export const uploadProjectFile = async (projectId: string, file: File, type: string): Promise<any> => {
   const getFileExtension = (filename: string): string => {
     const lastDot = filename.lastIndexOf(".")
@@ -182,4 +222,5 @@ export const filesApi = {
   },
   getFileUrl,
   uploadProjectFile,
+  deleteProjectFiles,
 }

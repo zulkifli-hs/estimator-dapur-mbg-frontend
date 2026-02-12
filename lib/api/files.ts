@@ -82,6 +82,27 @@ export const getFileUrl = (provider: string, url: string): string => {
   return `${API_BASE_URL}/public/${provider}/${encodeURIComponent(url)}`
 }
 
+export const deleteProjectFiles = async (projectId: string, type: string, indexes: number[]): Promise<any> => {
+  const token = getAuthToken()
+  
+  const response = await fetch(`${API_BASE_URL}/projects/${projectId}/${type}/delete`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ indexes }),
+  })
+
+  if (!response.ok) {
+    const errorData = await response.json()
+    const errorMessage = errorData.message?.user || errorData.message || "Delete failed"
+    throw new Error(errorMessage)
+  }
+
+  return response.json()
+}
+
 export const uploadProjectFile = async (projectId: string, file: File, type: string): Promise<any> => {
   const getFileExtension = (filename: string): string => {
     const lastDot = filename.lastIndexOf(".")
@@ -182,4 +203,5 @@ export const filesApi = {
   },
   getFileUrl,
   uploadProjectFile,
+  deleteProjectFiles,
 }

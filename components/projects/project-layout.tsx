@@ -4,14 +4,25 @@ import type React from "react"
 
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Upload, FileText, Download, Eye } from "lucide-react"
+import { Upload, FileText, Download, Eye, Trash2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { uploadProjectFile } from "@/lib/api/files"
+import { uploadProjectFile, deleteProjectFiles } from "@/lib/api/files"
 import { useToast } from "@/hooks/use-toast"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 interface ProjectLayoutProps {
   projectId: string
@@ -41,6 +52,9 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
   const [previewOpen, setPreviewOpen] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [activeTab, setActiveTab] = useState("main-layout")
+  const [selectedFiles, setSelectedFiles] = useState<Record<string, number[]>>({})
+  const [deleting, setDeleting] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState<{ type: string; indexes: number[] } | null>(null)
   const { toast } = useToast()
 
   const tabs = [
@@ -122,6 +136,71 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
     e.target.value = ""
   }
 
+  const handleFileSelect = (type: string, index: number, checked: boolean) => {
+    setSelectedFiles((prev) => {
+      const current = prev[type] || []
+      if (checked) {
+        return { ...prev, [type]: [...current, index] }
+      }
+      return { ...prev, [type]: current.filter((i) => i !== index) }
+    })
+  }
+
+  const handleSelectAll = (type: string, fileCount: number, checked: boolean) => {
+    setSelectedFiles((prev) => {
+      if (checked) {
+        return { ...prev, [type]: Array.from({ length: fileCount }, (_, i) => i) }
+      }
+      return { ...prev, [type]: [] }
+    })
+  }
+
+  const handleDeleteSingle = (type: string, index: number) => {
+    setDeleteConfirm({ type, indexes: [index] })
+  }
+
+  const handleBulkDelete = (type: string) => {
+    const indexes = selectedFiles[type] || []
+    if (indexes.length > 0) {
+      setDeleteConfirm({ type, indexes })
+    }
+  }
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm) return
+
+    setDeleting(true)
+    try {
+      await deleteProjectFiles(projectId, deleteConfirm.type, deleteConfirm.indexes)
+
+      toast({
+        title: "Success",
+        description: `${deleteConfirm.indexes.length} file(s) deleted successfully`,
+      })
+
+      // Clear selection for this type
+      setSelectedFiles((prev) => ({ ...prev, [deleteConfirm.type]: [] }))
+
+      if (onUpdate) {
+        onUpdate()
+      }
+    } catch (error) {
+      let errorMessage = "Failed to delete file(s)"
+      if (error instanceof Error) {
+        errorMessage = error.message
+      }
+
+      toast({
+        title: "Delete Failed",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    } finally {
+      setDeleting(false)
+      setDeleteConfirm(null)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -158,7 +237,18 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
                   <CardTitle>Main Layout</CardTitle>
                   <CardDescription>Upload and manage main layout files</CardDescription>
                 </div>
-                <div>
+                <div className="flex gap-2">
+                  {(selectedFiles["layout"]?.length || 0) > 0 && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleBulkDelete("layout")}
+                      disabled={deleting}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete ({selectedFiles["layout"].length})
+                    </Button>
+                  )}
                   <Input
                     id="layout-upload"
                     type="file"
@@ -184,12 +274,32 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {layoutFiles.map((layout: any) => (
+                  {layoutFiles.length > 1 && (
+                    <div className="flex items-center gap-2 pb-2 border-b">
+                      <Checkbox
+                        checked={
+                          (selectedFiles["layout"]?.length || 0) === layoutFiles.length &&
+                          layoutFiles.length > 0
+                        }
+                        onCheckedChange={(checked) =>
+                          handleSelectAll("layout", layoutFiles.length, checked as boolean)
+                        }
+                      />
+                      <span className="text-sm text-muted-foreground">Select All</span>
+                    </div>
+                  )}
+                  {layoutFiles.map((layout: any, index: number) => (
                     <div
                       key={layout._id}
                       className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                     >
                       <div className="flex items-center gap-4">
+                        <Checkbox
+                          checked={selectedFiles["layout"]?.includes(index) || false}
+                          onCheckedChange={(checked) =>
+                            handleFileSelect("layout", index, checked as boolean)
+                          }
+                        />
                         <FileText className="h-8 w-8 text-primary" />
                         <div>
                           <div className="flex items-center gap-2">
@@ -227,6 +337,15 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
                         >
                           <Download className="h-4 w-4" />
                         </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteSingle("layout", index)}
+                          title="Delete file"
+                          disabled={deleting}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
                       </div>
                     </div>
                   ))}
@@ -244,7 +363,18 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
                   <CardTitle>CAD Files</CardTitle>
                   <CardDescription>Upload CAD files (DWG, DXF, DWF, STEP, IGES)</CardDescription>
                 </div>
-                <div>
+                <div className="flex gap-2">
+                  {(selectedFiles["cad"]?.length || 0) > 0 && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleBulkDelete("cad")}
+                      disabled={deleting}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete ({selectedFiles["cad"].length})
+                    </Button>
+                  )}
                   <Input
                     id="cad-upload"
                     type="file"
@@ -270,12 +400,29 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {cadFiles.map((file: any) => (
+                  {cadFiles.length > 1 && (
+                    <div className="flex items-center gap-2 pb-2 border-b">
+                      <Checkbox
+                        checked={
+                          (selectedFiles["cad"]?.length || 0) === cadFiles.length && cadFiles.length > 0
+                        }
+                        onCheckedChange={(checked) =>
+                          handleSelectAll("cad", cadFiles.length, checked as boolean)
+                        }
+                      />
+                      <span className="text-sm text-muted-foreground">Select All</span>
+                    </div>
+                  )}
+                  {cadFiles.map((file: any, index: number) => (
                     <div
                       key={file._id}
                       className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                     >
                       <div className="flex items-center gap-4">
+                        <Checkbox
+                          checked={selectedFiles["cad"]?.includes(index) || false}
+                          onCheckedChange={(checked) => handleFileSelect("cad", index, checked as boolean)}
+                        />
                         <FileText className="h-8 w-8 text-blue-500" />
                         <div>
                           <div className="flex items-center gap-2">
@@ -305,6 +452,15 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
                         >
                           <Download className="h-4 w-4" />
                         </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteSingle("cad", index)}
+                          title="Delete file"
+                          disabled={deleting}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
                       </div>
                     </div>
                   ))}
@@ -322,7 +478,18 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
                   <CardTitle>Shop Drawing - Fitout</CardTitle>
                   <CardDescription>Upload and view fitout shop drawings</CardDescription>
                 </div>
-                <div>
+                <div className="flex gap-2">
+                  {(selectedFiles["shop-drawing-fitout"]?.length || 0) > 0 && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleBulkDelete("shop-drawing-fitout")}
+                      disabled={deleting}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete ({selectedFiles["shop-drawing-fitout"].length})
+                    </Button>
+                  )}
                   <Input
                     id="fitout-upload"
                     type="file"
@@ -348,12 +515,32 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {shopDrawingFitout.map((drawing: any) => (
+                  {shopDrawingFitout.length > 1 && (
+                    <div className="flex items-center gap-2 pb-2 border-b">
+                      <Checkbox
+                        checked={
+                          (selectedFiles["shop-drawing-fitout"]?.length || 0) === shopDrawingFitout.length &&
+                          shopDrawingFitout.length > 0
+                        }
+                        onCheckedChange={(checked) =>
+                          handleSelectAll("shop-drawing-fitout", shopDrawingFitout.length, checked as boolean)
+                        }
+                      />
+                      <span className="text-sm text-muted-foreground">Select All</span>
+                    </div>
+                  )}
+                  {shopDrawingFitout.map((drawing: any, index: number) => (
                     <div
                       key={drawing._id}
                       className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                     >
                       <div className="flex items-center gap-4">
+                        <Checkbox
+                          checked={selectedFiles["shop-drawing-fitout"]?.includes(index) || false}
+                          onCheckedChange={(checked) =>
+                            handleFileSelect("shop-drawing-fitout", index, checked as boolean)
+                          }
+                        />
                         <FileText className="h-8 w-8 text-primary" />
                         <div>
                           <div className="flex items-center gap-2">
@@ -389,6 +576,15 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
                         >
                           <Download className="h-4 w-4" />
                         </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteSingle("shop-drawing-fitout", index)}
+                          title="Delete file"
+                          disabled={deleting}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
                       </div>
                     </div>
                   ))}
@@ -406,7 +602,18 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
                   <CardTitle>Shop Drawing - Furniture</CardTitle>
                   <CardDescription>Upload and view furniture shop drawings</CardDescription>
                 </div>
-                <div>
+                <div className="flex gap-2">
+                  {(selectedFiles["shop-drawing-furniture"]?.length || 0) > 0 && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleBulkDelete("shop-drawing-furniture")}
+                      disabled={deleting}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete ({selectedFiles["shop-drawing-furniture"].length})
+                    </Button>
+                  )}
                   <Input
                     id="furniture-upload"
                     type="file"
@@ -432,12 +639,36 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {shopDrawingFurniture.map((drawing: any) => (
+                  {shopDrawingFurniture.length > 1 && (
+                    <div className="flex items-center gap-2 pb-2 border-b">
+                      <Checkbox
+                        checked={
+                          (selectedFiles["shop-drawing-furniture"]?.length || 0) ===
+                            shopDrawingFurniture.length && shopDrawingFurniture.length > 0
+                        }
+                        onCheckedChange={(checked) =>
+                          handleSelectAll(
+                            "shop-drawing-furniture",
+                            shopDrawingFurniture.length,
+                            checked as boolean
+                          )
+                        }
+                      />
+                      <span className="text-sm text-muted-foreground">Select All</span>
+                    </div>
+                  )}
+                  {shopDrawingFurniture.map((drawing: any, index: number) => (
                     <div
                       key={drawing._id}
                       className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                     >
                       <div className="flex items-center gap-4">
+                        <Checkbox
+                          checked={selectedFiles["shop-drawing-furniture"]?.includes(index) || false}
+                          onCheckedChange={(checked) =>
+                            handleFileSelect("shop-drawing-furniture", index, checked as boolean)
+                          }
+                        />
                         <FileText className="h-8 w-8 text-primary" />
                         <div>
                           <div className="flex items-center gap-2">
@@ -472,6 +703,15 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
                           onClick={() => handleDownload(drawing.provider, drawing.url, drawing.name)}
                         >
                           <Download className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteSingle("shop-drawing-furniture", index)}
+                          title="Delete file"
+                          disabled={deleting}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>
                     </div>
@@ -677,6 +917,23 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete {deleteConfirm?.indexes.length || 0} file(s). This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {deleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

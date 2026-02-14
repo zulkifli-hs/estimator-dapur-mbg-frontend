@@ -24,6 +24,7 @@ import {
 import { boqApi } from "@/lib/api/boq"
 import { templatesApi, type CreateTemplateInput } from "@/lib/api/templates" // Imported CreateTemplateInput
 import { productsApi } from "@/lib/api/products"
+import { projectsApi } from "@/lib/api/projects"
 import { useToast } from "@/hooks/use-toast"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -90,6 +91,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
 
   // Creation mode states
   const [creationMode, setCreationMode] = useState<"blank" | "template" | null>(null)
+  const [boqType, setBOQType] = useState<"main" | "additional">("main") // Track whether creating main or additional BOQ
   const [templates, setTemplates] = useState<any[]>([])
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null)
   const [showTemplatePreview, setShowTemplatePreview] = useState(false)
@@ -141,6 +143,14 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   const [selectedReplaceTemplate, setSelectedReplaceTemplate] = useState<any>(null)
   const [replaceTemplatePreviewOpen, setReplaceTemplatePreviewOpen] = useState(false)
 
+  // Approval request states
+  const [showApprovalModal, setShowApprovalModal] = useState(false)
+  const [approvalEmails, setApprovalEmails] = useState<Array<{ email: string; label: string }>>([])
+  const [selectedApprovalEmail, setSelectedApprovalEmail] = useState<string>("")
+  const [customApprovalEmail, setCustomApprovalEmail] = useState<string>("")
+  const [approvalLoading, setApprovalLoading] = useState(false)
+  const [projectData, setProjectData] = useState<any>(null)
+
   // Renamed loadBOQs to fetchBOQ for clarity with the update function below
   const fetchBOQ = async () => {
     try {
@@ -160,9 +170,41 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     }
   }
 
+  // Fetch project data to get approval emails
+  const fetchProject = async () => {
+    try {
+      const response = await projectsApi.getById(projectId)
+      if (response.success && response.data) {
+        setProjectData(response.data)
+        // Extract emails from project data with labels
+        const emails: Array<{ email: string; label: string }> = []
+        if (response.data.companyClient?.contact?.email) {
+          emails.push({
+            email: response.data.companyClient.contact.email,
+            label: "Company Email"
+          })
+        }
+        if (response.data.companyClient?.picEmail) {
+          emails.push({
+            email: response.data.companyClient.picEmail,
+            label: "PIC Email"
+          })
+        }
+        // Remove duplicates based on email address
+        const uniqueEmails = emails.filter(
+          (item, index, self) => index === self.findIndex((t) => t.email === item.email)
+        )
+        setApprovalEmails(uniqueEmails)
+      }
+    } catch (error) {
+      console.error("Failed to fetch project:", error)
+    }
+  }
+
   useEffect(() => {
     fetchBOQ() // Use the renamed function
     fetchTemplates()
+    fetchProject()
   }, [projectId])
 
   useEffect(() => {
@@ -264,8 +306,8 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     try {
       setLoadingProducts(true)
       const response = await productsApi.getAll()
-      if (response.success && response.data) {
-        setProducts(response.data)
+      if (response && response.list) {
+        setProducts(response.list)
       }
     } catch (error) {
       console.error("Failed to fetch products:", error)
@@ -636,6 +678,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
 
   const handleCreateAdditionalBOQ = () => {
     setIsCreatingAdditional(true)
+    setBOQType("additional") // Set to create additional BOQ
     // In the new implementation, this action leads to the blank creation form
     setCreationMode("blank")
   }
@@ -935,6 +978,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         return `${year}-${month}-${day}`
       }
 
+      // Filter preliminary items
       const filteredPreliminary = preliminary
         .filter((item) => item.name && item.qty > 0 && item.unit && item.price >= 0)
         .map((item) => ({
@@ -1028,7 +1072,15 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
           title: "Success",
           description: "BOQ updated successfully",
         })
+      } else if (boqType === "additional") {
+        // Create additional BOQ using the additional endpoint
+        await boqApi.createAdditional(projectId, boqData)
+        toast({
+          title: "Success",
+          description: "Additional BOQ created successfully",
+        })
       } else {
+        // Create main BOQ
         await boqApi.create(projectId, boqData)
         toast({
           title: "Success",
@@ -1039,6 +1091,8 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       // Reset states
       setCreationMode(null)
       setEditingBOQ(null)
+      setBOQType("main") // Reset to main
+      setIsCreatingAdditional(false)
       setPreliminary([])
       setFittingOut([])
       setFurnitureWork([])
@@ -1058,23 +1112,35 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   const handleUseTemplate = async (template: any) => {
     try {
       setLoading(true)
-      const response = await boqApi.create(projectId, {
+      const templateData = {
         preliminary: template.preliminary || [],
         fittingOut: template.fittingOut || [],
         furnitureWork: template.furnitureWork || [],
         mechanicalElectrical: template.mechanicalElectrical || [],
-      })
+      }
 
-      if (response.success) {
+      if (boqType === "additional") {
+        await boqApi.createAdditional(projectId, templateData)
         toast({
           title: "Success",
-          description: "Main BOQ created from template successfully",
+          description: "Additional BOQ created from template successfully",
         })
-        fetchBOQ() // Use renamed function
-        setCreationMode(null)
-        setSelectedTemplate(null)
-        setShowTemplatePreview(false)
+      } else {
+        const response = await boqApi.create(projectId, templateData)
+        if (response.success) {
+          toast({
+            title: "Success",
+            description: "Main BOQ created from template successfully",
+          })
+        }
       }
+
+      fetchBOQ() // Use renamed function
+      setCreationMode(null)
+      setSelectedTemplate(null)
+      setShowTemplatePreview(false)
+      setBOQType("main") // Reset to main
+      setIsCreatingAdditional(false)
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -1475,18 +1541,32 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   const mainBOQ = boqItems.find((boq) => boq.number === 1)
   const additionalBOQs = boqItems.filter((boq) => boq.number > 1)
 
-  // Placeholder for handleRequestApproval - needs to be implemented
-  const handleRequestApproval = async () => {
+  // Send approval request with selected email
+  const sendApprovalRequest = async () => {
+    const email = selectedApprovalEmail || customApprovalEmail
+
+    if (!email) {
+      toast({
+        title: "Error",
+        description: "Please select or enter an email address",
+        variant: "destructive",
+      })
+      return
+    }
+
     if (!mainBOQ) return
 
     try {
-      setLoading(true)
-      const response = await boqApi.requestApproval(projectId, mainBOQ._id)
+      setApprovalLoading(true)
+      const response = await boqApi.requestApproval(projectId, mainBOQ._id, { email })
       if (response.success) {
         toast({
           title: "Success",
           description: "Approval request sent successfully",
         })
+        setShowApprovalModal(false)
+        setSelectedApprovalEmail("")
+        setCustomApprovalEmail("")
         fetchBOQ() // Refresh BOQ list
       } else {
         toast({
@@ -1495,16 +1575,22 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
           variant: "destructive",
         })
       }
-    } catch (error) {
-      console.error("Failed to request approval:", error)
+    } catch (error: any) {
+      console.error("Failed to send approval request:", error)
       toast({
         title: "Error",
-        description: "Failed to send approval request",
+        description: error.message || "Failed to send approval request",
         variant: "destructive",
       })
     } finally {
-      setLoading(false)
+      setApprovalLoading(false)
     }
+  }
+
+  // Handle request approval - open modal
+  const handleRequestApproval = async () => {
+    if (!mainBOQ) return
+    setShowApprovalModal(true)
   }
 
   if (loading) {
@@ -1515,7 +1601,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     )
   }
 
-  if (!mainBOQ && !creationMode) {
+  if (!mainBOQ && !creationMode && boqType === "main") {
     return (
       <div className="space-y-6">
         <Card>
@@ -1554,15 +1640,61 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     )
   }
 
-  if (!mainBOQ && creationMode === "template") {
+  // Show template or blank selection for additional BOQ
+  if (mainBOQ && boqType === "additional" && !creationMode) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Create Additional BOQ</CardTitle>
+            <CardDescription>Choose how you want to create your Additional Bill of Quantities</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Button
+                variant="outline"
+                className="h-32 flex flex-col items-center justify-center gap-3 bg-transparent"
+                onClick={() => setCreationMode("blank")}
+              >
+                <FileSpreadsheet className="h-8 w-8" />
+                <div className="text-center">
+                  <div className="font-semibold">Create from Blank</div>
+                  <div className="text-sm text-muted-foreground">Start with an empty BOQ</div>
+                </div>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-32 flex flex-col items-center justify-center gap-3 bg-transparent"
+                onClick={() => setCreationMode("template")}
+              >
+                <Sparkles className="h-8 w-8" />
+                <div className="text-center">
+                  <div className="font-semibold">Import from Template</div>
+                  <div className="text-sm text-muted-foreground">Use a pre-made template</div>
+                </div>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if ((!mainBOQ || boqType === "additional") && creationMode === "template") {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold">Select Template</h2>
-            <p className="text-muted-foreground">Choose a template to create your BOQ</p>
+            <p className="text-muted-foreground">Choose a template to create your {boqType === "additional" ? "Additional" : "Main"} BOQ</p>
           </div>
-          <Button variant="outline" onClick={() => setCreationMode(null)}>
+          <Button variant="outline" onClick={() => {
+            setCreationMode(null)
+            setBOQType("main")
+            if (boqType === "additional") {
+              setActiveTab("additional")
+            }
+          }}>
             <X className="h-4 w-4 mr-2" />
             Cancel
           </Button>
@@ -1636,12 +1768,12 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     )
   }
 
-  if ((editingBOQ && creationMode === "blank") || (!mainBOQ && creationMode === "blank")) {
+  if ((editingBOQ && creationMode === "blank") || (!mainBOQ && creationMode === "blank") || (boqType === "additional" && creationMode === "blank")) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold">{editingBOQ ? "Edit Main BOQ" : "Create Main BOQ"}</h2>
+            <h2 className="text-2xl font-bold">{editingBOQ ? "Edit BOQ" : boqType === "additional" ? "Create Additional BOQ" : "Create Main BOQ"}</h2>
             <p className="text-muted-foreground">Fill in the details for your Bill of Quantities</p>
           </div>
           <div className="flex gap-2">
@@ -1650,6 +1782,10 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
               onClick={() => {
                 setCreationMode(null)
                 setEditingBOQ(null)
+                setBOQType("main")
+                if (boqType === "additional") {
+                  setActiveTab("additional")
+                }
                 setPreliminary([])
                 setFittingOut([])
                 setFurnitureWork([])
@@ -2457,15 +2593,12 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         </div>
         {/* This button logic is now handled by the creation mode state */}
         {!mainBOQ && !creationMode && (
-          <Button onClick={() => setCreationMode("blank")} className="w-full sm:w-auto">
+          <Button onClick={() => {
+            setBOQType("main")
+            setCreationMode("blank")
+          }} className="w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
             Add Main BOQ
-          </Button>
-        )}
-        {mainBOQ && !creationMode && (
-          <Button onClick={handleCreateAdditionalBOQ} className="w-full sm:w-auto">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Additional BOQ
           </Button>
         )}
       </div>
@@ -2605,6 +2738,19 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                       </Button>
                     </div>
                   )}
+                  {mainBOQ.status.toLowerCase() === "request" && (
+                    <div className="flex gap-2 w-full sm:w-auto">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleRequestApproval}
+                        className="flex-1 sm:flex-initial"
+                      >
+                        <Send className="h-4 w-4 mr-2" />
+                        Re-request Approval
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </CardHeader>
               <CardContent>{renderBOQTable(mainBOQ)}</CardContent>
@@ -2613,7 +2759,39 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         </TabsContent>
 
         <TabsContent value="additional" className="space-y-4">
-          {additionalBOQs.length === 0 ? (
+          {!creationMode && boqType === "main" && mainBOQ && !editingBOQ && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Button
+                variant="outline"
+                className="h-24 flex flex-col items-center justify-center gap-2 bg-transparent"
+                onClick={() => {
+                  setBOQType("additional")
+                  setCreationMode("blank")
+                }}
+              >
+                <FileSpreadsheet className="h-6 w-6" />
+                <div className="text-center">
+                  <div className="font-semibold text-sm">Create from Blank</div>
+                  <div className="text-xs text-muted-foreground">Start with empty template</div>
+                </div>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-24 flex flex-col items-center justify-center gap-2 bg-transparent"
+                onClick={() => {
+                  setBOQType("additional")
+                  setCreationMode("template")
+                }}
+              >
+                <Sparkles className="h-6 w-6" />
+                <div className="text-center">
+                  <div className="font-semibold text-sm">Create from Template</div>
+                  <div className="text-xs text-muted-foreground">Use pre-made template</div>
+                </div>
+              </Button>
+            </div>
+          )}
+          {additionalBOQs.length === 0 && !creationMode && boqType === "main" ? (
             <Card>
               <CardContent className="py-8">
                 <Alert>
@@ -3035,9 +3213,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
           {selectedReplaceTemplate && (
             <div className="space-y-4">
               {renderBOQTable({
-                preliminary: selectedReplaceTemplate.preliminary,
-                fittingOut: selectedReplaceTemplate.fittingOut,
-                furnitureWork: selectedReplaceTemplate.furnitureWork,
+                ...selectedReplaceTemplate,
                 mechanicalElectrical: selectedReplaceTemplate.mechanicalElectrical || [],
               })}
             </div>
@@ -3052,6 +3228,72 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
               }}
             >
               Use This Template
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Approval Request Modal */}
+      <Dialog open={showApprovalModal} onOpenChange={setShowApprovalModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Request Approval</DialogTitle>
+            <DialogDescription>Select or enter the email address to send the approval request</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {approvalEmails.length > 0 && (
+              <div className="space-y-2">
+                <Label>Select from client emails</Label>
+                <Select value={selectedApprovalEmail} onValueChange={(value) => {
+                  setSelectedApprovalEmail(value)
+                  setCustomApprovalEmail("") // Clear custom email when selecting from list
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose an email" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {approvalEmails.map((item) => (
+                      <SelectItem key={item.email} value={item.email}>
+                        <div className="flex items-center gap-2">
+                          <span>{item.email}</span>
+                          <span className="text-xs text-muted-foreground">({item.label})</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            
+            <div className="space-y-2">
+              <Label htmlFor="custom-email">Or enter email manually</Label>
+              <Input
+                id="custom-email"
+                type="email"
+                placeholder="email@example.com"
+                value={customApprovalEmail}
+                onChange={(e) => {
+                  setCustomApprovalEmail(e.target.value)
+                  setSelectedApprovalEmail("") // Clear selection when typing
+                }}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowApprovalModal(false)
+                setSelectedApprovalEmail("")
+                setCustomApprovalEmail("")
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={sendApprovalRequest} disabled={approvalLoading}>
+              {approvalLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              <Send className="h-4 w-4 mr-2" />
+              Send Request
             </Button>
           </DialogFooter>
         </DialogContent>

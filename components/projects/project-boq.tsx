@@ -2728,6 +2728,19 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                       </Button>
                     </div>
                   )}
+                  {mainBOQ.status.toLowerCase() === "request" && (
+                    <div className="flex gap-2 w-full sm:w-auto">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleRequestApproval}
+                        className="flex-1 sm:flex-initial"
+                      >
+                        <Send className="h-4 w-4 mr-2" />
+                        Re-request Approval
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </CardHeader>
               <CardContent>{renderBOQTable(mainBOQ)}</CardContent>

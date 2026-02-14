@@ -145,7 +145,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
 
   // Approval request states
   const [showApprovalModal, setShowApprovalModal] = useState(false)
-  const [approvalEmails, setApprovalEmails] = useState<string[]>([])
+  const [approvalEmails, setApprovalEmails] = useState<Array<{ email: string; label: string }>>([])
   const [selectedApprovalEmail, setSelectedApprovalEmail] = useState<string>("")
   const [customApprovalEmail, setCustomApprovalEmail] = useState<string>("")
   const [approvalLoading, setApprovalLoading] = useState(false)
@@ -176,15 +176,25 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       const response = await projectsApi.getById(projectId)
       if (response.success && response.data) {
         setProjectData(response.data)
-        // Extract emails from project data
-        const emails: string[] = []
+        // Extract emails from project data with labels
+        const emails: Array<{ email: string; label: string }> = []
         if (response.data.companyClient?.contact?.email) {
-          emails.push(response.data.companyClient.contact.email)
+          emails.push({
+            email: response.data.companyClient.contact.email,
+            label: "Company Email"
+          })
         }
         if (response.data.companyClient?.picEmail) {
-          emails.push(response.data.companyClient.picEmail)
+          emails.push({
+            email: response.data.companyClient.picEmail,
+            label: "PIC Email"
+          })
         }
-        setApprovalEmails([...new Set(emails)]) // Remove duplicates
+        // Remove duplicates based on email address
+        const uniqueEmails = emails.filter(
+          (item, index, self) => index === self.findIndex((t) => t.email === item.email)
+        )
+        setApprovalEmails(uniqueEmails)
       }
     } catch (error) {
       console.error("Failed to fetch project:", error)
@@ -3233,7 +3243,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
           <div className="space-y-4 py-4">
             {approvalEmails.length > 0 && (
               <div className="space-y-2">
-                <Label>Select from project contacts</Label>
+                <Label>Select from client emails</Label>
                 <Select value={selectedApprovalEmail} onValueChange={(value) => {
                   setSelectedApprovalEmail(value)
                   setCustomApprovalEmail("") // Clear custom email when selecting from list
@@ -3242,9 +3252,12 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                     <SelectValue placeholder="Choose an email" />
                   </SelectTrigger>
                   <SelectContent>
-                    {approvalEmails.map((email) => (
-                      <SelectItem key={email} value={email}>
-                        {email}
+                    {approvalEmails.map((item) => (
+                      <SelectItem key={item.email} value={item.email}>
+                        <div className="flex items-center gap-2">
+                          <span>{item.email}</span>
+                          <span className="text-xs text-muted-foreground">({item.label})</span>
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>

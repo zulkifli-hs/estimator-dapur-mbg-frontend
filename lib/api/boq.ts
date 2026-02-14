@@ -211,9 +211,10 @@ export const updateGanttChart = async (
 }
 
 // Request BOQ approval
-export const requestBOQApproval = async (projectId: string, boqId: string): Promise<void> => {
+export const requestBOQApproval = async (projectId: string, boqId: string, data?: { email: string }): Promise<void> => {
   return apiRequest<void>(`/projects/${projectId}/boq/${boqId}/request`, {
     method: "POST",
+    body: data ? JSON.stringify(data) : undefined,
   })
 }
 
@@ -342,8 +343,8 @@ export const boqApi = {
     const data = await generateGanttChart(projectId, boqId)
     return { success: true, data }
   },
-  requestApproval: async (projectId: string, boqId: string) => {
-    await requestBOQApproval(projectId, boqId)
+  requestApproval: async (projectId: string, boqId: string, data?: { email: string }) => {
+    await requestBOQApproval(projectId, boqId, data)
     return { success: true }
   },
   accept: async (projectId: string, boqId: string, token: string) => {

@@ -24,6 +24,7 @@ import {
 import { boqApi } from "@/lib/api/boq"
 import { templatesApi, type CreateTemplateInput } from "@/lib/api/templates" // Imported CreateTemplateInput
 import { productsApi } from "@/lib/api/products"
+import { projectsApi } from "@/lib/api/projects"
 import { useToast } from "@/hooks/use-toast"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -142,6 +143,14 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   const [selectedReplaceTemplate, setSelectedReplaceTemplate] = useState<any>(null)
   const [replaceTemplatePreviewOpen, setReplaceTemplatePreviewOpen] = useState(false)
 
+  // Approval request states
+  const [showApprovalModal, setShowApprovalModal] = useState(false)
+  const [approvalEmails, setApprovalEmails] = useState<string[]>([])
+  const [selectedApprovalEmail, setSelectedApprovalEmail] = useState<string>("")
+  const [customApprovalEmail, setCustomApprovalEmail] = useState<string>("")
+  const [approvalLoading, setApprovalLoading] = useState(false)
+  const [projectData, setProjectData] = useState<any>(null)
+
   // Renamed loadBOQs to fetchBOQ for clarity with the update function below
   const fetchBOQ = async () => {
     try {
@@ -161,9 +170,31 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     }
   }
 
+  // Fetch project data to get approval emails
+  const fetchProject = async () => {
+    try {
+      const response = await projectsApi.getById(projectId)
+      if (response.success && response.data) {
+        setProjectData(response.data)
+        // Extract emails from project data
+        const emails: string[] = []
+        if (response.data.companyClient?.contact?.email) {
+          emails.push(response.data.companyClient.contact.email)
+        }
+        if (response.data.companyClient?.picEmail) {
+          emails.push(response.data.companyClient.picEmail)
+        }
+        setApprovalEmails([...new Set(emails)]) // Remove duplicates
+      }
+    } catch (error) {
+      console.error("Failed to fetch project:", error)
+    }
+  }
+
   useEffect(() => {
     fetchBOQ() // Use the renamed function
     fetchTemplates()
+    fetchProject()
   }, [projectId])
 
   useEffect(() => {
@@ -1500,18 +1531,32 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   const mainBOQ = boqItems.find((boq) => boq.number === 1)
   const additionalBOQs = boqItems.filter((boq) => boq.number > 1)
 
-  // Placeholder for handleRequestApproval - needs to be implemented
-  const handleRequestApproval = async () => {
+  // Send approval request with selected email
+  const sendApprovalRequest = async () => {
+    const email = selectedApprovalEmail || customApprovalEmail
+
+    if (!email) {
+      toast({
+        title: "Error",
+        description: "Please select or enter an email address",
+        variant: "destructive",
+      })
+      return
+    }
+
     if (!mainBOQ) return
 
     try {
-      setLoading(true)
-      const response = await boqApi.requestApproval(projectId, mainBOQ._id)
+      setApprovalLoading(true)
+      const response = await boqApi.requestApproval(projectId, mainBOQ._id, { email })
       if (response.success) {
         toast({
           title: "Success",
           description: "Approval request sent successfully",
         })
+        setShowApprovalModal(false)
+        setSelectedApprovalEmail("")
+        setCustomApprovalEmail("")
         fetchBOQ() // Refresh BOQ list
       } else {
         toast({
@@ -1520,16 +1565,22 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
           variant: "destructive",
         })
       }
-    } catch (error) {
-      console.error("Failed to request approval:", error)
+    } catch (error: any) {
+      console.error("Failed to send approval request:", error)
       toast({
         title: "Error",
-        description: "Failed to send approval request",
+        description: error.message || "Failed to send approval request",
         variant: "destructive",
       })
     } finally {
-      setLoading(false)
+      setApprovalLoading(false)
     }
+  }
+
+  // Handle request approval - open modal
+  const handleRequestApproval = async () => {
+    if (!mainBOQ) return
+    setShowApprovalModal(true)
   }
 
   if (loading) {
@@ -3154,6 +3205,69 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
               }}
             >
               Use This Template
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Approval Request Modal */}
+      <Dialog open={showApprovalModal} onOpenChange={setShowApprovalModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Request Approval</DialogTitle>
+            <DialogDescription>Select or enter the email address to send the approval request</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {approvalEmails.length > 0 && (
+              <div className="space-y-2">
+                <Label>Select from project contacts</Label>
+                <Select value={selectedApprovalEmail} onValueChange={(value) => {
+                  setSelectedApprovalEmail(value)
+                  setCustomApprovalEmail("") // Clear custom email when selecting from list
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose an email" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {approvalEmails.map((email) => (
+                      <SelectItem key={email} value={email}>
+                        {email}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            
+            <div className="space-y-2">
+              <Label htmlFor="custom-email">Or enter email manually</Label>
+              <Input
+                id="custom-email"
+                type="email"
+                placeholder="email@example.com"
+                value={customApprovalEmail}
+                onChange={(e) => {
+                  setCustomApprovalEmail(e.target.value)
+                  setSelectedApprovalEmail("") // Clear selection when typing
+                }}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowApprovalModal(false)
+                setSelectedApprovalEmail("")
+                setCustomApprovalEmail("")
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={sendApprovalRequest} disabled={approvalLoading}>
+              {approvalLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              <Send className="h-4 w-4 mr-2" />
+              Send Request
             </Button>
           </DialogFooter>
         </DialogContent>

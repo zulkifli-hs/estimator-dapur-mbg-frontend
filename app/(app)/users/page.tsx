@@ -38,6 +38,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Search, Edit, Trash2, Loader2, Upload, X, Shield, MoreVertical, Eye, Key, Lock } from "lucide-react"
 import { usersApi, type User, type UpdateUserInput, type Permission } from "@/lib/api/users"
 import { uploadApi } from "@/lib/api/upload"
@@ -53,6 +54,7 @@ export default function UsersPage() {
   const [checkingAuth, setCheckingAuth] = useState(true) // Added auth checking state
   const [currentUserId, setCurrentUserId] = useState<string>("")
   const [searchQuery, setSearchQuery] = useState("")
+  const [userType, setUserType] = useState<"All" | "Internal" | "External">("All")
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalData, setTotalData] = useState(0)
@@ -67,11 +69,13 @@ export default function UsersPage() {
   const [statusConfirmDialogOpen, setStatusConfirmDialogOpen] = useState(false)
   const [permissionsDialogOpen, setPermissionsDialogOpen] = useState(false)
   const [viewDetailDialogOpen, setViewDetailDialogOpen] = useState(false)
+  const [projectsDialogOpen, setProjectsDialogOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null)
   const [toggleStatusUser, setToggleStatusUser] = useState<User | null>(null)
   const [selectedUsersForPermissions, setSelectedUsersForPermissions] = useState<User[]>([])
   const [permissionsMap, setPermissionsMap] = useState<Record<string, Permission[]>>({})
+  const [selectedUserForProjects, setSelectedUserForProjects] = useState<User | null>(null)
 
   // Form states
   const [formData, setFormData] = useState({
@@ -79,6 +83,7 @@ export default function UsersPage() {
     password: "",
     name: "",
     phone: "",
+    type: "Internal" as "Internal" | "External",
   })
   const [passwordFormData, setPasswordFormData] = useState({
     password: "",
@@ -122,12 +127,13 @@ export default function UsersPage() {
     if (!checkingAuth) {
       loadUsers()
     }
-  }, [page, searchQuery, checkingAuth])
+  }, [page, searchQuery, userType, checkingAuth])
 
   const loadUsers = async () => {
     try {
       setLoading(true)
-      const response = await usersApi.getAll(page, 10, searchQuery || undefined)
+      const typeParam = userType !== "All" ? userType : undefined
+      const response = await usersApi.getAll(page, 10, searchQuery || undefined, typeParam)
       setUsers(response.list)
       setTotalPages(response.totalPage)
       setTotalData(response.totalData)
@@ -165,7 +171,7 @@ export default function UsersPage() {
   }
 
   const resetForm = () => {
-    setFormData({ email: "", password: "", name: "", phone: "" })
+    setFormData({ email: "", password: "", name: "", phone: "", type: "Internal" })
     setPhotoFile(null)
     setPhotoPreview("")
     setUploadProgress(0)
@@ -200,11 +206,15 @@ export default function UsersPage() {
         profileData.phone = formData.phone
       }
 
-      await usersApi.create({
+      const createData: any = {
         email: formData.email,
         password: formData.password,
         profile: profileData,
-      })
+      }
+      if (formData.type) {
+        createData.type = formData.type
+      }
+      await usersApi.create(createData)
 
       toast({
         title: "Success",
@@ -251,6 +261,7 @@ export default function UsersPage() {
         email: formData.email || undefined,
         password: formData.password || undefined,
         profile: profileData,
+        type: formData.type || "Internal",
       }
 
       await usersApi.update(editingUser._id, updateData)
@@ -282,6 +293,7 @@ export default function UsersPage() {
       password: "",
       name: user.profile?.name || "",
       phone: user.profile?.phone || "",
+      type: user.type || "Internal",
     })
     if (user.profile?.photo) {
       setPhotoPreview(`${API_BASE_URL}/public/${user.profile.photo.provider}/${user.profile.photo.url}`)
@@ -620,6 +632,23 @@ export default function UsersPage() {
               </div>
             </div>
           </div>
+          
+          {/* Type Filter Buttons */}
+          <div className="flex gap-2 mt-4 flex-wrap">
+            {(["All", "Internal", "External"] as const).map((type) => (
+              <Button
+                key={type}
+                variant={userType === type ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  setUserType(type)
+                  setPage(1)
+                }}
+              >
+                {type}
+              </Button>
+            ))}
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -643,7 +672,9 @@ export default function UsersPage() {
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Phone</TableHead>
+                    <TableHead>Type</TableHead>
                     <TableHead>Permissions</TableHead>
+                    <TableHead>Projects</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Created At</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -686,6 +717,13 @@ export default function UsersPage() {
                         <TableCell>{user.email || "-"}</TableCell>
                         <TableCell>{user.profile?.phone || "-"}</TableCell>
                         <TableCell>
+                          {user.type && (
+                            <Badge variant={user.type === "Internal" ? "default" : "secondary"}>
+                              {user.type}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
                           <div className="flex flex-wrap gap-1">
                             {user.permissions && user.permissions.length > 0 ? (
                               user.permissions.map((perm, idx) => (
@@ -695,6 +733,27 @@ export default function UsersPage() {
                               ))
                             ) : (
                               <span className="text-sm text-muted-foreground">No permissions</span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {user.projects && user.projects.length > 0 ? (
+                              <>
+                                <span className="font-medium">{user.projects.length}</span>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedUserForProjects(user)
+                                    setProjectsDialogOpen(true)
+                                  }}
+                                >
+                                  View
+                                </Button>
+                              </>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">-</span>
                             )}
                           </div>
                         </TableCell>
@@ -827,6 +886,18 @@ export default function UsersPage() {
               />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="create-type">User Type</Label>
+              <Select value={formData.type} onValueChange={(value: any) => setFormData({ ...formData, type: value })}>
+                <SelectTrigger id="create-type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Internal">Internal</SelectItem>
+                  <SelectItem value="External">External</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
               <Label>Photo</Label>
               {photoPreview ? (
                 <div className="relative inline-block">
@@ -920,6 +991,18 @@ export default function UsersPage() {
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-type">User Type</Label>
+              <Select value={formData.type} onValueChange={(value: any) => setFormData({ ...formData, type: value })}>
+                <SelectTrigger id="edit-type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Internal">Internal</SelectItem>
+                  <SelectItem value="External">External</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>Photo</Label>
@@ -1231,6 +1314,54 @@ export default function UsersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* User Projects Dialog */}
+      <Dialog open={projectsDialogOpen} onOpenChange={setProjectsDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              Projects - {selectedUserForProjects?.profile?.name || selectedUserForProjects?.email}
+            </DialogTitle>
+            <DialogDescription>
+              Viewing all projects and roles for this user
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {selectedUserForProjects?.projects && selectedUserForProjects.projects.length > 0 ? (
+              <div className="space-y-3">
+                {selectedUserForProjects.projects.map((projectAssignment) => (
+                  <div
+                    key={projectAssignment._id}
+                    className="border rounded-lg p-4 flex items-center justify-between hover:bg-muted/50 transition-colors cursor-pointer"
+                    onClick={() => {
+                      setProjectsDialogOpen(false)
+                      router.push(`/projects/${projectAssignment.project._id || projectAssignment._id}`)
+                    }}
+                  >
+                    <div className="flex-1">
+                      <h4 className="font-semibold">{projectAssignment.project.name}</h4>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {projectAssignment.roles.map((role) => (
+                          <Badge key={role} variant="outline" className="text-xs">
+                            {role}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                No projects assigned to this user
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setProjectsDialogOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

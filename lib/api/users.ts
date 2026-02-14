@@ -10,6 +10,7 @@ export interface User {
   email: string
   status: "Active" | "Inactive"
   admin?: boolean
+  type?: "Internal" | "External"
   profile?: {
     name?: string
     photo?: {
@@ -21,6 +22,13 @@ export interface User {
   createdAt: string
   updatedAt: string
   permissions?: Permission[]
+  projects?: Array<{
+    _id: string
+    project: {
+      name: string
+    }
+    roles: string[]
+  }>
 }
 
 export interface UpdatePermissionsInput {
@@ -41,6 +49,7 @@ export interface CreateUserInput {
     }
     phone?: string
   }
+  type?: "Internal" | "External"
 }
 
 export interface UpdateUserInput {
@@ -54,6 +63,7 @@ export interface UpdateUserInput {
     }
     phone?: string
   }
+  type?: "Internal" | "External"
 }
 
 export const usersApi = {
@@ -61,6 +71,7 @@ export const usersApi = {
     page = 1,
     limit = 10,
     search?: string,
+    type?: "Internal" | "External",
   ): Promise<{ list: User[]; totalData: number; totalPage: number; page: number }> => {
     const params = new URLSearchParams({
       page: page.toString(),
@@ -69,6 +80,10 @@ export const usersApi = {
 
     if (search) {
       params.append("search", search)
+    }
+
+    if (type) {
+      params.append("type", type)
     }
 
     const response = await apiRequest(`/users?${params.toString()}`, {

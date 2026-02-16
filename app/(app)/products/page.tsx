@@ -68,6 +68,7 @@ export default function ProductsPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false)
+  const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null)
   const [viewingProduct, setViewingProduct] = useState<Product | null>(null)
@@ -324,6 +325,7 @@ export default function ProductsPage() {
         description: `${selectedProducts.length} product(s) deleted successfully`,
       })
       setSelectedProducts([])
+      setBulkDeleteConfirmOpen(false)
       loadProducts()
     } catch (error) {
       toast({
@@ -429,7 +431,7 @@ export default function ProductsPage() {
 
   if (checkingAuth) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex items-center justify-center min-h-100">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto mb-4" />
           <p className="text-muted-foreground">Verifying access permissions...</p>
@@ -463,7 +465,7 @@ export default function ProductsPage() {
             </div>
             <div className="flex gap-2 w-full sm:w-auto">
               {selectedProducts.length > 0 && (
-                <Button variant="destructive" size="sm" onClick={handleBulkDelete}>
+                <Button variant="destructive" size="sm" onClick={() => setBulkDeleteConfirmOpen(true)}>
                   <Trash2 className="mr-2 h-4 w-4" />
                   Delete ({selectedProducts.length})
                 </Button>
@@ -524,7 +526,7 @@ export default function ProductsPage() {
                           />
                         </TableCell>
                         <TableCell className="font-mono text-xs">{product.sku}</TableCell>
-                        <TableCell className="font-medium whitespace-normal break-words">{product.name}</TableCell>
+                        <TableCell className="font-medium whitespace-normal wrap-break-word">{product.name}</TableCell>
                         <TableCell>{product.type}</TableCell>
                         <TableCell>{product.unit}</TableCell>
                         <TableCell>{product.brand || "-"}</TableCell>
@@ -610,8 +612,25 @@ export default function ProductsPage() {
         onCreated={handleProductCreated}
       />
 
+      <AlertDialog open={bulkDeleteConfirmOpen} onOpenChange={setBulkDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Products?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedProducts.length} product(s)? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-150 max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Product Details</DialogTitle>
             <DialogDescription>View product information and specifications</DialogDescription>

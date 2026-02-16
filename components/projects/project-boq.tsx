@@ -1,7 +1,7 @@
 "use client"
 
 import "@radix-ui/react-id"
-import { useEffect, useState, useRef } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
@@ -22,7 +22,7 @@ import {
   Send,
 } from "lucide-react"
 import { boqApi } from "@/lib/api/boq"
-import { templatesApi, type CreateTemplateInput } from "@/lib/api/templates" // Imported CreateTemplateInput
+import { templatesApi, type CreateTemplateInput } from "@/lib/api/templates"
 import { productsApi } from "@/lib/api/products"
 import { projectsApi } from "@/lib/api/projects"
 import { useToast } from "@/hooks/use-toast"
@@ -41,12 +41,12 @@ import {
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import React from "react"
 import { CreateBOQDialog } from "./create-boq-dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ProductSearchPopover } from "@/components/product-search-popover"
+import { CreateProductDialog } from "@/components/products/create-product-dialog"
 
 interface PreliminaryItem {
   name: string
@@ -99,7 +99,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   const [searchQuery, setSearchQuery] = useState<{ [key: string]: string }>({})
   const [createProductDialogOpen, setCreateProductDialogOpen] = useState(false)
   const [pendingProductSelection, setPendingProductSelection] = useState<{
-    type: 'preliminary' | 'fittingOut' | 'furnitureWork' | 'mechanicalElectrical'
+    type: "preliminary" | "fittingOut" | "furnitureWork" | "mechanicalElectrical"
     categoryIndex?: number
     productIndex: number
   } | null>(null)
@@ -115,20 +115,6 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   const furnitureWorkQtyRefs = useRef<{ [key: string]: HTMLInputElement | null }>({})
   const mechanicalElectricalQtyRefs = useRef<{ [key: string]: HTMLInputElement | null }>({})
 
-  // Product creation form states
-  const [productFormData, setProductFormData] = useState({
-    name: "",
-    type: "Goods" as "Goods" | "Services" | "Goods and Services",
-    unit: "",
-    brand: "",
-    sellingPrice: "",
-    purchasePrice: "",
-    sku: "",
-  })
-  const [uploadedPhotos, setUploadedPhotos] = useState<Array<{ url: string; provider: string }>>([])
-  const [uploading, setUploading] = useState(false)
-  const [productDetails, setProductDetails] = useState<any[]>([])
-  const [submittingProduct, setSubmittingProduct] = useState(false)
   const [products, setProducts] = useState<any[]>([])
   const [loadingProducts, setLoadingProducts] = useState(false)
   const [summary, setSummary] = useState({
@@ -176,23 +162,22 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       const response = await projectsApi.getById(projectId)
       if (response.success && response.data) {
         setProjectData(response.data)
-        // Extract emails from project data with labels
         const emails: Array<{ email: string; label: string }> = []
         if (response.data.companyClient?.contact?.email) {
           emails.push({
             email: response.data.companyClient.contact.email,
-            label: "Company Email"
+            label: "Company Email",
           })
         }
-        if (response.data.companyClient?.picEmail) {
+        // Note: picEmail may not exist on all company types
+        if ((response.data.companyClient as any)?.picEmail) {
           emails.push({
-            email: response.data.companyClient.picEmail,
-            label: "PIC Email"
+            email: (response.data.companyClient as any).picEmail,
+            label: "PIC Email",
           })
         }
-        // Remove duplicates based on email address
         const uniqueEmails = emails.filter(
-          (item, index, self) => index === self.findIndex((t) => t.email === item.email)
+          (item, index, self) => index === self.findIndex((current) => current.email === item.email),
         )
         setApprovalEmails(uniqueEmails)
       }
@@ -202,7 +187,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   }
 
   useEffect(() => {
-    fetchBOQ() // Use the renamed function
+    fetchBOQ()
     fetchTemplates()
     fetchProject()
   }, [projectId])
@@ -211,7 +196,6 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     console.log("[v0] Edit mode triggered:", { editingBOQ, creationMode })
     if (editingBOQ && creationMode === "blank") {
       console.log("[v0] Populating form with BOQ data:", editingBOQ)
-      // Populate preliminary items
       setPreliminary(
         editingBOQ.preliminary?.map((item: any) => ({
           name: item.name || "",
@@ -221,12 +205,11 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
           productId: item.productId || "",
           location: item.location || "",
           brand: item.brand || "",
-          startDate: item.startDate ? new Date(item.startDate).toISOString().split("T")[0] : "", // Format date
-          endDate: item.endDate ? new Date(item.endDate).toISOString().split("T")[0] : "", // Format date
+          startDate: item.startDate ? new Date(item.startDate).toISOString().split("T")[0] : "",
+          endDate: item.endDate ? new Date(item.endDate).toISOString().split("T")[0] : "",
         })) || [],
       )
 
-      // Populate fitting out categories
       setFittingOut(
         editingBOQ.fittingOut?.map((category: any) => ({
           name: category.name || "",
@@ -239,13 +222,12 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
               productId: product.productId || "",
               location: product.location || "",
               brand: product.brand || "",
-              startDate: product.startDate ? new Date(product.startDate).toISOString().split("T")[0] : "", // Format date
-              endDate: product.endDate ? new Date(product.endDate).toISOString().split("T")[0] : "", // Format date
+              startDate: product.startDate ? new Date(product.startDate).toISOString().split("T")[0] : "",
+              endDate: product.endDate ? new Date(product.endDate).toISOString().split("T")[0] : "",
             })) || [],
         })) || [],
       )
 
-      // Populate furniture work categories
       setFurnitureWork(
         editingBOQ.furnitureWork?.map((category: any) => ({
           name: category.name || "",
@@ -258,13 +240,12 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
               productId: product.productId || "",
               location: product.location || "",
               brand: product.brand || "",
-              startDate: product.startDate ? new Date(product.startDate).toISOString().split("T")[0] : "", // Format date
-              endDate: product.endDate ? new Date(product.endDate).toISOString().split("T")[0] : "", // Format date
+              startDate: product.startDate ? new Date(product.startDate).toISOString().split("T")[0] : "",
+              endDate: product.endDate ? new Date(product.endDate).toISOString().split("T")[0] : "",
             })) || [],
         })) || [],
       )
 
-      // Populate mechanical / electrical / plumbing categories
       setMechanicalElectrical(
         editingBOQ.mechanicalElectrical?.map((category: any) => ({
           name: category.name || "",
@@ -277,8 +258,8 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
               productId: product.productId || "",
               location: product.location || "",
               brand: product.brand || "",
-              startDate: product.startDate ? new Date(product.startDate).toISOString().split("T")[0] : "", // Format date
-              endDate: product.endDate ? new Date(product.endDate).toISOString().split("T")[0] : "", // Format date
+              startDate: product.startDate ? new Date(product.startDate).toISOString().split("T")[0] : "",
+              endDate: product.endDate ? new Date(product.endDate).toISOString().split("T")[0] : "",
             })) || [],
         })) || [],
       )
@@ -315,8 +296,6 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       setLoadingProducts(false)
     }
   }
-
-  // Removed loadBOQs as it's renamed to fetchBOQ and called in useEffect
 
   const calculateSummary = (items: any[]) => {
     if (!Array.isArray(items) || items.length === 0) {
@@ -781,6 +760,31 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     setPreliminary(newPreliminary)
   }
 
+  interface PreliminaryItem {
+    name: string
+    qty: number
+    unit: string
+    price: number
+    productId?: string
+    location?: string
+    brand?: string
+    startDate?: string // Added startDate
+    endDate?: string // Added endDate
+  }
+
+  interface ProductItem {
+    name: string
+    qty: number
+    unit: string
+    price: number
+    productId?: string
+    location?: string
+    brand?: string
+    startDate?: string
+    endDate?: string
+  }
+
+  // Preliminary functions
   const addPreliminaryItem = () => {
     setPreliminary([...preliminary, { name: "", qty: 0, unit: "", price: 0, startDate: "", endDate: "" }])
   }
@@ -789,49 +793,13 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     if (preliminary.length > 1) {
       setPreliminary(preliminary.filter((_, i) => i !== index))
     } else {
-      // Clear the single item instead of removing it if it's the last one
       setPreliminary([{ name: "", qty: 0, unit: "", price: 0, startDate: "", endDate: "" }])
     }
   }
 
-  const updateFittingOutCategory = (categoryIndex: number, name: string) => {
-    const newFittingOut = [...fittingOut]
-    newFittingOut[categoryIndex].name = name
-    setFittingOut(newFittingOut)
-  }
-
-  const updateFittingOutProduct = (categoryIndex: number, productIndex: number, field: string, value: any) => {
-    const newFittingOut = [...fittingOut]
-    newFittingOut[categoryIndex].products[productIndex] = {
-      ...newFittingOut[categoryIndex].products[productIndex],
-      [field]: value,
-    }
-    setFittingOut(newFittingOut)
-  }
-
-  const addFittingOutProduct = (categoryIndex: number) => {
-    const newFittingOut = [...fittingOut]
-    newFittingOut[categoryIndex].products.push({ name: "", qty: 0, unit: "", price: 0, startDate: "", endDate: "" })
-    setFittingOut(newFittingOut)
-  }
-
-  const removeFittingOutProduct = (categoryIndex: number, productIndex: number) => {
-    const newFittingOut = [...fittingOut]
-    if (newFittingOut[categoryIndex].products.length > 1) {
-      newFittingOut[categoryIndex].products = newFittingOut[categoryIndex].products.filter((_, i) => i !== productIndex)
-      setFittingOut(newFittingOut)
-    } else {
-      // Clear the single product instead of removing it if it's the last one in the category
-      newFittingOut[categoryIndex].products = [{ name: "", qty: 0, unit: "", price: 0, startDate: "", endDate: "" }]
-      setFittingOut(newFittingOut)
-    }
-  }
-
+  // Fitting Out functions
   const addFittingOutCategory = () => {
-    setFittingOut([
-      ...fittingOut,
-      { name: "", products: [{ name: "", qty: 0, unit: "", price: 0, startDate: "", endDate: "" }] },
-    ])
+    setFittingOut([...fittingOut, { name: "", products: [{ name: "", qty: 0, unit: "", price: 0, startDate: "", endDate: "" }] }])
   }
 
   const removeFittingOutCategory = (categoryIndex: number) => {
@@ -847,6 +815,38 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     const newFurnitureWork = [...furnitureWork]
     newFurnitureWork[categoryIndex].name = name
     setFurnitureWork(newFurnitureWork)
+  }
+
+  const updateFittingOutCategory = (categoryIndex: number, value: string) => {
+    const newFittingOut = [...fittingOut]
+    newFittingOut[categoryIndex].name = value
+    setFittingOut(newFittingOut)
+  }
+
+  const addFittingOutProduct = (categoryIndex: number) => {
+    const newFittingOut = [...fittingOut]
+    newFittingOut[categoryIndex].products.push({ name: "", qty: 0, unit: "", price: 0, startDate: "", endDate: "" })
+    setFittingOut(newFittingOut)
+  }
+
+  const removeFittingOutProduct = (categoryIndex: number, productIndex: number) => {
+    const newFittingOut = [...fittingOut]
+    if (newFittingOut[categoryIndex].products.length > 1) {
+      newFittingOut[categoryIndex].products = newFittingOut[categoryIndex].products.filter((_, i) => i !== productIndex)
+      setFittingOut(newFittingOut)
+    } else {
+      newFittingOut[categoryIndex].products = [{ name: "", qty: 0, unit: "", price: 0, startDate: "", endDate: "" }]
+      setFittingOut(newFittingOut)
+    }
+  }
+
+  const updateFittingOutProduct = (categoryIndex: number, productIndex: number, field: string, value: any) => {
+    const newFittingOut = [...fittingOut]
+    newFittingOut[categoryIndex].products[productIndex] = {
+      ...newFittingOut[categoryIndex].products[productIndex],
+      [field]: value,
+    }
+    setFittingOut(newFittingOut)
   }
 
   const updateFurnitureWorkProduct = (categoryIndex: number, productIndex: number, field: string, value: any) => {
@@ -1152,170 +1152,42 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     }
   }
 
-  // Product creation functions
-  const generateSKU = () => {
-    const getAbbreviation = (text: string) => {
-      if (!text) return "XXX"
-      const words = text.trim().split(/\s+/)
-      if (words.length >= 3) {
-        return words
-          .slice(0, 3)
-          .map((w) => w[0])
-          .join("")
-          .toUpperCase()
-      } else if (words.length === 2) {
-        return (words[0].substring(0, 2) + words[1][0]).toUpperCase()
-      } else if (words.length === 1) {
-        const word = words[0]
-        if (word.length >= 3) {
-          return word.substring(0, 3).toUpperCase()
-        } else if (word.length === 2) {
-          return (word + word[1]).toUpperCase()
-        } else {
-          return (word + word + word).toUpperCase()
-        }
-      }
-      return "XXX"
-    }
+  const uploadProductPhoto = async (file: File) => {
+    const formData = new FormData()
+    formData.append("file", file)
 
-    const typeMap: { [key: string]: string } = {
-      Goods: "GO",
-      Services: "SE",
-      "Goods and Services": "GS",
-    }
-
-    const productAbbr = getAbbreviation(productFormData.name)
-    const typeAbbr = typeMap[productFormData.type] || "XX"
-    const brandAbbr = getAbbreviation(productFormData.brand)
-    const year = new Date().getFullYear().toString().slice(-2)
-
-    const sku = `${productAbbr}-${typeAbbr}-${brandAbbr}-${year}`
-    setProductFormData({ ...productFormData, sku })
-  }
-
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    setUploading(true)
-    try {
-      const formData = new FormData()
-      formData.append("file", file)
-
-      const token = localStorage.getItem("auth_token")
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/upload`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      })
-
-      if (!response.ok) throw new Error("Upload failed")
-
-      const result = await response.json()
-      setUploadedPhotos([...uploadedPhotos, { url: result.data.url, provider: result.data.provider }])
-      toast({
-        title: "Success",
-        description: "Photo uploaded successfully",
-      })
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to upload photo",
-      })
-    } finally {
-      setUploading(false)
-    }
-  }
-
-  const removePhoto = (index: number) => {
-    setUploadedPhotos(uploadedPhotos.filter((_, i) => i !== index))
-  }
-
-  const addDetailField = () => {
-    setProductDetails([...productDetails, { label: "", type: "text", value: "" }])
-  }
-
-  const removeDetailField = (index: number) => {
-    setProductDetails(productDetails.filter((_, i) => i !== index))
-  }
-
-  const updateDetailField = (index: number, field: string, value: any) => {
-    const newDetails = [...productDetails]
-    newDetails[index] = { ...newDetails[index], [field]: value }
-    setProductDetails(newDetails)
-  }
-
-  const resetProductForm = () => {
-    setProductFormData({
-      name: "",
-      type: "Goods",
-      unit: "",
-      brand: "",
-      sellingPrice: "",
-      purchasePrice: "",
-      sku: "",
+    const token = localStorage.getItem("auth_token")
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/upload`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
     })
-    setUploadedPhotos([])
-    setProductDetails([])
+
+    if (!response.ok) {
+      throw new Error("Upload failed")
+    }
+
+    const result = await response.json()
+    return { url: result.data.url, provider: result.data.provider }
   }
 
-  const handleCreateProduct = async () => {
-    if (!productFormData.name || !productFormData.unit || !productFormData.sku) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Please fill in all required fields",
-      })
-      return
-    }
+  const handleProductCreated = (newProduct: any) => {
+    fetchProducts()
 
-    setSubmittingProduct(true)
-    try {
-      const newProduct = await productsApi.create({
-        name: productFormData.name,
-        type: productFormData.type,
-        unit: productFormData.unit,
-        brand: productFormData.brand || undefined,
-        sellingPrice: Number(productFormData.sellingPrice) || 0,
-        purchasePrice: Number(productFormData.purchasePrice) || 0,
-        sku: productFormData.sku,
-        photos: uploadedPhotos.length > 0 ? uploadedPhotos : undefined,
-        details: productDetails.length > 0 ? productDetails : undefined,
-      })
+    if (pendingProductSelection) {
+      const { type, categoryIndex, productIndex } = pendingProductSelection
 
-      toast({
-        title: "Success",
-        description: "Product created successfully",
-      })
-      
-      // Auto-select the newly created product if there's a pending selection
-      if (pendingProductSelection) {
-        const { type, categoryIndex, productIndex } = pendingProductSelection
-        
-        if (type === 'preliminary') {
-          selectPreliminaryProduct(productIndex, newProduct)
-        } else if (type === 'fittingOut' && categoryIndex !== undefined) {
-          selectFittingOutProduct(categoryIndex, productIndex, newProduct)
-        } else if (type === 'furnitureWork' && categoryIndex !== undefined) {
-          selectFurnitureWorkProduct(categoryIndex, productIndex, newProduct)
-        }
-        
+      if (type === "preliminary") {
+        selectPreliminaryProduct(productIndex, newProduct)
+      } else if (type === "fittingOut" && categoryIndex !== undefined) {
+        selectFittingOutProduct(categoryIndex, productIndex, newProduct)
+      } else if (type === "furnitureWork" && categoryIndex !== undefined) {
+        selectFurnitureWorkProduct(categoryIndex, productIndex, newProduct)
+      }
+
       setPendingProductSelection(null)
-    }
-
-    setCreateProductDialogOpen(false)
-    resetProductForm()
-  } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message || "Failed to create product",
-      })
-    } finally {
-      setSubmittingProduct(false)
     }
   }
 
@@ -2366,221 +2238,12 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
           </Button>
         </div>
 
-        {/* Create Product Dialog - for blank creation mode */}
-        <Dialog open={createProductDialogOpen} onOpenChange={setCreateProductDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Create Product</DialogTitle>
-            <DialogDescription>Add a new product to the system</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="create-name-blank">Product Name *</Label>
-              <Input
-                id="create-name-blank"
-                value={productFormData.name}
-                onChange={(e) => setProductFormData({ ...productFormData, name: e.target.value })}
-                placeholder="e.g., Semen"
-              />
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="create-type-blank">Type *</Label>
-                <Select
-                  value={productFormData.type}
-                  onValueChange={(value: any) => setProductFormData({ ...productFormData, type: value })}
-                >
-                  <SelectTrigger id="create-type-blank">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Goods">Goods</SelectItem>
-                    <SelectItem value="Services">Services</SelectItem>
-                    <SelectItem value="Goods and Services">Goods and Services</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="create-unit-blank">Unit *</Label>
-                <Input
-                  id="create-unit-blank"
-                  value={productFormData.unit}
-                  onChange={(e) => setProductFormData({ ...productFormData, unit: e.target.value })}
-                  placeholder="e.g., liter"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="create-brand-blank">Brand</Label>
-                <Input
-                  id="create-brand-blank"
-                  value={productFormData.brand}
-                  onChange={(e) => setProductFormData({ ...productFormData, brand: e.target.value })}
-                  placeholder="e.g., Mitsubishi"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="create-purchase-blank">Purchase Price (IDR) *</Label>
-                <Input
-                  id="create-purchase-blank"
-                  type="number"
-                  value={productFormData.purchasePrice}
-                  onChange={(e) => setProductFormData({ ...productFormData, purchasePrice: e.target.value })}
-                  placeholder="e.g., 20000"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="create-selling-blank">Selling Price (IDR) *</Label>
-                <Input
-                  id="create-selling-blank"
-                  type="number"
-                  value={productFormData.sellingPrice}
-                  onChange={(e) => setProductFormData({ ...productFormData, sellingPrice: e.target.value })}
-                  placeholder="e.g., 25000"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="create-sku-blank">SKU *</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="create-sku-blank"
-                  value={productFormData.sku}
-                  onChange={(e) => setProductFormData({ ...productFormData, sku: e.target.value })}
-                  placeholder="e.g., DSG-GS-MIT-25"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={generateSKU}
-                  className="whitespace-nowrap bg-transparent"
-                >
-                  Generate SKU
-                </Button>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Photos</Label>
-              <div className="border-2 border-dashed rounded-lg p-4">
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={handlePhotoUpload}
-                  disabled={uploading}
-                  className="hidden"
-                  id="photo-upload-blank"
-                />
-                <label htmlFor="photo-upload-blank" className="cursor-pointer">
-                  <div className="flex flex-col items-center justify-center py-4">
-                    {uploading ? (
-                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-2" />
-                    ) : (
-                      <Upload className="h-8 w-8 text-muted-foreground mb-2" />
-                    )}
-                    <p className="text-sm text-muted-foreground">
-                      {uploading ? "Uploading..." : "Click to upload photo"}
-                    </p>
-                  </div>
-                </label>
-
-                {uploadedPhotos.length > 0 && (
-                  <div className="grid grid-cols-3 gap-2 mt-4">
-                    {uploadedPhotos.map((photo, index) => (
-                      <div key={index} className="relative group">
-                        <img
-                          src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${photo.provider}/${photo.url}`}
-                          alt={`Product ${index + 1}`}
-                          className="w-full h-24 object-cover rounded"
-                        />
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => removePhoto(index)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Product Details */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Product Details (Optional)</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setProductDetails([...productDetails, { name: "", value: "" }])}
-                  className="bg-transparent"
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add Detail
-                </Button>
-              </div>
-
-              {productDetails.map((detail, index) => (
-                <div key={index} className="flex gap-2">
-                  <Input
-                    placeholder="Detail name (e.g., Material)"
-                    value={detail.name}
-                    onChange={(e) => {
-                      const updated = [...productDetails]
-                      updated[index].name = e.target.value
-                      setProductDetails(updated)
-                    }}
-                    className="flex-1"
-                  />
-                  <Input
-                    placeholder="Value (e.g., Mahogany Wood)"
-                    value={detail.value}
-                    onChange={(e) => {
-                      const updated = [...productDetails]
-                      updated[index].value = e.target.value
-                      setProductDetails(updated)
-                    }}
-                    className="flex-1"
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      setProductDetails(productDetails.filter((_, i) => i !== index))
-                    }}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setCreateProductDialogOpen(false)
-                resetProductForm()
-              }}
-              className="bg-transparent"
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleCreateProduct} disabled={submittingProduct}>
-              {submittingProduct && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Create Product
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        <CreateProductDialog
+          open={createProductDialogOpen}
+          onOpenChange={setCreateProductDialogOpen}
+          uploadPhoto={uploadProductPhoto}
+          onCreated={handleProductCreated}
+        />
       </div>
     )
   }
@@ -2857,236 +2520,12 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         isAdditional={isCreatingAdditional}
       />
 
-      {/* Create Product Dialog */}
-      <Dialog open={createProductDialogOpen} onOpenChange={setCreateProductDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Create Product</DialogTitle>
-            <DialogDescription>Add a new product to the system</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="create-name">Product Name *</Label>
-              <Input
-                id="create-name"
-                value={productFormData.name}
-                onChange={(e) => setProductFormData({ ...productFormData, name: e.target.value })}
-                placeholder="e.g., Semen"
-              />
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="create-type">Type *</Label>
-                <Select
-                  value={productFormData.type}
-                  onValueChange={(value: any) => setProductFormData({ ...productFormData, type: value })}
-                >
-                  <SelectTrigger id="create-type">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Goods">Goods</SelectItem>
-                    <SelectItem value="Services">Services</SelectItem>
-                    <SelectItem value="Goods and Services">Goods and Services</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="create-unit">Unit *</Label>
-                <Input
-                  id="create-unit"
-                  value={productFormData.unit}
-                  onChange={(e) => setProductFormData({ ...productFormData, unit: e.target.value })}
-                  placeholder="e.g., liter"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="create-brand">Brand</Label>
-                <Input
-                  id="create-brand"
-                  value={productFormData.brand}
-                  onChange={(e) => setProductFormData({ ...productFormData, brand: e.target.value })}
-                  placeholder="e.g., Mitsubishi"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="create-purchase">Purchase Price (IDR) *</Label>
-                <Input
-                  id="create-purchase"
-                  type="number"
-                  value={productFormData.purchasePrice}
-                  onChange={(e) => setProductFormData({ ...productFormData, purchasePrice: e.target.value })}
-                  placeholder="e.g., 20000"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="create-selling">Selling Price (IDR) *</Label>
-                <Input
-                  id="create-selling"
-                  type="number"
-                  value={productFormData.sellingPrice}
-                  onChange={(e) => setProductFormData({ ...productFormData, sellingPrice: e.target.value })}
-                  placeholder="e.g., 25000"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="create-sku">SKU *</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="create-sku"
-                  value={productFormData.sku}
-                  onChange={(e) => setProductFormData({ ...productFormData, sku: e.target.value })}
-                  placeholder="e.g., DSG-GS-MIT-25"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={generateSKU}
-                  className="whitespace-nowrap bg-transparent"
-                >
-                  Generate SKU
-                </Button>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Photos</Label>
-              <div className="border-2 border-dashed rounded-lg p-4">
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={handlePhotoUpload}
-                  disabled={uploading}
-                  className="hidden"
-                  id="photo-upload"
-                />
-                <label htmlFor="photo-upload" className="cursor-pointer">
-                  <div className="flex flex-col items-center justify-center py-4">
-                    {uploading ? (
-                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-2" />
-                    ) : (
-                      <Upload className="h-8 w-8 text-muted-foreground mb-2" />
-                    )}
-                    <p className="text-sm text-muted-foreground">
-                      {uploading ? "Uploading..." : "Click to upload photo"}
-                    </p>
-                  </div>
-                </label>
-
-                {uploadedPhotos.length > 0 && (
-                  <div className="grid grid-cols-3 gap-2 mt-4">
-                    {uploadedPhotos.map((photo, index) => (
-                      <div key={index} className="relative group">
-                        <img
-                          src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${photo.provider}/${photo.url}`}
-                          alt={`Product ${index + 1}`}
-                          className="w-full h-24 object-cover rounded"
-                        />
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => removePhoto(index)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Product Details</Label>
-                <Button type="button" variant="outline" size="sm" onClick={addDetailField}>
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add Detail
-                </Button>
-              </div>
-
-              {productDetails.map((detail, index) => (
-                <div key={index} className="grid grid-cols-12 gap-2 items-end">
-                  <div className="col-span-4 space-y-1">
-                    <Label className="text-xs">Name</Label>
-                    <Input
-                      value={detail.label}
-                      onChange={(e) => updateDetailField(index, "label", e.target.value)}
-                      placeholder="e.g., Color"
-                      className="h-9"
-                    />
-                  </div>
-                  <div className="col-span-3 space-y-1">
-                    <Label className="text-xs">Type</Label>
-                    <Select value={detail.type} onValueChange={(value: any) => updateDetailField(index, "type", value)}>
-                      <SelectTrigger className="h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="text">Text</SelectItem>
-                        <SelectItem value="number">Number</SelectItem>
-                        <SelectItem value="date">Date</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="col-span-4 space-y-1">
-                    <Label className="text-xs">Value</Label>
-                    <Input
-                      value={detail.value}
-                      onChange={(e) => updateDetailField(index, "value", e.target.value)}
-                      placeholder="e.g., Ungu"
-                      type={detail.type === "number" ? "number" : detail.type === "date" ? "date" : "text"}
-                      className="h-9"
-                    />
-                  </div>
-                  <div className="col-span-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeDetailField(index)}
-                      className="h-9 w-9"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-
-              {productDetails.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  No details added yet. Click "Add Detail" to add product specifications.
-                </p>
-              )}
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setCreateProductDialogOpen(false)
-                resetProductForm()
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleCreateProduct}
-              disabled={submittingProduct || !productFormData.name || !productFormData.unit || !productFormData.sku}
-            >
-              {submittingProduct && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Create Product
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CreateProductDialog
+        open={createProductDialogOpen}
+        onOpenChange={setCreateProductDialogOpen}
+        uploadPhoto={uploadProductPhoto}
+        onCreated={handleProductCreated}
+      />
 
       <Dialog open={saveAsTemplateOpen} onOpenChange={setSaveAsTemplateOpen}>
         <DialogContent className="max-w-md">

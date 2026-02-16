@@ -55,7 +55,9 @@ export interface CreateProductInput {
 
 export interface UpdateProductInput {
   name?: string
+  type?: "Goods" | "Services" | "Goods and Services"
   unit?: string
+  sku?: string
   price?: number
   sellingPrice?: number
   purchasePrice?: number

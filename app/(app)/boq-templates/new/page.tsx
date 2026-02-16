@@ -11,19 +11,12 @@ import { Plus, Trash2, X, ArrowLeft, Loader2, Check, ChevronsUpDown, Upload } fr
 import { templatesApi } from "@/lib/api/templates"
 import { productsApi } from "@/lib/api/products"
 import { uploadApi } from "@/lib/api/upload" // Import upload API for photo uploads in create product dialog
+import { CreateProductDialog } from "@/components/products/create-product-dialog"
 import { useToast } from "@/hooks/use-toast"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select" // Added Select components
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog" // Added Dialog components
 import { cn } from "@/lib/utils"
 import { formatCurrency } from "@/lib/utils" // Added formatCurrency import
 import { ProductSearchPopover } from "@/components/product-search-popover"
@@ -53,13 +46,6 @@ interface Category {
   products: ProductItem[]
 }
 
-// Define ProductDetail interface
-interface ProductDetail {
-  label: string
-  type: "text" | "number" | "date"
-  value: string
-}
-
 export default function NewTemplatePage() {
   const router = useRouter()
   const { toast } = useToast()
@@ -85,22 +71,31 @@ export default function NewTemplatePage() {
   const mechanicalElectricalQtyRefs = useRef<{ [key: string]: HTMLInputElement | null }>({})
 
   const [createProductDialogOpen, setCreateProductDialogOpen] = useState(false)
-  const [productFormData, setProductFormData] = useState({
-    name: "",
-    type: "Goods" as "Goods" | "Services" | "Goods and Services",
-    unit: "",
-    brand: "",
-    sellingPrice: "",
-    purchasePrice: "",
-    sku: "",
-  })
-  const [uploadedPhotos, setUploadedPhotos] = useState<Array<{ url: string; provider: string }>>([])
-  const [uploading, setUploading] = useState(false)
-  const [productDetails, setProductDetails] = useState<ProductDetail[]>([])
-  const [submittingProduct, setSubmittingProduct] = useState(false)
   const [searchQuery, setSearchQuery] = useState<{ [key: string]: string }>({}) // State for search queries
   const [products, setProducts] = useState<any[]>([])
   const [loadingProducts, setLoadingProducts] = useState(false)
+
+  const fetchProducts = async () => {
+    try {
+      setLoadingProducts(true)
+      const response = await productsApi.getAll()
+      if (response?.list) {
+        setProducts(response.list)
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load products",
+        variant: "destructive",
+      })
+    } finally {
+      setLoadingProducts(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchProducts()
+  }, [])
 
 
 
@@ -409,141 +404,12 @@ export default function NewTemplatePage() {
     )
   }
 
-  const generateSKU = () => {
-    const getAbbreviation = (text: string): string => {
-      if (!text) return "XXX"
-      const words = text.trim().split(/\s+/)
-      if (words.length >= 3) {
-        return words
-          .slice(0, 3)
-          .map((w) => w[0])
-          .join("")
-          .toUpperCase()
-      }
-      if (words.length === 2) {
-        return (words[0].substring(0, 2) + words[1][0]).toUpperCase()
-      }
-      if (words.length === 1) {
-        const word = words[0]
-        if (word.length >= 3) return word.substring(0, 3).toUpperCase()
-        if (word.length === 2) return (word + word[0]).toUpperCase()
-        return (word + word + word).toUpperCase()
-      }
-      return "XXX"
-    }
-
-    const typeCode = {
-      Goods: "GO",
-      Services: "SE",
-      "Goods and Services": "GS",
-    }[productFormData.type]
-
-    const nameAbbr = getAbbreviation(productFormData.name)
-    const brandAbbr = getAbbreviation(productFormData.brand)
-    const year = new Date().getFullYear().toString().slice(-2)
-
-    setProductFormData({
-      ...productFormData,
-      sku: `${nameAbbr}-${typeCode}-${brandAbbr}-${year}`,
-    })
+  const uploadProductPhoto = async (file: File) => {
+    return uploadApi.uploadFile(file)
   }
 
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    try {
-      setUploading(true)
-      const response = await uploadApi.uploadFile(file)
-      setUploadedPhotos([...uploadedPhotos, { url: response.url, provider: response.provider }])
-      toast({
-        title: "Success",
-        description: "Photo uploaded successfully",
-      })
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to upload photo",
-        variant: "destructive",
-      })
-    } finally {
-      setUploading(false)
-    }
-  }
-
-  const removePhoto = (index: number) => {
-    setUploadedPhotos(uploadedPhotos.filter((_, i) => i !== index))
-  }
-
-  const addDetailField = () => {
-    setProductDetails([...productDetails, { label: "", type: "text", value: "" }])
-  }
-
-  const updateDetailField = (index: number, field: keyof ProductDetail, value: string) => {
-    const updated = [...productDetails]
-    updated[index] = { ...updated[index], [field]: value }
-    setProductDetails(updated)
-  }
-
-  const removeDetailField = (index: number) => {
-    setProductDetails(productDetails.filter((_, i) => i !== index))
-  }
-
-  const resetProductForm = () => {
-    setProductFormData({
-      name: "",
-      type: "Goods",
-      unit: "",
-      brand: "",
-      sellingPrice: "",
-      purchasePrice: "",
-      sku: "",
-    })
-    setUploadedPhotos([])
-    setProductDetails([])
-  }
-
-  const handleCreateProduct = async () => {
-    try {
-      setSubmittingProduct(true)
-
-      const createData = {
-        name: productFormData.name,
-        type: productFormData.type,
-        unit: productFormData.unit,
-        sellingPrice: Number.parseFloat(productFormData.sellingPrice) || 0,
-        purchasePrice: Number.parseFloat(productFormData.purchasePrice) || 0,
-        sku: productFormData.sku,
-        brand: productFormData.brand || undefined,
-        photos: uploadedPhotos.length > 0 ? uploadedPhotos : undefined,
-        details:
-          productDetails.length > 0
-            ? productDetails.map((d) => ({
-                label: d.label,
-                type: d.type,
-                value: d.value,
-              }))
-            : undefined,
-      }
-
-      await productsApi.create(createData)
-
-      toast({
-        title: "Success",
-        description: "Product created successfully",
-      })
-
-      setCreateProductDialogOpen(false)
-      resetProductForm()
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create product",
-        variant: "destructive",
-      })
-    } finally {
-      setSubmittingProduct(false)
-    }
+  const handleProductCreated = () => {
+    fetchProducts()
   }
 
   const handleSubmit = async () => {
@@ -1428,235 +1294,12 @@ export default function NewTemplatePage() {
         </div>
       </div>
 
-      <Dialog open={createProductDialogOpen} onOpenChange={setCreateProductDialogOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Create Product</DialogTitle>
-            <DialogDescription>Add a new product to the system</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="create-name">Product Name *</Label>
-              <Input
-                id="create-name"
-                value={productFormData.name}
-                onChange={(e) => setProductFormData({ ...productFormData, name: e.target.value })}
-                placeholder="e.g., Semen"
-              />
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="create-type">Type *</Label>
-                <Select
-                  value={productFormData.type}
-                  onValueChange={(value: any) => setProductFormData({ ...productFormData, type: value })}
-                >
-                  <SelectTrigger id="create-type">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Goods">Goods</SelectItem>
-                    <SelectItem value="Services">Services</SelectItem>
-                    <SelectItem value="Goods and Services">Goods and Services</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="create-unit">Unit *</Label>
-                <Input
-                  id="create-unit"
-                  value={productFormData.unit}
-                  onChange={(e) => setProductFormData({ ...productFormData, unit: e.target.value })}
-                  placeholder="e.g., liter"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="create-brand">Brand</Label>
-                <Input
-                  id="create-brand"
-                  value={productFormData.brand}
-                  onChange={(e) => setProductFormData({ ...productFormData, brand: e.target.value })}
-                  placeholder="e.g., Mitsubishi"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="create-purchase">Purchase Price (IDR) *</Label>
-                <Input
-                  id="create-purchase"
-                  type="number"
-                  value={productFormData.purchasePrice}
-                  onChange={(e) => setProductFormData({ ...productFormData, purchasePrice: e.target.value })}
-                  placeholder="e.g., 20000"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="create-selling">Selling Price (IDR) *</Label>
-                <Input
-                  id="create-selling"
-                  type="number"
-                  value={productFormData.sellingPrice}
-                  onChange={(e) => setProductFormData({ ...productFormData, sellingPrice: e.target.value })}
-                  placeholder="e.g., 25000"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="create-sku">SKU *</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="create-sku"
-                  value={productFormData.sku}
-                  onChange={(e) => setProductFormData({ ...productFormData, sku: e.target.value })}
-                  placeholder="e.g., DSG-GS-MIT-25"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={generateSKU}
-                  className="whitespace-nowrap bg-transparent"
-                >
-                  Generate SKU
-                </Button>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Photos</Label>
-              <div className="border-2 border-dashed rounded-lg p-4">
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={handlePhotoUpload}
-                  disabled={uploading}
-                  className="hidden"
-                  id="photo-upload"
-                />
-                <label htmlFor="photo-upload" className="cursor-pointer">
-                  <div className="flex flex-col items-center justify-center py-4">
-                    {uploading ? (
-                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-2" />
-                    ) : (
-                      <Upload className="h-8 w-8 text-muted-foreground mb-2" />
-                    )}
-                    <p className="text-sm text-muted-foreground">
-                      {uploading ? "Uploading..." : "Click to upload photo"}
-                    </p>
-                  </div>
-                </label>
-
-                {uploadedPhotos.length > 0 && (
-                  <div className="grid grid-cols-3 gap-2 mt-4">
-                    {uploadedPhotos.map((photo, index) => (
-                      <div key={index} className="relative group">
-                        <img
-                          src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${photo.provider}/${photo.url}`}
-                          alt={`Product ${index + 1}`}
-                          className="w-full h-24 object-cover rounded"
-                        />
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => removePhoto(index)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Product Details</Label>
-                <Button type="button" variant="outline" size="sm" onClick={addDetailField}>
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add Detail
-                </Button>
-              </div>
-
-              {productDetails.map((detail, index) => (
-                <div key={index} className="grid grid-cols-12 gap-2 items-end">
-                  <div className="col-span-4 space-y-1">
-                    <Label className="text-xs">Name</Label>
-                    <Input
-                      value={detail.label}
-                      onChange={(e) => updateDetailField(index, "label", e.target.value)}
-                      placeholder="e.g., Color"
-                      className="h-9"
-                    />
-                  </div>
-                  <div className="col-span-3 space-y-1">
-                    <Label className="text-xs">Type</Label>
-                    <Select value={detail.type} onValueChange={(value: any) => updateDetailField(index, "type", value)}>
-                      <SelectTrigger className="h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="text">Text</SelectItem>
-                        <SelectItem value="number">Number</SelectItem>
-                        <SelectItem value="date">Date</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="col-span-4 space-y-1">
-                    <Label className="text-xs">Value</Label>
-                    <Input
-                      value={detail.value}
-                      onChange={(e) => updateDetailField(index, "value", e.target.value)}
-                      placeholder="e.g., Ungu"
-                      type={detail.type === "number" ? "number" : detail.type === "date" ? "date" : "text"}
-                      className="h-9"
-                    />
-                  </div>
-                  <div className="col-span-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeDetailField(index)}
-                      className="h-9 w-9"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-
-              {productDetails.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  No details added yet. Click "Add Detail" to add product specifications.
-                </p>
-              )}
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setCreateProductDialogOpen(false)
-                resetProductForm()
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleCreateProduct}
-              disabled={submittingProduct || !productFormData.name || !productFormData.unit || !productFormData.sku}
-            >
-              {submittingProduct && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Create Product
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CreateProductDialog
+        open={createProductDialogOpen}
+        onOpenChange={setCreateProductDialogOpen}
+        uploadPhoto={uploadProductPhoto}
+        onCreated={handleProductCreated}
+      />
     </div>
   )
 }

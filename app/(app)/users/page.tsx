@@ -670,13 +670,11 @@ export default function UsersPage() {
                       />
                     </TableHead>
                     <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Phone</TableHead>
+                    <TableHead>Email / Phone</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead>Permissions</TableHead>
                     <TableHead>Projects</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Created At</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                   </TableHeader>
@@ -714,8 +712,13 @@ export default function UsersPage() {
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell>{user.email || "-"}</TableCell>
-                        <TableCell>{user.profile?.phone || "-"}</TableCell>
+                        {/* <TableCell>{user.email || "-"}</TableCell> */}
+                        <TableCell>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-sm">{user.email || "-"}</span>
+                            <span className="text-xs text-muted-foreground">{user.profile?.phone || "-"}</span>
+                          </div>
+                        </TableCell>
                         <TableCell>
                           {user.type && (
                             <Badge variant={user.type === "Internal" ? "default" : "secondary"}>
@@ -766,7 +769,6 @@ export default function UsersPage() {
                             <span className="text-sm text-muted-foreground">{user.status}</span>
                           </div>
                         </TableCell>
-                        <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>

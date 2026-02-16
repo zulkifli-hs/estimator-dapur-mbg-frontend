@@ -76,6 +76,7 @@ export default function UsersPage() {
   const [selectedUsersForPermissions, setSelectedUsersForPermissions] = useState<User[]>([])
   const [permissionsMap, setPermissionsMap] = useState<Record<string, Permission[]>>({})
   const [selectedUserForProjects, setSelectedUserForProjects] = useState<User | null>(null)
+  const [hoveredUserId, setHoveredUserId] = useState<string | null>(null)
 
   // Form states
   const [formData, setFormData] = useState({
@@ -680,7 +681,11 @@ export default function UsersPage() {
                   </TableHeader>
                   <TableBody>
                     {users.map((user) => (
-                      <TableRow key={user._id}>
+                      <TableRow
+                        key={user._id}
+                        onMouseEnter={() => setHoveredUserId(user._id)}
+                        onMouseLeave={() => setHoveredUserId(null)}
+                      >
                         <TableCell>
                           <Checkbox
                             checked={selectedUsers.includes(user._id)}
@@ -727,17 +732,28 @@ export default function UsersPage() {
                           )}
                         </TableCell>
                         <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {user.permissions && user.permissions.length > 0 ? (
-                              user.permissions.map((perm, idx) => (
-                                <Badge key={idx} variant="outline" className="text-xs">
-                                  {perm.method} {perm.path}
-                                </Badge>
-                              ))
-                            ) : (
-                              <span className="text-sm text-muted-foreground">No permissions</span>
-                            )}
-                          </div>
+                          {hoveredUserId === user._id ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => openSingleUserPermissionsDialog(user)}
+                            >
+                              <Shield className="mr-2 h-4 w-4" />
+                              Update
+                            </Button>
+                          ) : (
+                            <div className="flex flex-wrap gap-1">
+                              {user.permissions && user.permissions.length > 0 ? (
+                                user.permissions.map((perm, idx) => (
+                                  <Badge key={idx} variant="outline" className="text-xs">
+                                    {perm.method} {perm.path}
+                                  </Badge>
+                                ))
+                              ) : (
+                                <span className="text-sm text-muted-foreground">No permissions</span>
+                              )}
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
@@ -789,10 +805,10 @@ export default function UsersPage() {
                                 <Key className="mr-2 h-4 w-4" />
                                 Update Password
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => openSingleUserPermissionsDialog(user)}>
+                              {/* <DropdownMenuItem onClick={() => openSingleUserPermissionsDialog(user)}>
                                 <Shield className="mr-2 h-4 w-4" />
                                 Update Permissions
-                              </DropdownMenuItem>
+                              </DropdownMenuItem> */}
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 onClick={() => {

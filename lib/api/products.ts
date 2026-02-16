@@ -31,6 +31,7 @@ export interface Product {
   sellingPrice: number
   purchasePrice: number
   brand?: string
+  tags?: string[]
   photos?: Photo[]
   details?: ProductDetail[]
   sellingPriceHistory?: any[]
@@ -47,6 +48,7 @@ export interface CreateProductInput {
   purchasePrice: number
   sku: string
   brand?: string
+  tags?: string[]
   photos?: Array<{ url: string; provider: string }>
   details?: Array<{ label: string; type: "text" | "number" | "date"; value: string }>
 }
@@ -58,6 +60,7 @@ export interface UpdateProductInput {
   sellingPrice?: number
   purchasePrice?: number
   brand?: string
+  tags?: string[]
   photos?: Photo[]
   details?: ProductDetail[]
 }

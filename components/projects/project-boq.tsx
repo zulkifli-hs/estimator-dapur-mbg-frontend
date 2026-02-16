@@ -1832,6 +1832,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                       setCreateProductDialogOpen(true)
                     }}
                     formatCurrency={formatCurrency}
+                    className="w-full"
                   />
                           </div>
                           <Button
@@ -1965,6 +1966,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                       setCreateProductDialogOpen(true)
                     }}
                     formatCurrency={formatCurrency}
+                    className="w-full"
                   />
                             </div>
                             <Button

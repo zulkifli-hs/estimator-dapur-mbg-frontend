@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   AlertDialog,
@@ -41,6 +42,14 @@ import { getProfile } from "@/lib/api/auth"
 import { uploadPhoto } from "@/lib/api/upload"
 import { useToast } from "@/hooks/use-toast"
 import { API_BASE_URL } from "@/lib/api/config"
+
+const tagOptions = [
+  { value: "Vendor", label: "Vendor" },
+  { value: "MEP", label: "MEP" },
+  { value: "Workshop", label: "Workshop" },
+  { value: "internal", label: "internal" },
+  { value: "custom", label: "Custom" },
+] as const
 
 export default function ProductsPage() {
   const { toast } = useToast()
@@ -71,6 +80,8 @@ export default function ProductsPage() {
     sellingPrice: "",
     purchasePrice: "",
     sku: "",
+    tag: "",
+    customTag: "",
   })
 
   const [uploadedPhotos, setUploadedPhotos] = useState<Array<{ url: string; provider: string }>>([])
@@ -144,9 +155,16 @@ export default function ProductsPage() {
       sellingPrice: "",
       purchasePrice: "",
       sku: "",
+      tag: "",
+      customTag: "",
     })
     setUploadedPhotos([])
     setProductDetails([])
+  }
+
+  const resolveTagInput = () => {
+    const selected = formData.tag === "custom" ? formData.customTag.trim() : formData.tag.trim()
+    return selected ? [selected] : undefined
   }
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -211,6 +229,7 @@ export default function ProductsPage() {
         purchasePrice: Number.parseFloat(formData.purchasePrice) || 0,
         sku: formData.sku,
         brand: formData.brand || undefined,
+        tags: resolveTagInput(),
         photos: uploadedPhotos.length > 0 ? uploadedPhotos : undefined,
         details:
           productDetails.length > 0
@@ -257,6 +276,7 @@ export default function ProductsPage() {
         brand: formData.brand || undefined,
         sellingPrice: Number.parseFloat(formData.sellingPrice) || 0,
         purchasePrice: Number.parseFloat(formData.purchasePrice) || 0,
+        tags: resolveTagInput(),
         photos: uploadedPhotos.length > 0 ? uploadedPhotos : undefined,
         details:
           productDetails.length > 0
@@ -291,6 +311,10 @@ export default function ProductsPage() {
   }
 
   const openEditDialog = (product: Product) => {
+    const existingTag = product.tags?.[0] || ""
+    const presetTags = tagOptions.filter((option) => option.value !== "custom").map((option) => option.value)
+    const isPresetTag = existingTag ? presetTags.includes(existingTag) : false
+
     setEditingProduct(product)
     setFormData({
       name: product.name,
@@ -300,6 +324,8 @@ export default function ProductsPage() {
       sellingPrice: product.sellingPrice.toString(),
       purchasePrice: product.purchasePrice.toString(),
       sku: product.sku,
+      tag: isPresetTag ? existingTag : existingTag ? "custom" : "",
+      customTag: isPresetTag ? "" : existingTag,
     })
     setUploadedPhotos(product.photos || [])
     setProductDetails(product.details || [])
@@ -520,6 +546,7 @@ export default function ProductsPage() {
                       <TableHead>Type</TableHead>
                       <TableHead>Unit</TableHead>
                       <TableHead>Brand</TableHead>
+                      <TableHead>Tags</TableHead>
                       <TableHead>Selling Price</TableHead>
                       <TableHead>Purchase Price</TableHead>
                       {/* <TableHead>Created</TableHead> */}
@@ -540,6 +567,19 @@ export default function ProductsPage() {
                         <TableCell>{product.type}</TableCell>
                         <TableCell>{product.unit}</TableCell>
                         <TableCell>{product.brand || "-"}</TableCell>
+                        <TableCell>
+                          {product.tags && product.tags.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {product.tags.map((tag, index) => (
+                                <Badge key={`${product._id}-tag-${index}`} variant="outline" className="text-xs">
+                                  {tag}
+                                </Badge>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
                         <TableCell>{formatCurrency(product.sellingPrice)}</TableCell>
                         <TableCell>{formatCurrency(product.purchasePrice)}</TableCell>
                         {/* <TableCell>{new Date(product.createdAt).toLocaleDateString()}</TableCell> */}
@@ -654,6 +694,43 @@ export default function ProductsPage() {
                 />
               </div>
             </div>
+
+            {/* Tags */}
+            <div className="space-y-2">
+              <Label htmlFor="create-tag">Tag</Label>
+              <Select
+                value={formData.tag}
+                onValueChange={(value: any) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    tag: value,
+                    customTag: value === "custom" ? prev.customTag : "",
+                  }))
+                }
+              >
+                <SelectTrigger id="create-tag">
+                  <SelectValue placeholder="Select a tag" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tagOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {formData.tag === "custom" && (
+              <div className="space-y-2">
+                <Label htmlFor="create-custom-tag">Custom Tag</Label>
+                <Input
+                  id="create-custom-tag"
+                  value={formData.customTag}
+                  onChange={(e) => setFormData({ ...formData, customTag: e.target.value })}
+                  placeholder="Type custom tag"
+                />
+              </div>
+            )}
 
             {/* Purchase Price & Selling Price */}
             <div className="grid grid-cols-2 gap-4">
@@ -866,6 +943,20 @@ export default function ProductsPage() {
                   <p>{viewingProduct.brand || "-"}</p>
                 </div>
                 <div>
+                  <Label className="text-muted-foreground">Tags</Label>
+                  {viewingProduct.tags && viewingProduct.tags.length > 0 ? (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {viewingProduct.tags.map((tag, index) => (
+                        <Badge key={`${tag}-${index}`} variant="outline" className="text-xs">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <p>-</p>
+                  )}
+                </div>
+                <div>
                   <Label className="text-muted-foreground">Selling Price</Label>
                   <p className="font-medium">{formatCurrency(viewingProduct.sellingPrice)}</p>
                 </div>
@@ -971,6 +1062,43 @@ export default function ProductsPage() {
                 />
               </div>
             </div>
+
+            {/* Tags */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-tag">Tag</Label>
+              <Select
+                value={formData.tag}
+                onValueChange={(value: any) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    tag: value,
+                    customTag: value === "custom" ? prev.customTag : "",
+                  }))
+                }
+              >
+                <SelectTrigger id="edit-tag">
+                  <SelectValue placeholder="Select a tag" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tagOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {formData.tag === "custom" && (
+              <div className="space-y-2">
+                <Label htmlFor="edit-custom-tag">Custom Tag</Label>
+                <Input
+                  id="edit-custom-tag"
+                  value={formData.customTag}
+                  onChange={(e) => setFormData({ ...formData, customTag: e.target.value })}
+                  placeholder="Type custom tag"
+                />
+              </div>
+            )}
 
             {/* Purchase Price & Selling Price */}
             <div className="grid grid-cols-2 gap-4">

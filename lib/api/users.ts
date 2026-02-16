@@ -25,6 +25,7 @@ export interface User {
   projects?: Array<{
     _id: string
     project: {
+      _id: string
       name: string
     }
     roles: string[]

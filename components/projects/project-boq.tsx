@@ -1482,6 +1482,19 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     setShowApprovalModal(true)
   }
 
+  const handleTabChange = (value: string) => {
+    // Only allow switching to additional tab if main BOQ is accepted
+    if (value === "additional" && mainBOQ && mainBOQ.status.toLowerCase() !== "accepted") {
+      toast({
+        title: "Cannot Access",
+        description: "Additional BOQs can only be created after the main BOQ is accepted.",
+        variant: "destructive",
+      })
+      return
+    }
+    setActiveTab(value)
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -2335,16 +2348,30 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         </Card>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         {/* Mobile: Dropdown */}
         <div className="block md:hidden mb-4">
-          <Select value={activeTab} onValueChange={setActiveTab}>
+          <Select value={activeTab} onValueChange={(value) => {
+            // Only allow switching to additional tab if main BOQ is accepted
+            if (value === "additional" && mainBOQ && mainBOQ.status.toLowerCase() !== "accepted") {
+              toast({
+                title: "Cannot Access",
+                description: "Additional BOQs can only be created after the main BOQ is accepted.",
+                variant: "destructive",
+              })
+              return
+            }
+            setActiveTab(value)
+          }}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Select BOQ type" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="main">Main BOQ {mainBOQ && `(${mainBOQ.status})`}</SelectItem>
-              <SelectItem value="additional">Additional BOQs ({additionalBOQs.length})</SelectItem>
+              <SelectItem value="additional" disabled={mainBOQ && mainBOQ.status.toLowerCase() !== "accepted"}>
+                Additional BOQs ({additionalBOQs.length})
+                {mainBOQ && mainBOQ.status.toLowerCase() !== "accepted" && " - Requires accepted main BOQ"}
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -2355,12 +2382,23 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
             Main BOQ
             {mainBOQ && <span className="text-xs opacity-70">({mainBOQ.status})</span>}
           </TabsTrigger>
-          <TabsTrigger value="additional" className="flex items-center gap-2">
+          <TabsTrigger 
+            value="additional" 
+            className={`flex items-center gap-2 ${
+              mainBOQ && mainBOQ.status.toLowerCase() !== "accepted"
+                ? "opacity-50 cursor-not-allowed"
+                : ""
+            }`}
+            disabled={mainBOQ && mainBOQ.status.toLowerCase() !== "accepted"}
+          >
             Additional BOQs
             {additionalBOQs.length > 0 && (
               <Badge variant="secondary" className="ml-1 h-5 min-w-5 flex items-center justify-center px-1">
                 {additionalBOQs.length}
               </Badge>
+            )}
+            {mainBOQ && mainBOQ.status.toLowerCase() !== "accepted" && (
+              <span className="text-xs text-muted-foreground ml-1">(Need accepted)</span>
             )}
           </TabsTrigger>
         </TabsList>

@@ -12,10 +12,7 @@ import {
   FileSpreadsheet,
   Sparkles,
   X,
-  Check,
-  ChevronsUpDown,
   Loader2,
-  Upload,
   Save,
   RefreshCw,
   AlertCircle,
@@ -28,9 +25,6 @@ import { projectsApi } from "@/lib/api/projects"
 import { useToast } from "@/hooks/use-toast"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
-import { cn } from "@/lib/utils"
 import {
   Dialog,
   DialogContent,
@@ -48,17 +42,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ProductSearchPopover } from "@/components/product-search-popover"
 import { CreateProductDialog } from "@/components/products/create-product-dialog"
 
-interface PreliminaryItem {
-  name: string
-  qty: number
-  unit: string
-  price: number
-  productId?: string
-  location?: string
-  brand?: string
-  startDate?: string // Added startDate
-  endDate?: string // Added endDate
-}
 
 interface ProductItem {
   name: string
@@ -96,7 +79,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null)
   const [showTemplatePreview, setShowTemplatePreview] = useState(false)
   const [openPopovers, setOpenPopovers] = useState<{ [key: string]: boolean }>({})
-  const [searchQuery, setSearchQuery] = useState<{ [key: string]: string }>({})
+  const [] = useState<{ [key: string]: string }>({})
   const [createProductDialogOpen, setCreateProductDialogOpen] = useState(false)
   const [pendingProductSelection, setPendingProductSelection] = useState<{
     type: "preliminary" | "fittingOut" | "furnitureWork" | "mechanicalElectrical"
@@ -115,8 +98,8 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   const furnitureWorkQtyRefs = useRef<{ [key: string]: HTMLInputElement | null }>({})
   const mechanicalElectricalQtyRefs = useRef<{ [key: string]: HTMLInputElement | null }>({})
 
-  const [products, setProducts] = useState<any[]>([])
-  const [loadingProducts, setLoadingProducts] = useState(false)
+  const [, setProducts] = useState<any[]>([])
+  const [, setLoadingProducts] = useState(false)
   const [summary, setSummary] = useState({
     totalBudget: 0,
     mainBudget: 0,
@@ -137,7 +120,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   const [selectedApprovalEmail, setSelectedApprovalEmail] = useState<string>("")
   const [customApprovalEmail, setCustomApprovalEmail] = useState<string>("")
   const [approvalLoading, setApprovalLoading] = useState(false)
-  const [projectData, setProjectData] = useState<any>(null)
+  const [, setProjectData] = useState<any>(null)
 
   // Renamed loadBOQs to fetchBOQ for clarity with the update function below
   const fetchBOQ = async () => {
@@ -385,14 +368,14 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[60px] px-4">No</TableHead>
-              <TableHead className="min-w-[250px] max-w-[400px] px-4">Item Name</TableHead>
-              <TableHead className="w-[120px] px-4">Brand/Equal</TableHead>
-              <TableHead className="w-[120px] px-4">Location</TableHead>
-              <TableHead className="text-right w-[80px] px-4">Qty</TableHead>
-              <TableHead className="w-[80px] px-4">Unit</TableHead>
-              <TableHead className="text-right w-[150px] px-4">Unit Price</TableHead>
-              <TableHead className="text-right w-[150px] px-4">Total Price</TableHead>
+              <TableHead className="w-15 px-4">No</TableHead>
+              <TableHead className="min-w-62.5 max-w-100 px-4">Item Name</TableHead>
+              <TableHead className="w-30 px-4">Brand/Equal</TableHead>
+              <TableHead className="w-30 px-4">Location</TableHead>
+              <TableHead className="text-right w-20 px-4">Qty</TableHead>
+              <TableHead className="w-20 px-4">Unit</TableHead>
+              <TableHead className="text-right w-37.5 px-4">Unit Price</TableHead>
+              <TableHead className="text-right w-37.5 px-4">Total Price</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -410,7 +393,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                   return (
                     <TableRow key={item._id}>
                       <TableCell className="font-medium pl-8 pr-4">{itemNumber++}</TableCell>
-                      <TableCell className="whitespace-normal break-words px-4">{item.name}</TableCell>
+                      <TableCell className="whitespace-normal wrap-break-word px-4">{item.name}</TableCell>
                       <TableCell className="px-4">{item.brand || "-"}</TableCell>
                       <TableCell className="px-4">{item.location || "-"}</TableCell>
                       <TableCell className="text-right px-4">{item.qty}</TableCell>
@@ -460,7 +443,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                           return (
                             <TableRow key={product._id}>
                               <TableCell className="font-medium pl-12 pr-4">{itemNumber++}</TableCell>
-                              <TableCell className="whitespace-normal break-words px-4">{product.name}</TableCell>
+                              <TableCell className="whitespace-normal wrap-break-word px-4">{product.name}</TableCell>
                               <TableCell className="px-4">{product.brand || "-"}</TableCell>
                               <TableCell className="px-4">{product.location || "-"}</TableCell>
                               <TableCell className="text-right px-4">{product.qty}</TableCell>
@@ -528,7 +511,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                           return (
                             <TableRow key={product._id}>
                               <TableCell className="font-medium pl-12 pr-4">{itemNumber++}</TableCell>
-                              <TableCell className="whitespace-normal break-words px-4">{product.name}</TableCell>
+                              <TableCell className="whitespace-normal wrap-break-word px-4">{product.name}</TableCell>
                               <TableCell className="px-4">{product.brand || "-"}</TableCell>
                               <TableCell className="px-4">{product.location || "-"}</TableCell>
                               <TableCell className="text-right px-4">{product.qty}</TableCell>
@@ -596,7 +579,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                           return (
                             <TableRow key={product._id}>
                               <TableCell className="font-medium pl-12 pr-4">{itemNumber++}</TableCell>
-                              <TableCell className="whitespace-normal break-words px-4">{product.name}</TableCell>
+                              <TableCell className="whitespace-normal wrap-break-word px-4">{product.name}</TableCell>
                               <TableCell className="px-4">{product.brand || "-"}</TableCell>
                               <TableCell className="px-4">{product.location || "-"}</TableCell>
                               <TableCell className="text-right px-4">{product.qty}</TableCell>
@@ -657,11 +640,6 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     )
   }
 
-  const handleEditBOQ = (boq: any) => {
-    setEditingBOQ(boq)
-    // In the new implementation, editing is handled by navigating to the creation form
-    // For now, we can set the state but the dialog won't be used directly for editing
-  }
 
   const handleDialogClose = (open: boolean) => {
     // This handler is for the old CreateBOQDialog, which is being replaced
@@ -672,12 +650,6 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     }
   }
 
-  const handleCreateAdditionalBOQ = () => {
-    setIsCreatingAdditional(true)
-    setBOQType("additional") // Set to create additional BOQ
-    // In the new implementation, this action leads to the blank creation form
-    setCreationMode("blank")
-  }
 
   const getStatusBadge = (status: string) => {
     const statusLower = status.toLowerCase()
@@ -694,23 +666,6 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   }
 
   // Helper function for highlighting search query in product names
-  const highlightText = (text: string, query: string) => {
-    if (!query) return text
-    const parts = text.split(new RegExp(`(${query})`, "gi"))
-    return (
-      <>
-        {parts.map((part, index) =>
-          part.toLowerCase() === query.toLowerCase() ? (
-            <mark key={index} className="bg-primary/30 text-foreground">
-              {part}
-            </mark>
-          ) : (
-            part
-          ),
-        )}
-      </>
-    )
-  }
 
   // Functions for selecting products in the creation form
   const selectPreliminaryProduct = (index: number, product: any) => {
@@ -789,17 +744,6 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     endDate?: string // Added endDate
   }
 
-  interface ProductItem {
-    name: string
-    qty: number
-    unit: string
-    price: number
-    productId?: string
-    location?: string
-    brand?: string
-    startDate?: string
-    endDate?: string
-  }
 
   // Preliminary functions
   const addPreliminaryItem = () => {
@@ -987,13 +931,6 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     try {
       setLoading(true)
 
-      const formatDateToYYYYMMDD = (dateString: string) => {
-        const date = new Date(dateString)
-        const year = date.getFullYear()
-        const month = String(date.getMonth() + 1).padStart(2, "0")
-        const day = String(date.getDate()).padStart(2, "0")
-        return `${year}-${month}-${day}`
-      }
 
       // Filter preliminary items
       const filteredPreliminary = preliminary
@@ -1543,7 +1480,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     }
 
     // Add additional BOQs
-    additionalBOQs.forEach((boq: any, index: number) => {
+    additionalBOQs.forEach((boq: any) => {
       const source = `Additional BOQ #${boq.number}`
       addItemsWithSource(boq.preliminary || [], source, "preliminary")
       addCategoryItemsWithSource(boq.fittingOut || [], source, "fittingOut")
@@ -1611,13 +1548,13 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[60px] px-4">No</TableHead>
-                      <TableHead className="min-w-[200px] max-w-[400px] px-4">Item Name</TableHead>
-                      <TableHead className="w-[100px] px-4">Source</TableHead>
-                      <TableHead className="text-right w-[80px] px-4">Qty</TableHead>
-                      <TableHead className="w-[80px] px-4">Unit</TableHead>
-                      <TableHead className="text-right w-[150px] px-4">Unit Price</TableHead>
-                      <TableHead className="text-right w-[150px] px-4">Total Price</TableHead>
+                      <TableHead className="w-15 px-4">No</TableHead>
+                      <TableHead className="min-w-50 max-w-100 px-4">Item Name</TableHead>
+                      <TableHead className="w-25 px-4">Source</TableHead>
+                      <TableHead className="text-right w-20 px-4">Qty</TableHead>
+                      <TableHead className="w-20 px-4">Unit</TableHead>
+                      <TableHead className="text-right w-37.5 px-4">Unit Price</TableHead>
+                      <TableHead className="text-right w-37.5 px-4">Total Price</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1668,13 +1605,13 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-[60px] px-4">No</TableHead>
-                          <TableHead className="min-w-[200px] max-w-[400px] px-4">Item Name</TableHead>
-                          <TableHead className="w-[100px] px-4">Source</TableHead>
-                          <TableHead className="text-right w-[80px] px-4">Qty</TableHead>
-                          <TableHead className="w-[80px] px-4">Unit</TableHead>
-                          <TableHead className="text-right w-[150px] px-4">Unit Price</TableHead>
-                          <TableHead className="text-right w-[150px] px-4">Total Price</TableHead>
+                          <TableHead className="w-15 px-4">No</TableHead>
+                          <TableHead className="min-w-50 max-w-100 px-4">Item Name</TableHead>
+                          <TableHead className="w-25 px-4">Source</TableHead>
+                          <TableHead className="text-right w-20 px-4">Qty</TableHead>
+                          <TableHead className="w-20 px-4">Unit</TableHead>
+                          <TableHead className="text-right w-37.5 px-4">Unit Price</TableHead>
+                          <TableHead className="text-right w-37.5 px-4">Total Price</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1734,13 +1671,13 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-[60px] px-4">No</TableHead>
-                          <TableHead className="min-w-[200px] max-w-[400px] px-4">Item Name</TableHead>
-                          <TableHead className="w-[100px] px-4">Source</TableHead>
-                          <TableHead className="text-right w-[80px] px-4">Qty</TableHead>
-                          <TableHead className="w-[80px] px-4">Unit</TableHead>
-                          <TableHead className="text-right w-[150px] px-4">Unit Price</TableHead>
-                          <TableHead className="text-right w-[150px] px-4">Total Price</TableHead>
+                          <TableHead className="w-15 px-4">No</TableHead>
+                          <TableHead className="min-w-50 max-w-100 px-4">Item Name</TableHead>
+                          <TableHead className="w-25 px-4">Source</TableHead>
+                          <TableHead className="text-right w-20 px-4">Qty</TableHead>
+                          <TableHead className="w-20 px-4">Unit</TableHead>
+                          <TableHead className="text-right w-37.5 px-4">Unit Price</TableHead>
+                          <TableHead className="text-right w-37.5 px-4">Total Price</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1800,13 +1737,13 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-[60px] px-4">No</TableHead>
-                          <TableHead className="min-w-[200px] max-w-[400px] px-4">Item Name</TableHead>
-                          <TableHead className="w-[100px] px-4">Source</TableHead>
-                          <TableHead className="text-right w-[80px] px-4">Qty</TableHead>
-                          <TableHead className="w-[80px] px-4">Unit</TableHead>
-                          <TableHead className="text-right w-[150px] px-4">Unit Price</TableHead>
-                          <TableHead className="text-right w-[150px] px-4">Total Price</TableHead>
+                          <TableHead className="w-15 px-4">No</TableHead>
+                          <TableHead className="min-w-50 max-w-100 px-4">Item Name</TableHead>
+                          <TableHead className="w-25 px-4">Source</TableHead>
+                          <TableHead className="text-right w-20 px-4">Qty</TableHead>
+                          <TableHead className="w-20 px-4">Unit</TableHead>
+                          <TableHead className="text-right w-37.5 px-4">Unit Price</TableHead>
+                          <TableHead className="text-right w-37.5 px-4">Total Price</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -2117,7 +2054,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                       <div key={index} className="p-4 space-y-3">
                         {/* First Row: Number and Item Name */}
                         <div className="flex items-start gap-3">
-                          <div className="flex-shrink-0 w-8 h-10 flex items-center justify-center font-medium text-sm">
+                          <div className="shrink-0 w-8 h-10 flex items-center justify-center font-medium text-sm">
                             {index + 1}
                           </div>
                           <div className="flex-1 min-w-0">
@@ -2137,7 +2074,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                             variant="ghost"
                             size="icon"
                             onClick={() => removePreliminaryItem(index)}
-                            className="flex-shrink-0"
+                            className="shrink-0"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -2247,7 +2184,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                         <div key={productIndex} className="p-4 space-y-3">
                           {/* First Row: Number and Product Name */}
                           <div className="flex items-start gap-3">
-                            <div className="flex-shrink-0 w-8 h-10 flex items-center justify-center font-medium text-sm">
+                            <div className="shrink-0 w-8 h-10 flex items-center justify-center font-medium text-sm">
                               {productIndex + 1}
                             </div>
                             <div className="flex-1 min-w-0">
@@ -2271,7 +2208,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                               variant="ghost"
                               size="icon"
                               onClick={() => removeFittingOutProduct(categoryIndex, productIndex)}
-                              className="flex-shrink-0"
+                              className="shrink-0"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -2401,7 +2338,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                         <div key={productIndex} className="p-4 space-y-3">
                           {/* First Row: Number and Product Name */}
                           <div className="flex items-start gap-3">
-                            <div className="flex-shrink-0 w-8 h-10 flex items-center justify-center font-medium text-sm">
+                            <div className="shrink-0 w-8 h-10 flex items-center justify-center font-medium text-sm">
                               {productIndex + 1}
                             </div>
                             <div className="flex-1 min-w-0">
@@ -2424,7 +2361,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                               variant="ghost"
                               size="icon"
                               onClick={() => removeFurnitureWorkProduct(categoryIndex, productIndex)}
-                              className="flex-shrink-0"
+                              className="shrink-0"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -2552,7 +2489,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                         <div key={productIndex} className="p-4 space-y-3">
                           {/* First Row: Number and Product Name */}
                           <div className="flex items-start gap-3">
-                            <div className="flex-shrink-0 w-8 h-10 flex items-center justify-center font-medium text-sm">
+                            <div className="shrink-0 w-8 h-10 flex items-center justify-center font-medium text-sm">
                               {productIndex + 1}
                             </div>
                             <div className="flex-1 min-w-0">
@@ -2575,7 +2512,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                               variant="ghost"
                               size="icon"
                               onClick={() => removeMechanicalElectricalProduct(categoryIndex, productIndex)}
-                              className="flex-shrink-0"
+                              className="shrink-0"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>

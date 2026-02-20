@@ -2360,7 +2360,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                       BOQ #{mainBOQ.number} • Created: {new Date(mainBOQ.createdAt).toLocaleDateString("id-ID")}
                     </CardDescription>
                   </div>
-                  {mainBOQ.status.toLowerCase() === "draft" && (
+                  {["draft", "rejected"].includes(mainBOQ.status.toLowerCase()) && (
                     <div className="flex gap-2 w-full sm:w-auto">
                       <Button
                         variant="outline"

@@ -51,10 +51,11 @@ export interface BOQListResponse {
 
 // Create BOQ from AI
 export const createBOQFromAI = async (projectId: string, prompt: string): Promise<BOQ> => {
-  return apiRequest<BOQ>(`/projects/${projectId}/boq/ai-based`, {
+  const response = await apiRequest<BOQ>(`/projects/${projectId}/boq/ai-based`, {
     method: "POST",
     body: JSON.stringify({ prompt }),
   })
+  return response.data
 }
 
 // Create BOQ from Excel
@@ -80,10 +81,11 @@ export const createMainBOQ = async (
   projectId: string,
   data: { name: string; items: Omit<BOQItem, "id">[] },
 ): Promise<BOQ> => {
-  return apiRequest<BOQ>(`/projects/${projectId}/boq`, {
+  const response = await apiRequest<BOQ>(`/projects/${projectId}/boq`, {
     method: "POST",
     body: JSON.stringify(data),
   })
+  return response.data
 }
 
 export const createAdditionalBOQ = async (
@@ -137,7 +139,7 @@ export const createBOQ = async (
 
 // Get all BOQs for a project
 export const getBOQList = async (projectId: string): Promise<BOQ[]> => {
-  const response = await apiRequest<{ code: number; message: any; data: BOQListResponse }>(
+  const response = await apiRequest<BOQListResponse>(
     `/projects/${projectId}/boq`,
     {
       method: "GET",
@@ -149,9 +151,10 @@ export const getBOQList = async (projectId: string): Promise<BOQ[]> => {
 
 // Get specific BOQ
 export const getBOQ = async (projectId: string, boqId: string): Promise<BOQ> => {
-  return apiRequest<BOQ>(`/projects/${projectId}/boq/${boqId}`, {
+  const response = await apiRequest<BOQ>(`/projects/${projectId}/boq/${boqId}`, {
     method: "GET",
   })
+  return response.data
 }
 
 // Update BOQ with new API format
@@ -178,14 +181,14 @@ export const updateBOQ = async (
 
 // Delete additional BOQ
 export const deleteAdditionalBOQ = async (projectId: string, boqId: string): Promise<void> => {
-  return apiRequest<void>(`/projects/${projectId}/boq/${boqId}`, {
+  await apiRequest<void>(`/projects/${projectId}/boq/${boqId}`, {
     method: "DELETE",
   })
 }
 
 // Bulk delete additional BOQs
 export const bulkDeleteBOQs = async (projectId: string, boqIds: string[]): Promise<void> => {
-  return apiRequest<void>(`/projects/${projectId}/boq/delete`, {
+  await apiRequest<void>(`/projects/${projectId}/boq/delete`, {
     method: "POST",
     body: JSON.stringify({ boq_ids: boqIds }),
   })
@@ -193,9 +196,10 @@ export const bulkDeleteBOQs = async (projectId: string, boqIds: string[]): Promi
 
 // Generate Gantt chart
 export const generateGanttChart = async (projectId: string, boqId: string): Promise<GanttChartData> => {
-  return apiRequest<GanttChartData>(`/projects/${projectId}/boq/${boqId}/gantt-chart`, {
+  const response = await apiRequest<GanttChartData>(`/projects/${projectId}/boq/${boqId}/gantt-chart`, {
     method: "POST",
   })
+  return response.data
 }
 
 // Update Gantt chart dates
@@ -222,7 +226,7 @@ export const updateGanttChart = async (
 
 // Request BOQ approval
 export const requestBOQApproval = async (projectId: string, boqId: string, data?: { email: string }): Promise<void> => {
-  return apiRequest<void>(`/projects/${projectId}/boq/${boqId}/request`, {
+  await apiRequest<void>(`/projects/${projectId}/boq/${boqId}/request`, {
     method: "POST",
     body: data ? JSON.stringify(data) : undefined,
   })
@@ -307,6 +311,10 @@ export const boqApi = {
         name: string
         products: Array<{ qty: number; name: string; unit: string; price: number }>
       }>
+      mechanicalElectrical: Array<{
+        name: string
+        products: Array<{ qty: number; name: string; unit: string; price: number }>
+      }>
     },
   ) => {
     const data = await createAdditionalBOQ(projectId, boqData)
@@ -321,6 +329,10 @@ export const boqApi = {
         products: Array<{ qty: number; name: string; unit: string; price: number }>
       }>
       furnitureWork: Array<{
+        name: string
+        products: Array<{ qty: number; name: string; unit: string; price: number }>
+      }>
+      mechanicalElectrical: Array<{
         name: string
         products: Array<{ qty: number; name: string; unit: string; price: number }>
       }>

@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   AlertDialog,
@@ -33,7 +34,6 @@ import { Plus, Search, Edit, Trash2, Loader2, Package, Shield, Eye, X, Upload } 
 import {
   productsApi,
   type Product,
-  type CreateProductInput,
   type UpdateProductInput,
   type ProductDetail,
 } from "@/lib/api/products"
@@ -41,6 +41,15 @@ import { getProfile } from "@/lib/api/auth"
 import { uploadPhoto } from "@/lib/api/upload"
 import { useToast } from "@/hooks/use-toast"
 import { API_BASE_URL } from "@/lib/api/config"
+import { CreateProductDialog } from "@/components/products/create-product-dialog"
+
+const tagOptions = [
+  { value: "Vendor", label: "Vendor" },
+  { value: "MEP", label: "MEP" },
+  { value: "Workshop", label: "Workshop" },
+  { value: "internal", label: "internal" },
+  { value: "custom", label: "Custom" },
+] as const
 
 export default function ProductsPage() {
   const { toast } = useToast()
@@ -59,6 +68,7 @@ export default function ProductsPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false)
+  const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null)
   const [viewingProduct, setViewingProduct] = useState<Product | null>(null)
@@ -71,6 +81,8 @@ export default function ProductsPage() {
     sellingPrice: "",
     purchasePrice: "",
     sku: "",
+    tag: "",
+    customTag: "",
   })
 
   const [uploadedPhotos, setUploadedPhotos] = useState<Array<{ url: string; provider: string }>>([])
@@ -144,9 +156,16 @@ export default function ProductsPage() {
       sellingPrice: "",
       purchasePrice: "",
       sku: "",
+      tag: "",
+      customTag: "",
     })
     setUploadedPhotos([])
     setProductDetails([])
+  }
+
+  const resolveTagInput = () => {
+    const selected = formData.tag === "custom" ? formData.customTag.trim() : formData.tag.trim()
+    return selected ? [selected] : undefined
   }
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -199,48 +218,8 @@ export default function ProductsPage() {
     setProductDetails((prev) => prev.filter((_, i) => i !== index))
   }
 
-  const handleCreate = async () => {
-    try {
-      setSubmitting(true)
-
-      const createData: CreateProductInput = {
-        name: formData.name,
-        type: formData.type,
-        unit: formData.unit,
-        sellingPrice: Number.parseFloat(formData.sellingPrice) || 0,
-        purchasePrice: Number.parseFloat(formData.purchasePrice) || 0,
-        sku: formData.sku,
-        brand: formData.brand || undefined,
-        photos: uploadedPhotos.length > 0 ? uploadedPhotos : undefined,
-        details:
-          productDetails.length > 0
-            ? productDetails.map((d) => ({
-                label: d.label,
-                type: d.type,
-                value: d.value,
-              }))
-            : undefined,
-      }
-
-      await productsApi.create(createData)
-
-      toast({
-        title: "Success",
-        description: "Product created successfully",
-      })
-
-      setCreateDialogOpen(false)
-      resetForm()
-      loadProducts()
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create product",
-        variant: "destructive",
-      })
-    } finally {
-      setSubmitting(false)
-    }
+  const handleProductCreated = () => {
+    loadProducts()
   }
 
   const handleEdit = async () => {
@@ -257,6 +236,7 @@ export default function ProductsPage() {
         brand: formData.brand || undefined,
         sellingPrice: Number.parseFloat(formData.sellingPrice) || 0,
         purchasePrice: Number.parseFloat(formData.purchasePrice) || 0,
+        tags: resolveTagInput(),
         photos: uploadedPhotos.length > 0 ? uploadedPhotos : undefined,
         details:
           productDetails.length > 0
@@ -291,15 +271,23 @@ export default function ProductsPage() {
   }
 
   const openEditDialog = (product: Product) => {
+    const existingTag = product.tags?.[0] || ""
+    const presetTags = tagOptions
+      .filter((option) => option.value !== "custom")
+      .map((option) => option.value) as string[]
+    const isPresetTag = existingTag ? presetTags.includes(existingTag) : false
+
     setEditingProduct(product)
     setFormData({
       name: product.name,
       type: product.type,
       unit: product.unit,
-      brand: product.brand,
+      brand: product.brand || "",
       sellingPrice: product.sellingPrice.toString(),
       purchasePrice: product.purchasePrice.toString(),
       sku: product.sku,
+      tag: isPresetTag ? existingTag : existingTag ? "custom" : "",
+      customTag: isPresetTag ? "" : existingTag,
     })
     setUploadedPhotos(product.photos || [])
     setProductDetails(product.details || [])
@@ -337,6 +325,7 @@ export default function ProductsPage() {
         description: `${selectedProducts.length} product(s) deleted successfully`,
       })
       setSelectedProducts([])
+      setBulkDeleteConfirmOpen(false)
       loadProducts()
     } catch (error) {
       toast({
@@ -442,7 +431,7 @@ export default function ProductsPage() {
 
   if (checkingAuth) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex items-center justify-center min-h-100">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto mb-4" />
           <p className="text-muted-foreground">Verifying access permissions...</p>
@@ -476,7 +465,7 @@ export default function ProductsPage() {
             </div>
             <div className="flex gap-2 w-full sm:w-auto">
               {selectedProducts.length > 0 && (
-                <Button variant="destructive" size="sm" onClick={handleBulkDelete}>
+                <Button variant="destructive" size="sm" onClick={() => setBulkDeleteConfirmOpen(true)}>
                   <Trash2 className="mr-2 h-4 w-4" />
                   Delete ({selectedProducts.length})
                 </Button>
@@ -520,6 +509,7 @@ export default function ProductsPage() {
                       <TableHead>Type</TableHead>
                       <TableHead>Unit</TableHead>
                       <TableHead>Brand</TableHead>
+                      <TableHead>Tags</TableHead>
                       <TableHead>Selling Price</TableHead>
                       <TableHead>Purchase Price</TableHead>
                       {/* <TableHead>Created</TableHead> */}
@@ -536,10 +526,23 @@ export default function ProductsPage() {
                           />
                         </TableCell>
                         <TableCell className="font-mono text-xs">{product.sku}</TableCell>
-                        <TableCell className="font-medium whitespace-normal break-words">{product.name}</TableCell>
+                        <TableCell className="font-medium whitespace-normal wrap-break-word">{product.name}</TableCell>
                         <TableCell>{product.type}</TableCell>
                         <TableCell>{product.unit}</TableCell>
                         <TableCell>{product.brand || "-"}</TableCell>
+                        <TableCell>
+                          {product.tags && product.tags.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {product.tags.map((tag, index) => (
+                                <Badge key={`${product._id}-tag-${index}`} variant="outline" className="text-xs">
+                                  {tag}
+                                </Badge>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
                         <TableCell>{formatCurrency(product.sellingPrice)}</TableCell>
                         <TableCell>{formatCurrency(product.purchasePrice)}</TableCell>
                         {/* <TableCell>{new Date(product.createdAt).toLocaleDateString()}</TableCell> */}
@@ -602,241 +605,32 @@ export default function ProductsPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Create Product</DialogTitle>
-            <DialogDescription>Add a new product to the system</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            {/* Product Name */}
-            <div className="space-y-2">
-              <Label htmlFor="create-name">Product Name *</Label>
-              <Input
-                id="create-name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="e.g., Semen"
-              />
-            </div>
+      <CreateProductDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        uploadPhoto={uploadPhoto}
+        onCreated={handleProductCreated}
+      />
 
-            {/* Type, Unit, Brand */}
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="create-type">Type *</Label>
-                <Select value={formData.type} onValueChange={(value: any) => setFormData({ ...formData, type: value })}>
-                  <SelectTrigger id="create-type">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Goods">Goods</SelectItem>
-                    <SelectItem value="Services">Services</SelectItem>
-                    <SelectItem value="Goods and Services">Goods and Services</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="create-unit">Unit *</Label>
-                <Input
-                  id="create-unit"
-                  value={formData.unit}
-                  onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                  placeholder="e.g., liter"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="create-brand">Brand</Label>
-                <Input
-                  id="create-brand"
-                  value={formData.brand}
-                  onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
-                  placeholder="e.g., Mitsubishi"
-                />
-              </div>
-            </div>
-
-            {/* Purchase Price & Selling Price */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="create-purchase">Purchase Price (IDR) *</Label>
-                <Input
-                  id="create-purchase"
-                  type="number"
-                  value={formData.purchasePrice}
-                  onChange={(e) => setFormData({ ...formData, purchasePrice: e.target.value })}
-                  placeholder="e.g., 20000"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="create-selling">Selling Price (IDR) *</Label>
-                <Input
-                  id="create-selling"
-                  type="number"
-                  value={formData.sellingPrice}
-                  onChange={(e) => setFormData({ ...formData, sellingPrice: e.target.value })}
-                  placeholder="e.g., 25000"
-                />
-              </div>
-            </div>
-
-            {/* SKU */}
-            <div className="space-y-2">
-              <Label htmlFor="create-sku">SKU *</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="create-sku"
-                  value={formData.sku}
-                  onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                  placeholder="e.g., DSG-GS-MIT-25"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={generateSKU}
-                  className="whitespace-nowrap bg-transparent"
-                >
-                  Generate SKU
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Click Generate SKU to create based on name, type, brand, and year
-              </p>
-            </div>
-
-            {/* Photos */}
-            <div className="space-y-2">
-              <Label>Photos</Label>
-              <div className="border-2 border-dashed rounded-lg p-4">
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={handlePhotoUpload}
-                  disabled={uploading}
-                  className="hidden"
-                  id="photo-upload"
-                />
-                <label htmlFor="photo-upload" className="cursor-pointer">
-                  <div className="flex flex-col items-center justify-center py-4">
-                    {uploading ? (
-                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-2" />
-                    ) : (
-                      <Upload className="h-8 w-8 text-muted-foreground mb-2" />
-                    )}
-                    <p className="text-sm text-muted-foreground">
-                      {uploading ? "Uploading..." : "Click to upload photo"}
-                    </p>
-                  </div>
-                </label>
-
-                {uploadedPhotos.length > 0 && (
-                  <div className="grid grid-cols-3 gap-2 mt-4">
-                    {uploadedPhotos.map((photo, index) => (
-                      <div key={index} className="relative group">
-                        <img
-                          src={`${API_BASE_URL}/public/${photo.provider}/${photo.url}`}
-                          alt={`Product ${index + 1}`}
-                          className="w-full h-24 object-cover rounded"
-                        />
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => removePhoto(index)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Product Details */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Product Details</Label>
-                <Button type="button" variant="outline" size="sm" onClick={addDetailField}>
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add Detail
-                </Button>
-              </div>
-
-              {productDetails.map((detail, index) => (
-                <div key={index} className="grid grid-cols-12 gap-2 items-end">
-                  <div className="col-span-4 space-y-1">
-                    <Label className="text-xs">Name</Label>
-                    <Input
-                      value={detail.label}
-                      onChange={(e) => updateDetailField(index, "label", e.target.value)}
-                      placeholder="e.g., Color"
-                      className="h-9"
-                    />
-                  </div>
-                  <div className="col-span-3 space-y-1">
-                    <Label className="text-xs">Type</Label>
-                    <Select value={detail.type} onValueChange={(value: any) => updateDetailField(index, "type", value)}>
-                      <SelectTrigger className="h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="text">Text</SelectItem>
-                        <SelectItem value="number">Number</SelectItem>
-                        <SelectItem value="date">Date</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="col-span-4 space-y-1">
-                    <Label className="text-xs">Value</Label>
-                    <Input
-                      value={detail.value}
-                      onChange={(e) => updateDetailField(index, "value", e.target.value)}
-                      placeholder="e.g., Ungu"
-                      type={detail.type === "number" ? "number" : detail.type === "date" ? "date" : "text"}
-                      className="h-9"
-                    />
-                  </div>
-                  <div className="col-span-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeDetailField(index)}
-                      className="h-9 w-9"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-
-              {productDetails.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  No details added yet. Click "Add Detail" to add product specifications.
-                </p>
-              )}
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setCreateDialogOpen(false)
-                resetForm()
-              }}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleCreate} disabled={submitting || !formData.name || !formData.unit || !formData.sku}>
-              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Create Product
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AlertDialog open={bulkDeleteConfirmOpen} onOpenChange={setBulkDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Products?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedProducts.length} product(s)? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-150 max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Product Details</DialogTitle>
             <DialogDescription>View product information and specifications</DialogDescription>
@@ -864,6 +658,20 @@ export default function ProductsPage() {
                 <div>
                   <Label className="text-muted-foreground">Brand</Label>
                   <p>{viewingProduct.brand || "-"}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Tags</Label>
+                  {viewingProduct.tags && viewingProduct.tags.length > 0 ? (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {viewingProduct.tags.map((tag, index) => (
+                        <Badge key={`${tag}-${index}`} variant="outline" className="text-xs">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <p>-</p>
+                  )}
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Selling Price</Label>
@@ -971,6 +779,43 @@ export default function ProductsPage() {
                 />
               </div>
             </div>
+
+            {/* Tags */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-tag">Tag</Label>
+              <Select
+                value={formData.tag}
+                onValueChange={(value: any) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    tag: value,
+                    customTag: value === "custom" ? prev.customTag : "",
+                  }))
+                }
+              >
+                <SelectTrigger id="edit-tag">
+                  <SelectValue placeholder="Select a tag" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tagOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {formData.tag === "custom" && (
+              <div className="space-y-2">
+                <Label htmlFor="edit-custom-tag">Custom Tag</Label>
+                <Input
+                  id="edit-custom-tag"
+                  value={formData.customTag}
+                  onChange={(e) => setFormData({ ...formData, customTag: e.target.value })}
+                  placeholder="Type custom tag"
+                />
+              </div>
+            )}
 
             {/* Purchase Price & Selling Price */}
             <div className="grid grid-cols-2 gap-4">

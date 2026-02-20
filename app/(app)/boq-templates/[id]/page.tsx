@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader } from "@/components/ui/card" // Added CardTitle
-import { Plus, Trash2, X, ArrowLeft, Loader2, Edit, Save, ChevronsUpDown, Check, Upload, Sparkles } from "lucide-react"
+import { Plus, Trash2, X, ArrowLeft, Loader2, Edit, Save, ChevronsUpDown, Check } from "lucide-react"
 import { templatesApi } from "@/lib/api/templates"
 import { productsApi } from "@/lib/api/products"
 import { uploadApi } from "@/lib/api/upload"
@@ -15,10 +15,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import React from "react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog" // Added DialogDescription, DialogFooter
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn, formatCurrency } from "@/lib/utils" // Added formatCurrency to import
 import { ProductSearchPopover } from "@/components/product-search-popover"
+import { CreateProductDialog } from "@/components/products/create-product-dialog"
 
 interface PreliminaryItem {
   name: string
@@ -79,19 +79,6 @@ export default function TemplateDetailPage() {
   const fittingOutQtyRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const furnitureWorkQtyRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const mechanicalElectricalQtyRefs = useRef<Record<string, HTMLInputElement | null>>({})
-
-  // Create product form states
-  const [newProductName, setNewProductName] = useState("")
-  const [newProductType, setNewProductType] = useState("Goods")
-  const [newProductUnit, setNewProductUnit] = useState("")
-  const [newProductSellingPrice, setNewProductSellingPrice] = useState(0)
-  const [newProductPurchasePrice, setNewProductPurchasePrice] = useState(0)
-  const [newProductSku, setNewProductSku] = useState("")
-  const [newProductBrand, setNewProductBrand] = useState("")
-  const [newProductPhotos, setNewProductPhotos] = useState<{ url: string; provider: string }[]>([])
-  const [newProductDetails, setNewProductDetails] = useState<{ label: string; type: string; value: string }[]>([])
-  const [uploadingPhoto, setUploadingPhoto] = useState(false)
-  const [creatingProduct, setCreatingProduct] = useState(false)
 
   const fetchTemplate = async () => {
     if (!params.id) return
@@ -371,107 +358,25 @@ export default function TemplateDetailPage() {
     setTimeout(() => mechanicalElectricalQtyRefs.current[`${categoryIndex}-${productIndex}`]?.focus(), 100)
   }
 
-  // SKU generation function
-  const generateSKU = () => {
-    const getAbbreviation = (text: string) => {
-      if (!text) return ""
-      const words = text.trim().split(/\s+/)
-      if (words.length >= 3) {
-        return words
-          .slice(0, 3)
-          .map((w) => w[0].toUpperCase())
-          .join("")
-      } else if (words.length === 2) {
-        return (words[0].substring(0, 2) + words[1][0]).toUpperCase()
-      } else if (words.length === 1) {
-        return words[0].substring(0, 3).toUpperCase().padEnd(3, words[0][0].toUpperCase())
+  const handleProductCreated = () => {
+    fetchProducts()
+  }
+
+  const fetchProducts = async () => {
+    try {
+      setLoadingProducts(true)
+      const response = await productsApi.getAll()
+      if (response?.list) {
+        setProducts(response.list)
       }
-      return ""
-    }
-
-    const nameAbbr = getAbbreviation(newProductName)
-    const typeAbbr = newProductType === "Goods" ? "GO" : newProductType === "Services" ? "SE" : "GS"
-    const brandAbbr = getAbbreviation(newProductBrand)
-    const year = new Date().getFullYear().toString().slice(-2)
-
-    setNewProductSku(`${nameAbbr}-${typeAbbr}-${brandAbbr}-${year}`)
-  }
-
-  // Photo upload function
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    try {
-      setUploadingPhoto(true)
-      const response = await uploadApi.uploadFile(file)
-      setNewProductPhotos([...newProductPhotos, { url: response.url, provider: response.provider }])
-      toast({
-        title: "Success",
-        description: "Photo uploaded successfully",
-      })
     } catch (error) {
-      console.error("[v0] Failed to upload photo:", error)
       toast({
         title: "Error",
-        description: "Failed to upload photo",
+        description: "Failed to load products",
         variant: "destructive",
       })
     } finally {
-      setUploadingPhoto(false)
-    }
-  }
-
-  // Create product function
-  const handleCreateProduct = async () => {
-    if (!newProductName.trim()) {
-      toast({
-        title: "Error",
-        description: "Product name is required",
-        variant: "destructive",
-      })
-      return
-    }
-
-    try {
-      setCreatingProduct(true)
-      await productsApi.create({
-        name: newProductName,
-        type: newProductType,
-        unit: newProductUnit,
-        sellingPrice: newProductSellingPrice,
-        purchasePrice: newProductPurchasePrice,
-        sku: newProductSku,
-        brand: newProductBrand,
-        photos: newProductPhotos,
-        details: newProductDetails,
-      })
-
-      toast({
-        title: "Success",
-        description: "Product created successfully",
-      })
-      setCreateProductDialogOpen(false)
-
-      // Reset form
-      setNewProductName("")
-      setNewProductType("Goods")
-      setNewProductUnit("")
-      setNewProductSellingPrice(0)
-      setNewProductPurchasePrice(0)
-      setNewProductSku("")
-      setNewProductBrand("")
-      setNewProductPhotos([])
-      setNewProductDetails([])
-    } catch (error) {
-      console.error("[v0] Failed to create product:", error)
-      toast({
-        title: "Error",
-        description: "Failed to create product",
-        variant: "destructive",
-      })
-    } finally {
-      setCreatingProduct(false)
+      setLoadingProducts(false)
     }
   }
 
@@ -1417,207 +1322,12 @@ export default function TemplateDetailPage() {
         <div className="space-y-4">{renderBOQTable({ preliminary, fittingOut, furnitureWork, mechanicalElectrical })}</div>
       )}
 
-      <Dialog open={createProductDialogOpen} onOpenChange={setCreateProductDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Create New Product</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Product Name</Label>
-              <Input
-                value={newProductName}
-                onChange={(e) => setNewProductName(e.target.value)}
-                placeholder="Enter product name"
-              />
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <Label>Type</Label>
-                <Select value={newProductType} onValueChange={setNewProductType}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Goods">Goods</SelectItem>
-                    <SelectItem value="Services">Services</SelectItem>
-                    <SelectItem value="Goods and Services">Goods and Services</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Unit</Label>
-                <Input
-                  value={newProductUnit}
-                  onChange={(e) => setNewProductUnit(e.target.value)}
-                  placeholder="e.g., pcs, m2"
-                />
-              </div>
-              <div>
-                <Label>Brand</Label>
-                <Input
-                  value={newProductBrand}
-                  onChange={(e) => setNewProductBrand(e.target.value)}
-                  placeholder="Brand name"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Purchase Price</Label>
-                <Input
-                  type="number"
-                  value={newProductPurchasePrice}
-                  onChange={(e) => setNewProductPurchasePrice(Number(e.target.value))}
-                  placeholder="0"
-                />
-              </div>
-              <div>
-                <Label>Selling Price</Label>
-                <Input
-                  type="number"
-                  value={newProductSellingPrice}
-                  onChange={(e) => setNewProductSellingPrice(Number(e.target.value))}
-                  placeholder="0"
-                />
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <Label>SKU</Label>
-                <Button type="button" variant="outline" size="sm" onClick={generateSKU}>
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Generate SKU
-                </Button>
-              </div>
-              <Input value={newProductSku} onChange={(e) => setNewProductSku(e.target.value)} placeholder="SKU" />
-            </div>
-
-            <div>
-              <Label>Photos</Label>
-              <div className="space-y-2">
-                {newProductPhotos.map((photo, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <img
-                      src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${photo.provider}/${photo.url}`}
-                      alt="Product"
-                      className="h-16 w-16 object-cover rounded"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setNewProductPhotos(newProductPhotos.filter((_, i) => i !== index))}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-                <div>
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoUpload}
-                    disabled={uploadingPhoto}
-                    className="hidden"
-                    id="product-photo-upload"
-                  />
-                  <label htmlFor="product-photo-upload">
-                    <Button type="button" variant="outline" size="sm" disabled={uploadingPhoto} asChild>
-                      <span>
-                        {uploadingPhoto ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        ) : (
-                          <Upload className="h-4 w-4 mr-2" />
-                        )}
-                        Upload Photo
-                      </span>
-                    </Button>
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <Label>Product Details</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setNewProductDetails([...newProductDetails, { label: "", type: "text", value: "" }])}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Detail
-                </Button>
-              </div>
-              {newProductDetails.map((detail, index) => (
-                <div key={index} className="flex gap-2 mb-2">
-                  <Input
-                    placeholder="Name"
-                    value={detail.label}
-                    onChange={(e) => {
-                      const updated = [...newProductDetails]
-                      updated[index].label = e.target.value
-                      setNewProductDetails(updated)
-                    }}
-                    className="flex-1"
-                  />
-                  <Select
-                    value={detail.type}
-                    onValueChange={(value) => {
-                      const updated = [...newProductDetails]
-                      updated[index].type = value
-                      setNewProductDetails(updated)
-                    }}
-                  >
-                    <SelectTrigger className="w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="text">Text</SelectItem>
-                      <SelectItem value="number">Number</SelectItem>
-                      <SelectItem value="date">Date</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    placeholder="Value"
-                    type={detail.type === "number" ? "number" : detail.type === "date" ? "date" : "text"}
-                    value={detail.value}
-                    onChange={(e) => {
-                      const updated = [...newProductDetails]
-                      updated[index].value = e.target.value
-                      setNewProductDetails(updated)
-                    }}
-                    className="flex-1"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setNewProductDetails(newProductDetails.filter((_, i) => i !== index))}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex justify-end gap-2 pt-4">
-              <Button variant="outline" onClick={() => setCreateProductDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleCreateProduct} disabled={creatingProduct}>
-                {creatingProduct && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Create Product
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <CreateProductDialog
+        open={createProductDialogOpen}
+        onOpenChange={setCreateProductDialogOpen}
+        uploadPhoto={uploadApi.uploadFile}
+        onCreated={handleProductCreated}
+      />
     </div>
   )
 }

@@ -1,4 +1,14 @@
-import { apiRequest } from "./config"
+import { API_BASE_URL, BASIC_AUTH_PASSWORD, BASIC_AUTH_USERNAME, apiRequest } from "./config"
+
+const getBasicAuthHeaders = (): HeadersInit => {
+  if (!BASIC_AUTH_USERNAME || !BASIC_AUTH_PASSWORD) {
+    return {}
+  }
+
+  return {
+    Authorization: `Basic ${btoa(`${BASIC_AUTH_USERNAME}:${BASIC_AUTH_PASSWORD}`)}`,
+  }
+}
 
 export interface BOQItem {
   id: string
@@ -41,10 +51,11 @@ export interface BOQListResponse {
 
 // Create BOQ from AI
 export const createBOQFromAI = async (projectId: string, prompt: string): Promise<BOQ> => {
-  return apiRequest<BOQ>(`/projects/${projectId}/boq/ai-based`, {
+  const response = await apiRequest<BOQ>(`/projects/${projectId}/boq/ai-based`, {
     method: "POST",
     body: JSON.stringify({ prompt }),
   })
+  return response.data
 }
 
 // Create BOQ from Excel
@@ -70,10 +81,11 @@ export const createMainBOQ = async (
   projectId: string,
   data: { name: string; items: Omit<BOQItem, "id">[] },
 ): Promise<BOQ> => {
-  return apiRequest<BOQ>(`/projects/${projectId}/boq`, {
+  const response = await apiRequest<BOQ>(`/projects/${projectId}/boq`, {
     method: "POST",
     body: JSON.stringify(data),
   })
+  return response.data
 }
 
 export const createAdditionalBOQ = async (
@@ -127,7 +139,7 @@ export const createBOQ = async (
 
 // Get all BOQs for a project
 export const getBOQList = async (projectId: string): Promise<BOQ[]> => {
-  const response = await apiRequest<{ code: number; message: any; data: BOQListResponse }>(
+  const response = await apiRequest<BOQListResponse>(
     `/projects/${projectId}/boq`,
     {
       method: "GET",
@@ -139,9 +151,10 @@ export const getBOQList = async (projectId: string): Promise<BOQ[]> => {
 
 // Get specific BOQ
 export const getBOQ = async (projectId: string, boqId: string): Promise<BOQ> => {
-  return apiRequest<BOQ>(`/projects/${projectId}/boq/${boqId}`, {
+  const response = await apiRequest<BOQ>(`/projects/${projectId}/boq/${boqId}`, {
     method: "GET",
   })
+  return response.data
 }
 
 // Update BOQ with new API format
@@ -168,14 +181,14 @@ export const updateBOQ = async (
 
 // Delete additional BOQ
 export const deleteAdditionalBOQ = async (projectId: string, boqId: string): Promise<void> => {
-  return apiRequest<void>(`/projects/${projectId}/boq/${boqId}`, {
+  await apiRequest<void>(`/projects/${projectId}/boq/${boqId}`, {
     method: "DELETE",
   })
 }
 
 // Bulk delete additional BOQs
 export const bulkDeleteBOQs = async (projectId: string, boqIds: string[]): Promise<void> => {
-  return apiRequest<void>(`/projects/${projectId}/boq/delete`, {
+  await apiRequest<void>(`/projects/${projectId}/boq/delete`, {
     method: "POST",
     body: JSON.stringify({ boq_ids: boqIds }),
   })
@@ -183,9 +196,10 @@ export const bulkDeleteBOQs = async (projectId: string, boqIds: string[]): Promi
 
 // Generate Gantt chart
 export const generateGanttChart = async (projectId: string, boqId: string): Promise<GanttChartData> => {
-  return apiRequest<GanttChartData>(`/projects/${projectId}/boq/${boqId}/gantt-chart`, {
+  const response = await apiRequest<GanttChartData>(`/projects/${projectId}/boq/${boqId}/gantt-chart`, {
     method: "POST",
   })
+  return response.data
 }
 
 // Update Gantt chart dates
@@ -212,24 +226,51 @@ export const updateGanttChart = async (
 
 // Request BOQ approval
 export const requestBOQApproval = async (projectId: string, boqId: string, data?: { email: string }): Promise<void> => {
-  return apiRequest<void>(`/projects/${projectId}/boq/${boqId}/request`, {
+  await apiRequest<void>(`/projects/${projectId}/boq/${boqId}/request`, {
     method: "POST",
     body: data ? JSON.stringify(data) : undefined,
   })
 }
 
 // Client accept BOQ
-export const acceptBOQ = async (projectId: string, boqId: string, token: string): Promise<void> => {
-  return apiRequest<void>(`/projects/${projectId}/boq/${boqId}/accept?token=${token}`, {
-    method: "GET",
-  })
+export const acceptBOQ = async (projectId: string, boqId: string, email: string, code: string): Promise<void> => {
+  const response = await fetch(
+    `${API_BASE_URL}/projects/${projectId}/boq/${boqId}/accept?email=${encodeURIComponent(email)}&code=${encodeURIComponent(code)}`,
+    {
+      method: "GET",
+      headers: getBasicAuthHeaders(),
+    },
+  )
+
+  if (!response.ok) {
+    const responseData = await response.json().catch(() => null)
+    throw new Error(responseData?.message?.user || "Gagal approve BOQ")
+  }
 }
 
 // Client reject BOQ
-export const rejectBOQ = async (projectId: string, boqId: string, token: string, reason: string): Promise<void> => {
-  return apiRequest<void>(`/projects/${projectId}/boq/${boqId}/reject?token=${token}`, {
-    method: "GET",
-  })
+export const rejectBOQ = async (projectId: string, boqId: string, email: string, code: string): Promise<void> => {
+  const response = await fetch(
+    `${API_BASE_URL}/projects/${projectId}/boq/${boqId}/reject?email=${encodeURIComponent(email)}&code=${encodeURIComponent(code)}`,
+    {
+      method: "GET",
+      headers: getBasicAuthHeaders(),
+    },
+  )
+
+  if (!response.ok) {
+    const responseData = await response.json().catch(() => null)
+    throw new Error(responseData?.message?.user || "Gagal reject BOQ")
+  }
+}
+
+// Verify BOQ approval token and get BOQ data
+export const verifyBOQToken = async (token: string): Promise<any> => {
+  const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/token/boqs-approval?token=${token}`)
+  if (!response.ok) {
+    throw new Error("Failed to verify token")
+  }
+  return response.json()
 }
 
 export const boqApi = {
@@ -270,6 +311,10 @@ export const boqApi = {
         name: string
         products: Array<{ qty: number; name: string; unit: string; price: number }>
       }>
+      mechanicalElectrical: Array<{
+        name: string
+        products: Array<{ qty: number; name: string; unit: string; price: number }>
+      }>
     },
   ) => {
     const data = await createAdditionalBOQ(projectId, boqData)
@@ -284,6 +329,10 @@ export const boqApi = {
         products: Array<{ qty: number; name: string; unit: string; price: number }>
       }>
       furnitureWork: Array<{
+        name: string
+        products: Array<{ qty: number; name: string; unit: string; price: number }>
+      }>
+      mechanicalElectrical: Array<{
         name: string
         products: Array<{ qty: number; name: string; unit: string; price: number }>
       }>
@@ -347,12 +396,12 @@ export const boqApi = {
     await requestBOQApproval(projectId, boqId, data)
     return { success: true }
   },
-  accept: async (projectId: string, boqId: string, token: string) => {
-    await acceptBOQ(projectId, boqId, token)
+  accept: async (projectId: string, boqId: string, email: string, code: string) => {
+    await acceptBOQ(projectId, boqId, email, code)
     return { success: true }
   },
-  reject: async (projectId: string, boqId: string, token: string, reason: string) => {
-    await rejectBOQ(projectId, boqId, token, reason)
+  reject: async (projectId: string, boqId: string, email: string, code: string) => {
+    await rejectBOQ(projectId, boqId, email, code)
     return { success: true }
   },
   updateGanttChart: async (
@@ -372,5 +421,14 @@ export const boqApi = {
   ) => {
     const result = await updateGanttChart(projectId, boqId, data)
     return { success: true, data: result }
+  },
+  verifyToken: async (token: string) => {
+    try {
+      const data = await verifyBOQToken(token)
+      return { success: true, data }
+    } catch (error) {
+      console.error("Token verification error:", error)
+      return { success: false, data: null }
+    }
   },
 }

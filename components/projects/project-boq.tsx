@@ -1495,6 +1495,281 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     setActiveTab(value)
   }
 
+  const getMergedBOQData = () => {
+    const merged = {
+      preliminary: [] as any[],
+      fittingOut: {} as { [key: string]: any },
+      furnitureWork: {} as { [key: string]: any },
+      mechanicalElectrical: {} as { [key: string]: any },
+    }
+
+    const addItemsWithSource = (items: any[], source: string, section: "preliminary") => {
+      items.forEach((item: any) => {
+        merged[section].push({
+          ...item,
+          _source: source,
+        })
+      })
+    }
+
+    const addCategoryItemsWithSource = (
+      categories: any[],
+      source: string,
+      section: "fittingOut" | "furnitureWork" | "mechanicalElectrical"
+    ) => {
+      categories.forEach((category: any) => {
+        const categoryKey = category.name || "Uncategorized"
+        if (!merged[section][categoryKey]) {
+          merged[section][categoryKey] = {
+            name: categoryKey,
+            products: [],
+          }
+        }
+        category.products?.forEach((product: any) => {
+          merged[section][categoryKey].products.push({
+            ...product,
+            _source: source,
+          })
+        })
+      })
+    }
+
+    // Add main BOQ
+    if (mainBOQ) {
+      addItemsWithSource(mainBOQ.preliminary || [], "Main BOQ", "preliminary")
+      addCategoryItemsWithSource(mainBOQ.fittingOut || [], "Main BOQ", "fittingOut")
+      addCategoryItemsWithSource(mainBOQ.furnitureWork || [], "Main BOQ", "furnitureWork")
+      addCategoryItemsWithSource(mainBOQ.mechanicalElectrical || [], "Main BOQ", "mechanicalElectrical")
+    }
+
+    // Add additional BOQs
+    additionalBOQs.forEach((boq: any, index: number) => {
+      const source = `Additional BOQ #${boq.number}`
+      addItemsWithSource(boq.preliminary || [], source, "preliminary")
+      addCategoryItemsWithSource(boq.fittingOut || [], source, "fittingOut")
+      addCategoryItemsWithSource(boq.furnitureWork || [], source, "furnitureWork")
+      addCategoryItemsWithSource(boq.mechanicalElectrical || [], source, "mechanicalElectrical")
+    })
+
+    return merged
+  }
+
+  const renderRecapBOQ = () => {
+    const merged = getMergedBOQData()
+    let itemNumber = 1
+
+    return (
+      <div className="space-y-6">
+        {/* Preliminary */}
+        {merged.preliminary.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">I. PRELIMINARY</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="border rounded-lg overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[60px] px-4">No</TableHead>
+                      <TableHead className="min-w-[200px] max-w-[400px] px-4">Item Name</TableHead>
+                      <TableHead className="w-[100px] px-4">Source</TableHead>
+                      <TableHead className="text-right w-[80px] px-4">Qty</TableHead>
+                      <TableHead className="w-[80px] px-4">Unit</TableHead>
+                      <TableHead className="text-right w-[150px] px-4">Unit Price</TableHead>
+                      <TableHead className="text-right w-[150px] px-4">Total Price</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {merged.preliminary.map((item: any) => (
+                      <TableRow key={`${item._source}-${item.name}-${itemNumber}`}>
+                        <TableCell className="px-4">{itemNumber++}</TableCell>
+                        <TableCell className="px-4">{item.name || "-"}</TableCell>
+                        <TableCell className="px-4">
+                          <Badge
+                            variant={item._source === "Main BOQ" ? "default" : "secondary"}
+                            className="whitespace-nowrap"
+                          >
+                            {item._source}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right px-4">{item.qty || 0}</TableCell>
+                        <TableCell className="px-4">{item.unit || "-"}</TableCell>
+                        <TableCell className="text-right px-4">{formatCurrency(item.price || 0)}</TableCell>
+                        <TableCell className="text-right px-4 font-semibold">
+                          {formatCurrency((item.qty || 0) * (item.price || 0))}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Fitting Out */}
+        {Object.keys(merged.fittingOut).length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">II. FITTING OUT</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {Object.entries(merged.fittingOut).map(([categoryName, categoryData]: [string, any]) => (
+                <div key={categoryName} className="border rounded-lg overflow-hidden">
+                  <div className="bg-muted px-4 py-2 font-semibold">{categoryName}</div>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[60px] px-4">No</TableHead>
+                          <TableHead className="min-w-[200px] max-w-[400px] px-4">Item Name</TableHead>
+                          <TableHead className="w-[100px] px-4">Source</TableHead>
+                          <TableHead className="text-right w-[80px] px-4">Qty</TableHead>
+                          <TableHead className="w-[80px] px-4">Unit</TableHead>
+                          <TableHead className="text-right w-[150px] px-4">Unit Price</TableHead>
+                          <TableHead className="text-right w-[150px] px-4">Total Price</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {categoryData.products.map((product: any) => (
+                          <TableRow key={`${categoryName}-${product._source}-${product.name}-${itemNumber}`}>
+                            <TableCell className="px-4">{itemNumber++}</TableCell>
+                            <TableCell className="px-4">{product.name || "-"}</TableCell>
+                            <TableCell className="px-4">
+                              <Badge
+                                variant={product._source === "Main BOQ" ? "default" : "secondary"}
+                                className="whitespace-nowrap"
+                              >
+                                {product._source}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right px-4">{product.qty || 0}</TableCell>
+                            <TableCell className="px-4">{product.unit || "-"}</TableCell>
+                            <TableCell className="text-right px-4">{formatCurrency(product.price || 0)}</TableCell>
+                            <TableCell className="text-right px-4 font-semibold">
+                              {formatCurrency((product.qty || 0) * (product.price || 0))}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Furniture Work */}
+        {Object.keys(merged.furnitureWork).length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">III. FURNITURE WORK</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {Object.entries(merged.furnitureWork).map(([categoryName, categoryData]: [string, any]) => (
+                <div key={categoryName} className="border rounded-lg overflow-hidden">
+                  <div className="bg-muted px-4 py-2 font-semibold">{categoryName}</div>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[60px] px-4">No</TableHead>
+                          <TableHead className="min-w-[200px] max-w-[400px] px-4">Item Name</TableHead>
+                          <TableHead className="w-[100px] px-4">Source</TableHead>
+                          <TableHead className="text-right w-[80px] px-4">Qty</TableHead>
+                          <TableHead className="w-[80px] px-4">Unit</TableHead>
+                          <TableHead className="text-right w-[150px] px-4">Unit Price</TableHead>
+                          <TableHead className="text-right w-[150px] px-4">Total Price</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {categoryData.products.map((product: any) => (
+                          <TableRow key={`${categoryName}-${product._source}-${product.name}-${itemNumber}`}>
+                            <TableCell className="px-4">{itemNumber++}</TableCell>
+                            <TableCell className="px-4">{product.name || "-"}</TableCell>
+                            <TableCell className="px-4">
+                              <Badge
+                                variant={product._source === "Main BOQ" ? "default" : "secondary"}
+                                className="whitespace-nowrap"
+                              >
+                                {product._source}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right px-4">{product.qty || 0}</TableCell>
+                            <TableCell className="px-4">{product.unit || "-"}</TableCell>
+                            <TableCell className="text-right px-4">{formatCurrency(product.price || 0)}</TableCell>
+                            <TableCell className="text-right px-4 font-semibold">
+                              {formatCurrency((product.qty || 0) * (product.price || 0))}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Mechanical / Electrical / Plumbing */}
+        {Object.keys(merged.mechanicalElectrical).length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">IV. MECHANICAL / ELECTRICAL / PLUMBING</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {Object.entries(merged.mechanicalElectrical).map(([categoryName, categoryData]: [string, any]) => (
+                <div key={categoryName} className="border rounded-lg overflow-hidden">
+                  <div className="bg-muted px-4 py-2 font-semibold">{categoryName}</div>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[60px] px-4">No</TableHead>
+                          <TableHead className="min-w-[200px] max-w-[400px] px-4">Item Name</TableHead>
+                          <TableHead className="w-[100px] px-4">Source</TableHead>
+                          <TableHead className="text-right w-[80px] px-4">Qty</TableHead>
+                          <TableHead className="w-[80px] px-4">Unit</TableHead>
+                          <TableHead className="text-right w-[150px] px-4">Unit Price</TableHead>
+                          <TableHead className="text-right w-[150px] px-4">Total Price</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {categoryData.products.map((product: any) => (
+                          <TableRow key={`${categoryName}-${product._source}-${product.name}-${itemNumber}`}>
+                            <TableCell className="px-4">{itemNumber++}</TableCell>
+                            <TableCell className="px-4">{product.name || "-"}</TableCell>
+                            <TableCell className="px-4">
+                              <Badge
+                                variant={product._source === "Main BOQ" ? "default" : "secondary"}
+                                className="whitespace-nowrap"
+                              >
+                                {product._source}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right px-4">{product.qty || 0}</TableCell>
+                            <TableCell className="px-4">{product.unit || "-"}</TableCell>
+                            <TableCell className="text-right px-4">{formatCurrency(product.price || 0)}</TableCell>
+                            <TableCell className="text-right px-4 font-semibold">
+                              {formatCurrency((product.qty || 0) * (product.price || 0))}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    )
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -2372,6 +2647,9 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                 Additional BOQs ({additionalBOQs.length})
                 {mainBOQ && mainBOQ.status.toLowerCase() !== "accepted" && " - Requires accepted main BOQ"}
               </SelectItem>
+              {additionalBOQs.length > 0 && (
+                <SelectItem value="recap">Recap BOQ ({boqItems.length})</SelectItem>
+              )}
             </SelectContent>
           </Select>
         </div>
@@ -2401,6 +2679,14 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
               <span className="text-xs text-muted-foreground ml-1">(Need accepted)</span>
             )}
           </TabsTrigger>
+          {additionalBOQs.length > 0 && (
+            <TabsTrigger value="recap" className="flex items-center gap-2">
+              Recap BOQ
+              <Badge variant="outline" className="ml-1 h-5 min-w-5 flex items-center justify-center px-1 text-xs">
+                {boqItems.length}
+              </Badge>
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="main" className="space-y-4">
@@ -2576,6 +2862,12 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
             ))
           )}
         </TabsContent>
+
+        {additionalBOQs.length > 0 && (
+          <TabsContent value="recap" className="space-y-4">
+            {renderRecapBOQ()}
+          </TabsContent>
+        )}
       </Tabs>
 
       <CreateBOQDialog

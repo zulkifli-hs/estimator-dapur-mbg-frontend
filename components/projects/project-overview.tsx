@@ -763,7 +763,7 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
                               src={getAttachmentUrl(post.attachment) || "/placeholder.svg"}
                               alt="Attachment"
                               className="w-full h-24 object-cover rounded"
-                              onClick={(e) => e.stopPropagation()}
+                              // onClick={(e) => e.stopPropagation()}
                             />
                           ) : (
                             <div className="flex items-center gap-2 text-xs">
@@ -772,7 +772,7 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
                               <a
                                 href={getAttachmentUrl(post.attachment)}
                                 download
-                                onClick={(e) => e.stopPropagation()}
+                                // onClick={(e) => e.stopPropagation()}
                                 className="hover:underline"
                               >
                                 <Download className="h-3 w-3" />

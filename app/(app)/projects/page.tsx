@@ -41,6 +41,7 @@ import {
   FileText,
 } from "lucide-react"
 import { projectsApi } from "@/lib/api/projects"
+import { useDebounce } from "@/hooks/use-debounce"
 import Link from "next/link"
 import { CreateProjectDialog } from "@/components/projects/create-project-dialog"
 import { toast } from "sonner"
@@ -160,6 +161,7 @@ export default function ProjectsPage() {
   const [filteredProjects, setFilteredProjects] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
+  const debouncedSearchQuery = useDebounce(searchQuery, 500)
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [statusDialogOpen, setStatusDialogOpen] = useState(false)
   const [selectedProjectForStatus, setSelectedProjectForStatus] = useState<any>(null)
@@ -178,22 +180,12 @@ export default function ProjectsPage() {
   const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
-    loadProjects()
-  }, [page, statusFilter])
+    setPage(1) // Reset to page 1 when search query changes
+  }, [searchQuery])
 
   useEffect(() => {
-    if (searchQuery) {
-      const filtered = projects.filter(
-        (project) =>
-          project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          project.companyClient?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          project.building?.toLowerCase().includes(searchQuery.toLowerCase()),
-      )
-      setFilteredProjects(filtered)
-    } else {
-      setFilteredProjects(projects)
-    }
-  }, [searchQuery, projects])
+    loadProjects()
+  }, [page, statusFilter, debouncedSearchQuery])
 
   const loadProjects = async () => {
     try {
@@ -202,11 +194,11 @@ export default function ProjectsPage() {
         page,
         limit: 12,
         status: statusFilter !== "all" ? statusFilter : undefined,
+        search: debouncedSearchQuery || undefined,
       })
 
       if (response.success && response.data) {
         setProjects(response.data)
-        setFilteredProjects(response.data)
         if (response.totalPage) {
           setTotalPages(response.totalPage)
         }
@@ -216,6 +208,24 @@ export default function ProjectsPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const highlightText = (text: string, query: string) => {
+    if (!query) return <>{text}</>
+    const parts = text.split(new RegExp(`(${query})`, "gi"))
+    return (
+      <>
+        {parts.map((part, index) =>
+          part.toLowerCase() === query.toLowerCase() ? (
+            <mark key={index} className="bg-yellow-200 font-medium">
+              {part}
+            </mark>
+          ) : (
+            part
+          )
+        )}
+      </>
+    )
   }
 
   const handleStatusFilterChange = (status: StatusFilter) => {
@@ -315,7 +325,7 @@ export default function ProjectsPage() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search projects by name, client, or location..."
+            placeholder="Search projects by name"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
@@ -362,13 +372,13 @@ export default function ProjectsPage() {
         <div className="text-center py-12">
           <p className="text-muted-foreground">Loading projects...</p>
         </div>
-      ) : filteredProjects.length === 0 ? (
+      ) : projects.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <p className="text-muted-foreground mb-4">
-              {searchQuery ? "No projects found matching your search" : "No projects yet"}
+              {debouncedSearchQuery ? "No projects found matching your search" : "No projects yet"}
             </p>
-            {!searchQuery && (
+            {!debouncedSearchQuery && (
               <Button onClick={() => setCreateDialogOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Create your first project
@@ -378,14 +388,14 @@ export default function ProjectsPage() {
         </Card>
       ) : viewMode === "card" ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredProjects.map((project) => (
+          {projects.map((project) => (
             <Card key={project._id} className="h-full hover:shadow-lg transition-shadow">
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <Link href={`/projects/${project._id}`} className="flex-1">
                     <div className="space-y-2">
                       <CardTitle className="text-lg line-clamp-2 hover:text-primary transition-colors">
-                        {project.name}
+                        {highlightText(project.name, debouncedSearchQuery)}
                       </CardTitle>
                       <div className="flex items-center gap-2 flex-wrap">
                         <div className="bg-primary/10 text-primary w-fit px-2.5 py-0.5 rounded-full text-xs font-medium">
@@ -473,14 +483,14 @@ export default function ProjectsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredProjects.map((project) => (
+              {projects.map((project) => (
                 <TableRow key={project._id}>
                   <TableCell>
                     <Link
                       href={`/projects/${project._id}`}
                       className="font-medium hover:text-primary transition-colors whitespace-normal break-words max-w-[200px]"
                     >
-                      {project.name}
+                      {highlightText(project.name, debouncedSearchQuery)}
                     </Link>
                   </TableCell>
                   <TableCell>
@@ -542,7 +552,7 @@ export default function ProjectsPage() {
         </div>
       )}
 
-      {!loading && filteredProjects.length > 0 && totalPages > 1 && (
+      {!loading && projects.length > 0 && totalPages > 1 && (
         <Pagination>
           <PaginationContent>
             <PaginationItem>

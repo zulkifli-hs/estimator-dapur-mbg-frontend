@@ -113,6 +113,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   const [replaceTemplateOpen, setReplaceTemplateOpen] = useState(false)
   const [selectedReplaceTemplate, setSelectedReplaceTemplate] = useState<any>(null)
   const [replaceTemplatePreviewOpen, setReplaceTemplatePreviewOpen] = useState(false)
+  const [templateEditingBOQ, setTemplateEditingBOQ] = useState<any>(null) // Track which BOQ is being edited for template operations
 
   // Approval request states
   const [showApprovalModal, setShowApprovalModal] = useState(false)
@@ -1165,7 +1166,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   }
 
   const handleSaveAsTemplate = async () => {
-    if (!templateName.trim() || !mainBOQ) {
+    if (!templateName.trim() || (!mainBOQ && !templateEditingBOQ)) {
       toast({
         title: "Error",
         description: "Please enter a template name",
@@ -1175,10 +1176,12 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     }
 
     try {
-      // Prepare template data from mainBOQ
+      // Use templateEditingBOQ if set (for additional BOQs), otherwise use mainBOQ
+      const boqToSave = templateEditingBOQ || mainBOQ
+      // Prepare template data from BOQ
       const templateData: CreateTemplateInput = {
         name: templateName.trim(),
-        preliminary: mainBOQ.preliminary.map((item: any) => ({
+        preliminary: boqToSave.preliminary.map((item: any) => ({
           productId: item.productId,
           qty: item.qty,
           name: item.name,
@@ -1234,6 +1237,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
 
       setSaveAsTemplateOpen(false)
       setTemplateName("")
+      setTemplateEditingBOQ(null)
     } catch (error) {
       console.error("Failed to save as template:", error)
       toast({
@@ -1245,9 +1249,11 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   }
 
   const handleReplaceWithTemplate = async () => {
-    if (!selectedReplaceTemplate || !mainBOQ) return
+    if (!selectedReplaceTemplate || (!mainBOQ && !templateEditingBOQ)) return
 
     try {
+      // Use templateEditingBOQ if set (for additional BOQs), otherwise use mainBOQ
+      const boqToReplace = templateEditingBOQ || mainBOQ
       // Prepare BOQ data from template
       const boqData = {
         preliminary: selectedReplaceTemplate.preliminary.map((item: any) => ({
@@ -1289,7 +1295,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         })),
       }
 
-      await boqApi.update(projectId, mainBOQ._id, boqData)
+      await boqApi.update(projectId, boqToReplace._id, boqData)
 
       toast({
         title: "Success",
@@ -1299,6 +1305,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       setReplaceTemplateOpen(false)
       setSelectedReplaceTemplate(null)
       setReplaceTemplatePreviewOpen(false)
+      setTemplateEditingBOQ(null)
 
       // Refresh BOQ data
       fetchBOQ()
@@ -2889,20 +2896,63 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                       </div>
                       <CardDescription>Created: {new Date(boq.createdAt).toLocaleDateString("id-ID")}</CardDescription>
                     </div>
-                    <div className="flex gap-2 w-full sm:w-auto">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setEditingBOQ(boq)
-                          setCreationMode("blank") // Navigate to blank creation form for editing
-                          setIsCreatingAdditional(true) // Indicate this is an additional BOQ
-                        }}
-                        className="flex-1 sm:flex-none"
-                      >
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit
-                      </Button>
+                    <div className="flex gap-2 w-full sm:w-auto flex-wrap">
+                      {["draft", "rejected"].includes(boq.status.toLowerCase()) && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setEditingBOQ(boq)
+                              setCreationMode("blank")
+                              setIsCreatingAdditional(true)
+                            }}
+                            className="flex-1 sm:flex-none"
+                          >
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setTemplateEditingBOQ(boq)
+                              setSaveAsTemplateOpen(true)
+                            }}
+                            className="flex-1 sm:flex-none"
+                          >
+                            <Save className="h-4 w-4 mr-2" />
+                            Save as Template
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setTemplateEditingBOQ(boq)
+                              setReplaceTemplateOpen(true)
+                            }}
+                            className="flex-1 sm:flex-none"
+                          >
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                            Replace with Template
+                          </Button>
+                        </>
+                      )}
+                      {!["draft", "rejected"].includes(boq.status.toLowerCase()) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setEditingBOQ(boq)
+                            setCreationMode("blank")
+                            setIsCreatingAdditional(true)
+                          }}
+                          className="flex-1 sm:flex-none"
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit
+                        </Button>
+                      )}
                       <Button
                         variant="outline"
                         size="sm"
@@ -2944,12 +2994,22 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         onCreated={handleProductCreated}
       />
 
-      <Dialog open={saveAsTemplateOpen} onOpenChange={setSaveAsTemplateOpen}>
+      <Dialog 
+        open={saveAsTemplateOpen} 
+        onOpenChange={(open) => {
+          setSaveAsTemplateOpen(open)
+          if (!open) {
+            setTemplateName("")
+            setTemplateEditingBOQ(null)
+          }
+        }}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Save BOQ as Template</DialogTitle>
             <DialogDescription>
               Enter a name for this template. It will be saved without timeline data.
+              {templateEditingBOQ && ` (Additional BOQ #${templateEditingBOQ.number})`}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -2974,13 +3034,23 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={replaceTemplateOpen} onOpenChange={setReplaceTemplateOpen}>
+      <Dialog 
+        open={replaceTemplateOpen} 
+        onOpenChange={(open) => {
+          setReplaceTemplateOpen(open)
+          if (!open) {
+            setSelectedReplaceTemplate(null)
+            setTemplateEditingBOQ(null)
+          }
+        }}
+      >
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Replace BOQ with Template</DialogTitle>
             <DialogDescription>
               Select a template to replace the current BOQ.
-              {hasGanttData(mainBOQ) && (
+              {templateEditingBOQ && ` (Additional BOQ #${templateEditingBOQ.number})`}
+              {hasGanttData(templateEditingBOQ || mainBOQ) && (
                 <span className="text-destructive font-medium">
                   {" "}
                   Warning: This will remove all Gantt chart timeline data.
@@ -2990,7 +3060,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
           </DialogHeader>
 
           {/* Show Gantt chart warning if data exists */}
-          {hasGanttData(mainBOQ) && (
+          {hasGanttData(templateEditingBOQ || mainBOQ) && (
             <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 space-y-3">
               <div className="flex items-start gap-2">
                 <AlertCircle className="h-5 w-5 text-destructive mt-0.5" />
@@ -3002,7 +3072,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                 </div>
               </div>
               <div className="max-h-40 overflow-y-auto space-y-2">
-                {getGanttDataDetails(mainBOQ).map((detail, idx) => (
+                {getGanttDataDetails(templateEditingBOQ || mainBOQ).map((detail, idx) => (
                   <div key={idx} className="text-sm bg-background rounded p-2 space-y-1">
                     <div className="font-medium">{detail.name}</div>
                     <div className="text-xs text-muted-foreground">

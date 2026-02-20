@@ -1557,6 +1557,46 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   const renderRecapBOQ = () => {
     const merged = getMergedBOQData()
     let itemNumber = 1
+    let grandTotal = 0
+
+    // Calculate preliminary subtotal
+    const preliminarySubtotal = merged.preliminary.reduce((sum, item) => {
+      return sum + (item.qty || 0) * (item.price || 0)
+    }, 0)
+    grandTotal += preliminarySubtotal
+
+    // Calculate fitting out subtotal
+    const fittingOutSubtotal = Object.values(merged.fittingOut).reduce((sum: number, category: any) => {
+      return (
+        sum +
+        category.products.reduce((catSum: number, product: any) => {
+          return catSum + (product.qty || 0) * (product.price || 0)
+        }, 0)
+      )
+    }, 0)
+    grandTotal += fittingOutSubtotal
+
+    // Calculate furniture work subtotal
+    const furnitureWorkSubtotal = Object.values(merged.furnitureWork).reduce((sum: number, category: any) => {
+      return (
+        sum +
+        category.products.reduce((catSum: number, product: any) => {
+          return catSum + (product.qty || 0) * (product.price || 0)
+        }, 0)
+      )
+    }, 0)
+    grandTotal += furnitureWorkSubtotal
+
+    // Calculate MEP subtotal
+    const mepSubtotal = Object.values(merged.mechanicalElectrical).reduce((sum: number, category: any) => {
+      return (
+        sum +
+        category.products.reduce((catSum: number, product: any) => {
+          return catSum + (product.qty || 0) * (product.price || 0)
+        }, 0)
+      )
+    }, 0)
+    grandTotal += mepSubtotal
 
     return (
       <div className="space-y-6">
@@ -1601,6 +1641,12 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                         </TableCell>
                       </TableRow>
                     ))}
+                    <TableRow className="bg-muted font-semibold border-t-2 border-t-foreground">
+                      <TableCell colSpan={6} className="px-4 text-right">
+                        SUBTOTAL PRELIMINARY:
+                      </TableCell>
+                      <TableCell className="text-right px-4">{formatCurrency(preliminarySubtotal)}</TableCell>
+                    </TableRow>
                   </TableBody>
                 </Table>
               </div>
@@ -1632,26 +1678,39 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {categoryData.products.map((product: any) => (
-                          <TableRow key={`${categoryName}-${product._source}-${product.name}-${itemNumber}`}>
-                            <TableCell className="px-4">{itemNumber++}</TableCell>
-                            <TableCell className="px-4">{product.name || "-"}</TableCell>
-                            <TableCell className="px-4">
-                              <Badge
-                                variant={product._source === "Main BOQ" ? "default" : "secondary"}
-                                className="whitespace-nowrap"
-                              >
-                                {product._source}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-right px-4">{product.qty || 0}</TableCell>
-                            <TableCell className="px-4">{product.unit || "-"}</TableCell>
-                            <TableCell className="text-right px-4">{formatCurrency(product.price || 0)}</TableCell>
-                            <TableCell className="text-right px-4 font-semibold">
-                              {formatCurrency((product.qty || 0) * (product.price || 0))}
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                        {categoryData.products.map((product: any) => {
+                          const itemTotal = (product.qty || 0) * (product.price || 0)
+                          return (
+                            <TableRow key={`${categoryName}-${product._source}-${product.name}-${itemNumber}`}>
+                              <TableCell className="px-4">{itemNumber++}</TableCell>
+                              <TableCell className="px-4">{product.name || "-"}</TableCell>
+                              <TableCell className="px-4">
+                                <Badge
+                                  variant={product._source === "Main BOQ" ? "default" : "secondary"}
+                                  className="whitespace-nowrap"
+                                >
+                                  {product._source}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right px-4">{product.qty || 0}</TableCell>
+                              <TableCell className="px-4">{product.unit || "-"}</TableCell>
+                              <TableCell className="text-right px-4">{formatCurrency(product.price || 0)}</TableCell>
+                              <TableCell className="text-right px-4 font-semibold">
+                                {formatCurrency(itemTotal)}
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })}
+                        <TableRow className="bg-muted/50 font-semibold border-t">
+                          <TableCell colSpan={6} className="px-4 text-right">
+                            Subtotal {categoryName}:
+                          </TableCell>
+                          <TableCell className="text-right px-4">
+                            {formatCurrency(
+                              categoryData.products.reduce((sum: number, p: any) => sum + (p.qty || 0) * (p.price || 0), 0)
+                            )}
+                          </TableCell>
+                        </TableRow>
                       </TableBody>
                     </Table>
                   </div>
@@ -1685,26 +1744,39 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {categoryData.products.map((product: any) => (
-                          <TableRow key={`${categoryName}-${product._source}-${product.name}-${itemNumber}`}>
-                            <TableCell className="px-4">{itemNumber++}</TableCell>
-                            <TableCell className="px-4">{product.name || "-"}</TableCell>
-                            <TableCell className="px-4">
-                              <Badge
-                                variant={product._source === "Main BOQ" ? "default" : "secondary"}
-                                className="whitespace-nowrap"
-                              >
-                                {product._source}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-right px-4">{product.qty || 0}</TableCell>
-                            <TableCell className="px-4">{product.unit || "-"}</TableCell>
-                            <TableCell className="text-right px-4">{formatCurrency(product.price || 0)}</TableCell>
-                            <TableCell className="text-right px-4 font-semibold">
-                              {formatCurrency((product.qty || 0) * (product.price || 0))}
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                        {categoryData.products.map((product: any) => {
+                          const itemTotal = (product.qty || 0) * (product.price || 0)
+                          return (
+                            <TableRow key={`${categoryName}-${product._source}-${product.name}-${itemNumber}`}>
+                              <TableCell className="px-4">{itemNumber++}</TableCell>
+                              <TableCell className="px-4">{product.name || "-"}</TableCell>
+                              <TableCell className="px-4">
+                                <Badge
+                                  variant={product._source === "Main BOQ" ? "default" : "secondary"}
+                                  className="whitespace-nowrap"
+                                >
+                                  {product._source}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right px-4">{product.qty || 0}</TableCell>
+                              <TableCell className="px-4">{product.unit || "-"}</TableCell>
+                              <TableCell className="text-right px-4">{formatCurrency(product.price || 0)}</TableCell>
+                              <TableCell className="text-right px-4 font-semibold">
+                                {formatCurrency(itemTotal)}
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })}
+                        <TableRow className="bg-muted/50 font-semibold border-t">
+                          <TableCell colSpan={6} className="px-4 text-right">
+                            Subtotal {categoryName}:
+                          </TableCell>
+                          <TableCell className="text-right px-4">
+                            {formatCurrency(
+                              categoryData.products.reduce((sum: number, p: any) => sum + (p.qty || 0) * (p.price || 0), 0)
+                            )}
+                          </TableCell>
+                        </TableRow>
                       </TableBody>
                     </Table>
                   </div>
@@ -1738,26 +1810,39 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {categoryData.products.map((product: any) => (
-                          <TableRow key={`${categoryName}-${product._source}-${product.name}-${itemNumber}`}>
-                            <TableCell className="px-4">{itemNumber++}</TableCell>
-                            <TableCell className="px-4">{product.name || "-"}</TableCell>
-                            <TableCell className="px-4">
-                              <Badge
-                                variant={product._source === "Main BOQ" ? "default" : "secondary"}
-                                className="whitespace-nowrap"
-                              >
-                                {product._source}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-right px-4">{product.qty || 0}</TableCell>
-                            <TableCell className="px-4">{product.unit || "-"}</TableCell>
-                            <TableCell className="text-right px-4">{formatCurrency(product.price || 0)}</TableCell>
-                            <TableCell className="text-right px-4 font-semibold">
-                              {formatCurrency((product.qty || 0) * (product.price || 0))}
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                        {categoryData.products.map((product: any) => {
+                          const itemTotal = (product.qty || 0) * (product.price || 0)
+                          return (
+                            <TableRow key={`${categoryName}-${product._source}-${product.name}-${itemNumber}`}>
+                              <TableCell className="px-4">{itemNumber++}</TableCell>
+                              <TableCell className="px-4">{product.name || "-"}</TableCell>
+                              <TableCell className="px-4">
+                                <Badge
+                                  variant={product._source === "Main BOQ" ? "default" : "secondary"}
+                                  className="whitespace-nowrap"
+                                >
+                                  {product._source}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right px-4">{product.qty || 0}</TableCell>
+                              <TableCell className="px-4">{product.unit || "-"}</TableCell>
+                              <TableCell className="text-right px-4">{formatCurrency(product.price || 0)}</TableCell>
+                              <TableCell className="text-right px-4 font-semibold">
+                                {formatCurrency(itemTotal)}
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })}
+                        <TableRow className="bg-muted/50 font-semibold border-t">
+                          <TableCell colSpan={6} className="px-4 text-right">
+                            Subtotal {categoryName}:
+                          </TableCell>
+                          <TableCell className="text-right px-4">
+                            {formatCurrency(
+                              categoryData.products.reduce((sum: number, p: any) => sum + (p.qty || 0) * (p.price || 0), 0)
+                            )}
+                          </TableCell>
+                        </TableRow>
                       </TableBody>
                     </Table>
                   </div>
@@ -1766,6 +1851,42 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
             </CardContent>
           </Card>
         )}
+
+        {/* Grand Total */}
+        <Card className="border-2 border-primary bg-primary/5">
+          <CardContent className="pt-6">
+            <div className="flex justify-between items-center">
+              <span className="text-xl font-bold">GRAND TOTAL</span>
+              <span className="text-3xl font-bold text-primary">{formatCurrency(grandTotal)}</span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t">
+              {merged.preliminary.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Preliminary</p>
+                  <p className="font-semibold">{formatCurrency(preliminarySubtotal)}</p>
+                </div>
+              )}
+              {Object.keys(merged.fittingOut).length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Fitting Out</p>
+                  <p className="font-semibold">{formatCurrency(fittingOutSubtotal)}</p>
+                </div>
+              )}
+              {Object.keys(merged.furnitureWork).length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Furniture Work</p>
+                  <p className="font-semibold">{formatCurrency(furnitureWorkSubtotal)}</p>
+                </div>
+              )}
+              {Object.keys(merged.mechanicalElectrical).length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">MEP</p>
+                  <p className="font-semibold">{formatCurrency(mepSubtotal)}</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     )
   }

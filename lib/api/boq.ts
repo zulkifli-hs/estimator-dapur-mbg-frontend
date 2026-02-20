@@ -219,17 +219,32 @@ export const requestBOQApproval = async (projectId: string, boqId: string, data?
 }
 
 // Client accept BOQ
-export const acceptBOQ = async (projectId: string, boqId: string, token: string): Promise<void> => {
-  return apiRequest<void>(`/projects/${projectId}/boq/${boqId}/accept?token=${token}`, {
+export const acceptBOQ = async (projectId: string, boqId: string, email: string, code: string): Promise<void> => {
+  return apiRequest<void>(
+    `/projects/${projectId}/boq/${boqId}/accept?email=${encodeURIComponent(email)}&code=${encodeURIComponent(code)}`,
+    {
     method: "GET",
-  })
+    },
+  )
 }
 
 // Client reject BOQ
-export const rejectBOQ = async (projectId: string, boqId: string, token: string, reason: string): Promise<void> => {
-  return apiRequest<void>(`/projects/${projectId}/boq/${boqId}/reject?token=${token}`, {
+export const rejectBOQ = async (projectId: string, boqId: string, email: string, code: string): Promise<void> => {
+  return apiRequest<void>(
+    `/projects/${projectId}/boq/${boqId}/reject?email=${encodeURIComponent(email)}&code=${encodeURIComponent(code)}`,
+    {
     method: "GET",
-  })
+    },
+  )
+}
+
+// Verify BOQ approval token and get BOQ data
+export const verifyBOQToken = async (token: string): Promise<any> => {
+  const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/token/boqs-approval?token=${token}`)
+  if (!response.ok) {
+    throw new Error("Failed to verify token")
+  }
+  return response.json()
 }
 
 export const boqApi = {
@@ -347,12 +362,12 @@ export const boqApi = {
     await requestBOQApproval(projectId, boqId, data)
     return { success: true }
   },
-  accept: async (projectId: string, boqId: string, token: string) => {
-    await acceptBOQ(projectId, boqId, token)
+  accept: async (projectId: string, boqId: string, email: string, code: string) => {
+    await acceptBOQ(projectId, boqId, email, code)
     return { success: true }
   },
-  reject: async (projectId: string, boqId: string, token: string, reason: string) => {
-    await rejectBOQ(projectId, boqId, token, reason)
+  reject: async (projectId: string, boqId: string, email: string, code: string) => {
+    await rejectBOQ(projectId, boqId, email, code)
     return { success: true }
   },
   updateGanttChart: async (
@@ -372,5 +387,14 @@ export const boqApi = {
   ) => {
     const result = await updateGanttChart(projectId, boqId, data)
     return { success: true, data: result }
+  },
+  verifyToken: async (token: string) => {
+    try {
+      const data = await verifyBOQToken(token)
+      return { success: true, data }
+    } catch (error) {
+      console.error("Token verification error:", error)
+      return { success: false, data: null }
+    }
   },
 }

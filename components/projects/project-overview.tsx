@@ -110,7 +110,9 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
       if (terminResult.success) setTerminData(terminResult.data || [])
       if (foldersResult.success) setFoldersData(foldersResult.data || [])
       if (albumsResult.success) {
-        const albumsList = Array.isArray(albumsResult.data) ? albumsResult.data : albumsResult.data?.list || []
+        const albumsList = Array.isArray(albumsResult.data)
+          ? albumsResult.data
+          : (albumsResult.data as any)?.list || []
         setAlbumsData(albumsList)
       }
     } catch (error) {

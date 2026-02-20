@@ -1,4 +1,14 @@
-import { apiRequest } from "./config"
+import { API_BASE_URL, BASIC_AUTH_PASSWORD, BASIC_AUTH_USERNAME, apiRequest } from "./config"
+
+const getBasicAuthHeaders = (): HeadersInit => {
+  if (!BASIC_AUTH_USERNAME || !BASIC_AUTH_PASSWORD) {
+    return {}
+  }
+
+  return {
+    Authorization: `Basic ${btoa(`${BASIC_AUTH_USERNAME}:${BASIC_AUTH_PASSWORD}`)}`,
+  }
+}
 
 export interface BOQItem {
   id: string
@@ -220,22 +230,34 @@ export const requestBOQApproval = async (projectId: string, boqId: string, data?
 
 // Client accept BOQ
 export const acceptBOQ = async (projectId: string, boqId: string, email: string, code: string): Promise<void> => {
-  return apiRequest<void>(
-    `/projects/${projectId}/boq/${boqId}/accept?email=${encodeURIComponent(email)}&code=${encodeURIComponent(code)}`,
+  const response = await fetch(
+    `${API_BASE_URL}/projects/${projectId}/boq/${boqId}/accept?email=${encodeURIComponent(email)}&code=${encodeURIComponent(code)}`,
     {
-    method: "GET",
+      method: "GET",
+      headers: getBasicAuthHeaders(),
     },
   )
+
+  if (!response.ok) {
+    const responseData = await response.json().catch(() => null)
+    throw new Error(responseData?.message?.user || "Gagal approve BOQ")
+  }
 }
 
 // Client reject BOQ
 export const rejectBOQ = async (projectId: string, boqId: string, email: string, code: string): Promise<void> => {
-  return apiRequest<void>(
-    `/projects/${projectId}/boq/${boqId}/reject?email=${encodeURIComponent(email)}&code=${encodeURIComponent(code)}`,
+  const response = await fetch(
+    `${API_BASE_URL}/projects/${projectId}/boq/${boqId}/reject?email=${encodeURIComponent(email)}&code=${encodeURIComponent(code)}`,
     {
-    method: "GET",
+      method: "GET",
+      headers: getBasicAuthHeaders(),
     },
   )
+
+  if (!response.ok) {
+    const responseData = await response.json().catch(() => null)
+    throw new Error(responseData?.message?.user || "Gagal reject BOQ")
+  }
 }
 
 // Verify BOQ approval token and get BOQ data

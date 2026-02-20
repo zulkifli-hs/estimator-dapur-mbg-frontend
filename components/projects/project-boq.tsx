@@ -664,14 +664,14 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
 
   const getStatusBadge = (status: string) => {
     const statusLower = status.toLowerCase()
-    if (statusLower === "approved") {
-      return <Badge className="bg-green-500 text-white hover:bg-green-600">Approved</Badge>
+    if (statusLower === "accepted") {
+      return <Badge className="bg-green-500 text-white hover:bg-green-600">Accepted</Badge>
     } else if (statusLower === "rejected") {
       return <Badge className="bg-red-500 text-white hover:bg-red-600">Rejected</Badge>
     } else if (statusLower === "request") {
       return <Badge className="bg-yellow-500 text-white hover:bg-yellow-600">Request</Badge>
-    } else if (statusLower === "revision") {
-      return <Badge className="bg-blue-500 text-white hover:bg-blue-600">Revision</Badge>
+    } else if (statusLower === "draft") {
+      return <Badge className="bg-blue-500 text-white hover:bg-blue-600">Draft</Badge>
     }
     return <Badge variant="secondary">{status}</Badge>
   }

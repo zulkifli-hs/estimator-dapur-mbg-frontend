@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-import { useRef } from "react"
 import {
   Dialog,
   DialogContent,
@@ -71,7 +70,6 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
   const [totalPosts, setTotalPosts] = useState(0)
   const postsPerPage = 12
   const { toast } = useToast()
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [boqData, setBoqData] = useState<any[]>([])
   const [terminData, setTerminData] = useState<any[]>([])
@@ -150,7 +148,6 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
     project.detail.contract.length > 0
   )
   const hasMainBOQ = boqData.some((boq: any) => boq.number === 1)
-  const hasAdditionalBOQ = boqData.some((boq: any) => boq.number > 1)
   const hasTermins = terminData.length > 0
   const hasFolders = foldersData.length > 0
   const totalFolderFiles = foldersData.reduce((sum: number, folder: any) => sum + (folder.files?.length || 0), 0)
@@ -398,10 +395,6 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
     return <FileText className="h-4 w-4" />
   }
 
-  const canPreviewFile = (url: string) => {
-    const ext = url.split(".").pop()?.toLowerCase()
-    return ["jpg", "jpeg", "png", "gif", "webp", "pdf"].includes(ext || "")
-  }
 
   const getAttachmentUrl = (attachment: { url: string; provider: string }) => {
     return `${API_BASE_URL}/public/${attachment.provider}/${attachment.url}`
@@ -564,7 +557,7 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 p-3 rounded-lg shadow border-2 border-green-200 dark:border-green-700 relative">
+          <div className="bg-linear-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 p-3 rounded-lg shadow border-2 border-green-200 dark:border-green-700 relative">
             <div className="absolute -top-2 left-4 bg-green-500 px-2 py-0.5 rounded-full text-xs font-medium text-white">
               New
             </div>
@@ -572,7 +565,7 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
               placeholder="Write a note..."
               value={newPost}
               onChange={(e) => setNewPost(e.target.value)}
-              className="min-h-[80px] bg-transparent border-none focus-visible:ring-0 resize-none text-sm"
+              className="min-h-20 bg-transparent border-none focus-visible:ring-0 resize-none text-sm"
               disabled={submitting || isUploading}
             />
 
@@ -675,7 +668,7 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {posts.map((post, index) => {
+              {posts.map((post) => {
                 const colors = [
                   {
                     bg: "from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20",
@@ -719,7 +712,7 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
                     key={post._id}
                     className={cn(
                       "relative cursor-pointer p-3 rounded-lg shadow-md transition-all hover:shadow-lg hover:scale-[1.02]",
-                      cardStyle.showBackground && `border-2 ${color.border} bg-gradient-to-br ${color.bg}`,
+                      cardStyle.showBackground && `border-2 ${color.border} bg-linear-to-br ${color.bg}`,
                       !cardStyle.showBackground && "bg-background border-2 border-border",
                     )}
                     style={{
@@ -742,7 +735,7 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
                           <AvatarFallback className="text-xs">
                             {getUserName(post.createdBy)
                               .split(" ")
-                              .map((n) => n[0])
+                              .map((n: any[]) => n[0])
                               .join("")
                               .toUpperCase()}
                           </AvatarFallback>
@@ -791,7 +784,7 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
                                 <AvatarFallback className="text-[8px]">
                                   {getUserName(comment.createdBy)
                                     .split(" ")
-                                    .map((n) => n[0])
+                                    .map((n: any[]) => n[0])
                                     .join("")
                                     .toUpperCase()}
                                 </AvatarFallback>
@@ -816,14 +809,14 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
                             placeholder="Comment..."
                             value={newComments[post._id] || ""}
                             onChange={(e) => setNewComments({ ...newComments, [post._id]: e.target.value })}
-                            className={`min-h-[50px] text-xs resize-none bg-white/70 dark:bg-black/30 border ${color.border} ${color.ring}`}
+                            className={`min-h-12.5 text-xs resize-none bg-white/70 dark:bg-black/30 border ${color.border} ${color.ring}`}
                             disabled={commentingPostId === post._id}
                           />
                           <Button
                             onClick={() => handleAddComment(post._id)}
                             disabled={!newComments[post._id]?.trim() || commentingPostId === post._id}
                             size="sm"
-                            className={cn(`h-[50px] px-2 text-white`, cardStyle.showBackground && `${color.button}`)}
+                            className={cn(`h-12.5 px-2 text-white`, cardStyle.showBackground && `${color.button}`)}
                           >
                             {commentingPostId === post._id ? (
                               <Loader2 className="h-3 w-3 animate-spin" />

@@ -119,6 +119,8 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   const [loadingProducts, setLoadingProducts] = useState(false)
   const [summary, setSummary] = useState({
     totalBudget: 0,
+    mainBudget: 0,
+    additionalBudget: 0,
     totalSpent: 0,
     progress: 0,
   })
@@ -297,57 +299,72 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     }
   }
 
+  const calculateBOQBudget = (boq: any): number => {
+    let budget = 0
+
+    // Calculate from preliminary items
+    if (Array.isArray(boq.preliminary)) {
+      boq.preliminary.forEach((item: any) => {
+        budget += (item.qty || 0) * (item.price || 0)
+      })
+    }
+
+    // Calculate from fittingOut categories
+    if (Array.isArray(boq.fittingOut)) {
+      boq.fittingOut.forEach((category: any) => {
+        if (Array.isArray(category.products)) {
+          category.products.forEach((product: any) => {
+            budget += (product.qty || 0) * (product.price || 0)
+          })
+        }
+      })
+    }
+
+    // Calculate from furnitureWork categories
+    if (Array.isArray(boq.furnitureWork)) {
+      boq.furnitureWork.forEach((category: any) => {
+        if (Array.isArray(category.products)) {
+          category.products.forEach((product: any) => {
+            budget += (product.qty || 0) * (product.price || 0)
+          })
+        }
+      })
+    }
+
+    // Calculate from mechanicalElectrical categories
+    if (Array.isArray(boq.mechanicalElectrical)) {
+      boq.mechanicalElectrical.forEach((category: any) => {
+        if (Array.isArray(category.products)) {
+          category.products.forEach((product: any) => {
+            budget += (product.qty || 0) * (product.price || 0)
+          })
+        }
+      })
+    }
+
+    return budget
+  }
+
   const calculateSummary = (items: any[]) => {
     if (!Array.isArray(items) || items.length === 0) {
-      setSummary({ totalBudget: 0, totalSpent: 0, progress: 0 })
+      setSummary({ totalBudget: 0, mainBudget: 0, additionalBudget: 0, totalSpent: 0, progress: 0 })
       return
     }
 
-    let totalBudget = 0
+    let mainBudget = 0
+    let additionalBudget = 0
 
     items.forEach((boq) => {
-      // Calculate from preliminary items
-      if (Array.isArray(boq.preliminary)) {
-        boq.preliminary.forEach((item: any) => {
-          totalBudget += (item.qty || 0) * (item.price || 0)
-        })
-      }
-
-      // Calculate from fittingOut categories
-      if (Array.isArray(boq.fittingOut)) {
-        boq.fittingOut.forEach((category: any) => {
-          if (Array.isArray(category.products)) {
-            category.products.forEach((product: any) => {
-              totalBudget += (product.qty || 0) * (product.price || 0)
-            })
-          }
-        })
-      }
-
-      // Calculate from furnitureWork categories
-      if (Array.isArray(boq.furnitureWork)) {
-        boq.furnitureWork.forEach((category: any) => {
-          if (Array.isArray(category.products)) {
-            category.products.forEach((product: any) => {
-              totalBudget += (product.qty || 0) * (product.price || 0)
-            })
-          }
-        })
-      }
-
-      // Calculate from mechanicalElectrical categories
-      if (Array.isArray(boq.mechanicalElectrical)) {
-        boq.mechanicalElectrical.forEach((category: any) => {
-          if (Array.isArray(category.products)) {
-            category.products.forEach((product: any) => {
-              totalBudget += (product.qty || 0) * (product.price || 0)
-            })
-          }
-        })
+      const boqBudget = calculateBOQBudget(boq)
+      if (boq.number === 1) {
+        mainBudget = boqBudget
+      } else {
+        additionalBudget += boqBudget
       }
     })
 
-    setSummary({ totalBudget, totalSpent: 0, progress: 0 })
+    const totalBudget = mainBudget + additionalBudget
+    setSummary({ totalBudget, mainBudget, additionalBudget, totalSpent: 0, progress: 0 })
   }
 
   const formatCurrency = (value: number) => {
@@ -2275,6 +2292,18 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{formatCurrency(summary.totalBudget)}</p>
+            <div className="mt-3 space-y-2 text-xs">
+              <div className="flex justify-between text-muted-foreground">
+                <span>Main BOQ:</span>
+                <span className="font-medium text-foreground">{formatCurrency(summary.mainBudget)}</span>
+              </div>
+              {summary.additionalBudget > 0 && (
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Additional BOQ(s):</span>
+                  <span className="font-medium text-foreground">{formatCurrency(summary.additionalBudget)}</span>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
 

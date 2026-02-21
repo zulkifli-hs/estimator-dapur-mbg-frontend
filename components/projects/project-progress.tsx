@@ -70,7 +70,7 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
     { value: "gantt", label: "Gantt Chart" },
     { value: "photos", label: "Project Photos" },
     { value: "scurve", label: "S Curve" },
-    { value: "bast", label: "BAST/BAPP" },
+    { value: "bast", label: "BAPP/BAST" },
   ]
 
   useEffect(() => {
@@ -724,6 +724,35 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
         <TabsContent value="bast">
           <Card>
             <CardHeader>
+              <CardTitle>BAPP/BAST</CardTitle>
+              <CardDescription>Handover and progress payment documents</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-center h-125 bg-linear-to-br from-primary/5 via-primary/10 to-background rounded-xl border-2 border-dashed border-primary/20">
+                <div className="text-center space-y-8 max-w-sm px-6">
+                  <div className="relative inline-block">
+                    <div className="absolute inset-0 animate-ping">
+                      <TrendingUp className="h-24 w-24 text-primary/30" />
+                    </div>
+                    <TrendingUp className="h-24 w-24 text-primary relative z-10" />
+                  </div>
+                  <div className="space-y-3">
+                    <h3 className="text-3xl font-bold bg-linear-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                      Coming Soon
+                    </h3>
+                    <Badge variant="outline" className="text-sm px-4 py-1 border-primary/40">
+                      Under Construction
+                    </Badge>
+                  </div>
+                  <p className="text-base text-muted-foreground leading-relaxed">
+                    We're building something amazing to track your project progress
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          {/* <Card>
+            <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle>BAST/BAPP Documents</CardTitle>
@@ -737,7 +766,6 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {/* Dummy data for BAST/BAPP */}
                 {[
                   { id: 1, type: "BAST", title: "Handover Phase 1", date: "2025-01-20", status: "Signed" },
                   { id: 2, type: "BAPP", title: "Progress Payment 1", date: "2025-01-15", status: "Approved" },
@@ -764,7 +792,7 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
                 ))}
               </div>
             </CardContent>
-          </Card>
+          </Card> */}
         </TabsContent>
       </Tabs>
 

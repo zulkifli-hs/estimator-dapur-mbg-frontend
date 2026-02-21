@@ -1140,6 +1140,8 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         selectFittingOutProduct(categoryIndex, productIndex, newProduct)
       } else if (type === "furnitureWork" && categoryIndex !== undefined) {
         selectFurnitureWorkProduct(categoryIndex, productIndex, newProduct)
+      } else if (type === "mechanicalElectrical" && categoryIndex !== undefined) {
+        selectMechanicalElectricalProduct(categoryIndex, productIndex, newProduct)
       }
 
       setPendingProductSelection(null)
@@ -2362,6 +2364,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                       setCreateProductDialogOpen(true)
                     }}
                     formatCurrency={formatCurrency}
+                    className="w-full"
                   />
                             </div>
                             <Button
@@ -2513,6 +2516,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                       setCreateProductDialogOpen(true)
                     }}
                     formatCurrency={formatCurrency}
+                    className="w-full"
                   />
                             </div>
                             <Button

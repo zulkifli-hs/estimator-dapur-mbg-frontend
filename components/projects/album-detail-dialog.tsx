@@ -326,10 +326,10 @@ export function AlbumDetailDialog({
                         )}
                       </div>
                       {photo.note && (
-                        <p className="text-xs text-muted-foreground px-1 line-clamp-2">{photo.note}</p>
+                        <p className="text-xs text-muted-foreground px-1 line-clamp-2 font-semibold m-0">{photo.note}</p>
                       )}
                       {photo.createdBy?.profile?.name && (
-                        <p className="text-xs text-muted-foreground px-1">by {photo.createdBy.profile.name}</p>
+                        <p className="text-[10px] text-muted-foreground px-1">Uploaded by: {photo.createdBy.profile.name}</p>
                       )}
                     </div>
                     {/* Action dropdown menu */}

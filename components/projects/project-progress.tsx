@@ -22,7 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useEffect, useState } from "react"
 import { boqApi } from "@/lib/api/boq"
 import { albumsApi } from "@/lib/api/albums"
-import { GanttChartEditor } from "./gantt-chart-editor"
+// import { GanttChartEditor } from "./gantt-chart-editor"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { GanttChartView } from "./gantt-chart-view"
 import { CreateAlbumDialog } from "./create-album-dialog"
@@ -48,7 +48,7 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
   const [activeTab, setActiveTab] = useState("gantt")
   const [mainBOQ, setMainBOQ] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [showGanttEditor, setShowGanttEditor] = useState(false)
+  // const [showGanttEditor, setShowGanttEditor] = useState(false)
   const [ganttTasks, setGanttTasks] = useState<any[]>([])
 
   const [albums, setAlbums] = useState<any[]>([])
@@ -496,12 +496,12 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
                   <CardTitle>Gantt Chart</CardTitle>
                   <CardDescription>Project timeline from Main BOQ</CardDescription>
                 </div>
-                {mainBOQ && (
+                {/* {mainBOQ && (
                   <Button onClick={() => setShowGanttEditor(true)}>
                     <Edit className="h-4 w-4 mr-2" />
                     {hasGanttDates ? "Edit Timeline" : "Add Timeline"}
                   </Button>
-                )}
+                )} */}
               </div>
             </CardHeader>
             <CardContent>
@@ -721,7 +721,7 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
         </TabsContent>
       </Tabs>
 
-      {mainBOQ && (
+      {/* {mainBOQ && (
         <GanttChartEditor
           projectId={projectId}
           boq={mainBOQ}
@@ -729,7 +729,7 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
           onOpenChange={setShowGanttEditor}
           onSuccess={loadBOQData}
         />
-      )}
+      )} */}
 
       <CreateAlbumDialog
         open={showCreateAlbum}

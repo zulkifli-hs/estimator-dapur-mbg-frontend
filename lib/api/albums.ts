@@ -90,6 +90,20 @@ export const renameAlbum = async (
   })
 }
 
+export const editPhotoInAlbum = async (
+  projectId: string,
+  albumId: string,
+  photoId: string,
+  url: string,
+  provider: string,
+  note?: string,
+): Promise<ApiResponse<Album>> => {
+  return apiRequest<Album>(`/projects/${projectId}/album/${albumId}/${photoId}`, {
+    method: "PUT",
+    body: JSON.stringify({ url, provider, note }),
+  })
+}
+
 export const albumsApi = {
   getByProject: async (projectId: string, params?: { page?: number; limit?: number }) => {
     const response = await getAlbums(projectId, params)
@@ -125,6 +139,10 @@ export const albumsApi = {
   },
   rename: async (projectId: string, albumId: string, name: string) => {
     const response = await renameAlbum(projectId, albumId, name)
+    return { success: response.code === 200, data: response.data }
+  },
+  editPhoto: async (projectId: string, albumId: string, photoId: string, url: string, provider: string, note?: string) => {
+    const response = await editPhotoInAlbum(projectId, albumId, photoId, url, provider, note)
     return { success: response.code === 200, data: response.data }
   },
 }

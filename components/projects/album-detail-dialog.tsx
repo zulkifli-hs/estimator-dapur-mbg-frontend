@@ -18,7 +18,13 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Upload, X, Loader2, Download, Maximize2, Plus } from "lucide-react"
+import { Upload, X, Loader2, Download, Maximize2, Plus, MoreVertical, Edit } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { albumsApi } from "@/lib/api/albums"
 import { uploadApi } from "@/lib/api/upload"
 import { useToast } from "@/hooks/use-toast"
@@ -60,6 +66,9 @@ export function AlbumDetailDialog({
   const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [photoNote, setPhotoNote] = useState("")
+  const [editingPhoto, setEditingPhoto] = useState<any>(null)
+  const [editNote, setEditNote] = useState("")
+  const [isEditing, setIsEditing] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const noteInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
@@ -210,6 +219,52 @@ export function AlbumDetailDialog({
     }
   }
 
+  const openEditPhotoModal = (photo: any) => {
+    setEditingPhoto(photo)
+    setEditNote(photo.note || "")
+  }
+
+  const closeEditPhotoModal = () => {
+    setEditingPhoto(null)
+    setEditNote("")
+  }
+
+  const handleEditPhoto = async () => {
+    if (!editingPhoto) return
+
+    setUploading(true)
+    try {
+      const response = await albumsApi.editPhoto(
+        projectId,
+        albumId,
+        editingPhoto._id,
+        editingPhoto.url,
+        editingPhoto.provider,
+        editNote || undefined
+      )
+
+      if (response.success) {
+        toast({
+          title: "Success",
+          description: "Photo updated successfully",
+        })
+        closeEditPhotoModal()
+        await loadAlbum()
+        onPhotoAdded?.()
+      } else {
+        throw new Error("Failed to update photo")
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update photo",
+        variant: "destructive",
+      })
+    } finally {
+      setUploading(false)
+    }
+  }
+
   const getPhotoUrl = (photo: any) => {
     if (!photo?.provider || !photo?.url) {
       return null
@@ -273,41 +328,55 @@ export function AlbumDetailDialog({
                       {photo.note && (
                         <p className="text-xs text-muted-foreground px-1 line-clamp-2">{photo.note}</p>
                       )}
+                      {photo.createdBy?.profile?.name && (
+                        <p className="text-xs text-muted-foreground px-1">by {photo.createdBy.profile.name}</p>
+                      )}
                     </div>
-                    {/* Action buttons */}
-                    <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button
-                        size="icon"
-                        variant="secondary"
-                        className="h-8 w-8"
-                        onClick={() => setFullPhotoUrl(getPhotoUrl(photo))}
-                        title="View full size"
-                      >
-                        <Maximize2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="secondary"
-                        className="h-8 w-8"
-                        onClick={() => {
-                          const url = getPhotoUrl(photo)
-                          if (url) {
-                            window.open(url, "_blank")
-                          }
-                        }}
-                        title="Download"
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="destructive"
-                        className="h-8 w-8"
-                        onClick={() => handleDeletePhotoClick(index)}
-                        title="Delete"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
+                    {/* Action dropdown menu */}
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            size="icon"
+                            variant="secondary"
+                            className="h-8 w-8"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => setFullPhotoUrl(getPhotoUrl(photo))}
+                          >
+                            <Maximize2 className="h-4 w-4 mr-2" />
+                            View Full Size
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              const url = getPhotoUrl(photo)
+                              if (url) {
+                                window.open(url, "_blank")
+                              }
+                            }}
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            Download
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => openEditPhotoModal(photo)}
+                          >
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit Note
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleDeletePhotoClick(album.list.indexOf(photo))}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <X className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
                 ))}
@@ -412,6 +481,68 @@ export function AlbumDetailDialog({
             >
               <X className="h-4 w-4" />
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Photo Modal */}
+      <Dialog open={!!editingPhoto} onOpenChange={(open) => !open && closeEditPhotoModal()}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Photo</DialogTitle>
+            <DialogDescription>Update photo information</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Photo Preview */}
+            {editingPhoto && (
+              <div className="space-y-2">
+                <Label>Photo</Label>
+                <div className="aspect-square bg-muted rounded-lg overflow-hidden flex items-center justify-center">
+                  <img
+                    src={getPhotoUrl(editingPhoto) || "/placeholder.svg"}
+                    alt="Preview"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Photo Note Input */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-photo-note">Note</Label>
+              <Input
+                id="edit-photo-note"
+                placeholder="Add a note or description for this photo..."
+                value={editNote}
+                onChange={(e) => setEditNote(e.target.value)}
+                disabled={uploading}
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="outline"
+                onClick={closeEditPhotoModal}
+                disabled={uploading}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleEditPhoto} disabled={uploading}>
+                {uploading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Edit className="h-4 w-4 mr-2" />
+                    Save Changes
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

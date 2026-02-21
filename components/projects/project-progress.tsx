@@ -9,6 +9,8 @@ import { DialogContent } from "@/components/ui/dialog"
 import { Dialog } from "@/components/ui/dialog"
 
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Upload, Calendar, ImageIcon, TrendingUp, FileCheck, Edit, Plus, X, Download, Eye, MoreVertical } from 'lucide-react'
 import {
@@ -22,7 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useEffect, useState } from "react"
 import { boqApi } from "@/lib/api/boq"
 import { albumsApi } from "@/lib/api/albums"
-import { GanttChartEditor } from "./gantt-chart-editor"
+// import { GanttChartEditor } from "./gantt-chart-editor"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { GanttChartView } from "./gantt-chart-view"
 import { CreateAlbumDialog } from "./create-album-dialog"
@@ -48,13 +50,16 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
   const [activeTab, setActiveTab] = useState("gantt")
   const [mainBOQ, setMainBOQ] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [showGanttEditor, setShowGanttEditor] = useState(false)
+  // const [showGanttEditor, setShowGanttEditor] = useState(false)
   const [ganttTasks, setGanttTasks] = useState<any[]>([])
 
   const [albums, setAlbums] = useState<any[]>([])
   const [albumsLoading, setAlbumsLoading] = useState(false)
   const [showCreateAlbum, setShowCreateAlbum] = useState(false)
   const [selectedAlbum, setSelectedAlbum] = useState<{ id: string; name: string } | null>(null)
+  const [renamingAlbum, setRenamingAlbum] = useState<{ id: string; name: string } | null>(null)
+  const [renameValue, setRenameValue] = useState("")
+  const [renaming, setRenaming] = useState(false)
   const [deleteAlbumConfirm, setDeleteAlbumConfirm] = useState<{ id: string; name: string } | null>(null)
   const [deletingAlbum, setDeletingAlbum] = useState(false)
   const [exportingPdf, setExportingPdf] = useState<string | null>(null)
@@ -161,7 +166,9 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
       const response = await albumsApi.getByProject(projectId, { limit: 100 })
       if (response.success) {
         // Handle both array and paginated response
-        const albumsData = Array.isArray(response.data) ? response.data : response.data?.list || []
+        const albumsData = Array.isArray(response.data) 
+          ? response.data 
+          : (response.data as any)?.list || []
         setAlbums(albumsData)
       }
     } catch (error: any) {
@@ -201,6 +208,38 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
     } finally {
       setDeletingAlbum(false)
       setDeleteAlbumConfirm(null)
+    }
+  }
+
+  const handleRenameAlbum = async () => {
+    if (!renamingAlbum || !renameValue.trim()) return
+
+    setRenaming(true)
+    try {
+      const response = await albumsApi.rename(projectId, renamingAlbum.id, renameValue.trim())
+
+      if (response.success) {
+        toast({
+          title: "Success",
+          description: "Album renamed successfully",
+        })
+        setSelectedAlbum((prev) =>
+          prev?.id === renamingAlbum.id ? { ...prev, name: renameValue.trim() } : prev,
+        )
+        setRenamingAlbum(null)
+        setRenameValue("")
+        await loadAlbums()
+      } else {
+        throw new Error("Failed to rename album")
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to rename album",
+        variant: "destructive",
+      })
+    } finally {
+      setRenaming(false)
     }
   }
 
@@ -494,17 +533,17 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
                   <CardTitle>Gantt Chart</CardTitle>
                   <CardDescription>Project timeline from Main BOQ</CardDescription>
                 </div>
-                {mainBOQ && (
+                {/* {mainBOQ && (
                   <Button onClick={() => setShowGanttEditor(true)}>
                     <Edit className="h-4 w-4 mr-2" />
                     {hasGanttDates ? "Edit Timeline" : "Add Timeline"}
                   </Button>
-                )}
+                )} */}
               </div>
             </CardHeader>
             <CardContent>
               {loading ? (
-                <div className="flex items-center justify-center h-[400px]">
+                <div className="flex items-center justify-center h-100">
                   <p className="text-muted-foreground">Loading...</p>
                 </div>
               ) : !mainBOQ ? (
@@ -610,6 +649,16 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
                               <DropdownMenuItem
                                 onClick={(e) => {
                                   e.stopPropagation()
+                                  setRenamingAlbum({ id: album._id, name: album.name })
+                                  setRenameValue(album.name)
+                                }}
+                              >
+                                <Edit className="h-4 w-4 mr-2" />
+                                Rename Album
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation()
                                   setDeleteAlbumConfirm({ id: album._id, name: album.name })
                                 }}
                                 className="text-destructive focus:text-destructive"
@@ -647,7 +696,7 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
               <CardDescription>Project progress vs planned progress</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-center h-[500px] bg-gradient-to-br from-primary/5 via-primary/10 to-background rounded-xl border-2 border-dashed border-primary/20">
+              <div className="flex items-center justify-center h-125 bg-linear-to-br from-primary/5 via-primary/10 to-background rounded-xl border-2 border-dashed border-primary/20">
                 <div className="text-center space-y-8 max-w-sm px-6">
                   <div className="relative inline-block">
                     <div className="absolute inset-0 animate-ping">
@@ -656,7 +705,7 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
                     <TrendingUp className="h-24 w-24 text-primary relative z-10" />
                   </div>
                   <div className="space-y-3">
-                    <h3 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                    <h3 className="text-3xl font-bold bg-linear-to-r from-primary to-primary/60 bg-clip-text text-transparent">
                       Coming Soon
                     </h3>
                     <Badge variant="outline" className="text-sm px-4 py-1 border-primary/40">
@@ -719,7 +768,7 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
         </TabsContent>
       </Tabs>
 
-      {mainBOQ && (
+      {/* {mainBOQ && (
         <GanttChartEditor
           projectId={projectId}
           boq={mainBOQ}
@@ -727,7 +776,7 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
           onOpenChange={setShowGanttEditor}
           onSuccess={loadBOQData}
         />
-      )}
+      )} */}
 
       <CreateAlbumDialog
         open={showCreateAlbum}
@@ -758,6 +807,61 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
           isExportingPdf={exportingPdf === selectedAlbum.id}
         />
       )}
+
+      <Dialog
+        open={!!renamingAlbum}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRenamingAlbum(null)
+            setRenameValue("")
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md" onClick={(e) => e.stopPropagation()}>
+          <DialogHeader>
+            <DialogTitle>Rename Album</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label htmlFor="rename-album">Album Name</Label>
+              <Input
+                id="rename-album"
+                value={renameValue}
+                onChange={(e) => setRenameValue(e.target.value)}
+                placeholder="Enter album name"
+                disabled={renaming}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleRenameAlbum()
+                  }
+                }}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setRenamingAlbum(null)
+                  setRenameValue("")
+                }}
+                disabled={renaming}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleRenameAlbum} disabled={renaming || !renameValue.trim()}>
+                {renaming ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Renaming...
+                  </>
+                ) : (
+                  "Rename"
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={!!deleteAlbumConfirm} onOpenChange={(open) => !open && setDeleteAlbumConfirm(null)}>
         <AlertDialogContent>

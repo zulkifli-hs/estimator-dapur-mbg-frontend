@@ -109,7 +109,14 @@ export function AlbumDetailDialog({
     }
 
     setSelectedPhoto(file)
-    setShowUploadModal(true)
+    
+    // Only open modal if it's not already open (first time)
+    if (!showUploadModal) {
+      setShowUploadModal(true)
+    } else {
+      // Reset note when choosing a different photo
+      setPhotoNote("")
+    }
 
     // Generate preview
     const reader = new FileReader()
@@ -334,6 +341,15 @@ export function AlbumDetailDialog({
                     className="w-full h-full object-contain"
                   />
                 </div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="w-full"
+                >
+                  Choose Different Photo
+                </Button>
               </div>
             )}
 

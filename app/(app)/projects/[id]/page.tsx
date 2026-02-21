@@ -15,6 +15,7 @@ import {
   FileText,
   FolderOpen,
   Users,
+  ShoppingCart,
 } from "lucide-react"
 import { projectsApi } from "@/lib/api/projects"
 import { ProjectOverview } from "@/components/projects/project-overview"
@@ -24,6 +25,7 @@ import { ProjectProgress } from "@/components/projects/project-progress"
 import { ProjectInvoice } from "@/components/projects/project-invoice"
 import { ProjectDocuments } from "@/components/projects/project-documents"
 import { ProjectMembers } from "@/components/projects/project-members"
+import { ProjectProcurement } from "@/components/projects/project-procurement"
 import Link from "next/link"
 
 export default function ProjectDetailPage() {
@@ -77,6 +79,7 @@ export default function ProjectDetailPage() {
     { value: "layout", label: "Layout", icon: Layout },
     { value: "boq", label: "BOQ", icon: Calculator },
     { value: "project", label: "Project", icon: TrendingUp },
+    { value: "procurement", label: "Procurement", icon: ShoppingCart },
     { value: "invoice", label: "Invoice", icon: FileText },
     { value: "documents", label: "Documents", icon: FolderOpen },
     { value: "members", label: "Members", icon: Users },
@@ -104,7 +107,7 @@ export default function ProjectDetailPage() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 md:space-y-6">
         <div className="relative">
-          <TabsList className="inline-flex w-full md:grid md:grid-cols-7 h-auto p-1 overflow-x-auto scrollbar-hide">
+          <TabsList className="inline-flex w-full md:grid md:grid-cols-8 h-auto p-1 overflow-x-auto scrollbar-hide">
             {tabs.map((tab) => {
               const Icon = tab.icon
               return (
@@ -135,6 +138,10 @@ export default function ProjectDetailPage() {
 
         <TabsContent value="project">
           <ProjectProgress projectId={project._id} />
+        </TabsContent>
+
+        <TabsContent value="procurement">
+          <ProjectProcurement projectId={project._id} />
         </TabsContent>
 
         <TabsContent value="invoice">

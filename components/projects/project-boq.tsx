@@ -51,6 +51,7 @@ interface ProductItem {
   productId?: string
   location?: string
   brand?: string
+  tags?: string[]
   startDate?: string // Added startDate
   endDate?: string // Added endDate
 }
@@ -191,6 +192,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
           productId: item.productId || "",
           location: item.location || "",
           brand: item.brand || "",
+          tags: item.tags || [],
           startDate: item.startDate ? new Date(item.startDate).toISOString().split("T")[0] : "",
           endDate: item.endDate ? new Date(item.endDate).toISOString().split("T")[0] : "",
         })) || [],
@@ -208,6 +210,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
               productId: product.productId || "",
               location: product.location || "",
               brand: product.brand || "",
+              tags: product.tags || [],
               startDate: product.startDate ? new Date(product.startDate).toISOString().split("T")[0] : "",
               endDate: product.endDate ? new Date(product.endDate).toISOString().split("T")[0] : "",
             })) || [],
@@ -226,6 +229,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
               productId: product.productId || "",
               location: product.location || "",
               brand: product.brand || "",
+              tags: product.tags || [],
               startDate: product.startDate ? new Date(product.startDate).toISOString().split("T")[0] : "",
               endDate: product.endDate ? new Date(product.endDate).toISOString().split("T")[0] : "",
             })) || [],
@@ -244,6 +248,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
               productId: product.productId || "",
               location: product.location || "",
               brand: product.brand || "",
+              tags: product.tags || [],
               startDate: product.startDate ? new Date(product.startDate).toISOString().split("T")[0] : "",
               endDate: product.endDate ? new Date(product.endDate).toISOString().split("T")[0] : "",
             })) || [],
@@ -678,6 +683,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       price: product.sellingPrice,
       productId: product._id,
       brand: product.brand || "",
+      tags: product.tags || [],
       startDate: newPreliminary[index].startDate || "", // Preserve existing dates
       endDate: newPreliminary[index].endDate || "", // Preserve existing dates
     }
@@ -697,6 +703,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       price: product.sellingPrice,
       productId: product._id,
       brand: product.brand || "",
+      tags: product.tags || [],
       startDate: newFittingOut[categoryIndex].products[productIndex].startDate || "", // Preserve existing dates
       endDate: newFittingOut[categoryIndex].products[productIndex].endDate || "", // Preserve existing dates
     }
@@ -716,6 +723,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       price: product.sellingPrice,
       productId: product._id,
       brand: product.brand || "",
+      tags: product.tags || [],
       startDate: newFurnitureWork[categoryIndex].products[productIndex].startDate || "", // Preserve existing dates
       endDate: newFurnitureWork[categoryIndex].products[productIndex].endDate || "", // Preserve existing dates
     }
@@ -741,6 +749,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     productId?: string
     location?: string
     brand?: string
+    tags?: string[]
     startDate?: string // Added startDate
     endDate?: string // Added endDate
   }
@@ -748,20 +757,20 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
 
   // Preliminary functions
   const addPreliminaryItem = () => {
-    setPreliminary([...preliminary, { name: "", qty: 0, unit: "", price: 0, startDate: "", endDate: "" }])
+    setPreliminary([...preliminary, { name: "", qty: 0, unit: "", price: 0, tags: [], startDate: "", endDate: "" }])
   }
 
   const removePreliminaryItem = (index: number) => {
     if (preliminary.length > 1) {
       setPreliminary(preliminary.filter((_, i) => i !== index))
     } else {
-      setPreliminary([{ name: "", qty: 0, unit: "", price: 0, startDate: "", endDate: "" }])
+      setPreliminary([{ name: "", qty: 0, unit: "", price: 0, tags: [], startDate: "", endDate: "" }])
     }
   }
 
   // Fitting Out functions
   const addFittingOutCategory = () => {
-    setFittingOut([...fittingOut, { name: "", products: [{ name: "", qty: 0, unit: "", price: 0, startDate: "", endDate: "" }] }])
+    setFittingOut([...fittingOut, { name: "", products: [{ name: "", qty: 0, unit: "", price: 0, tags: [], startDate: "", endDate: "" }] }])
   }
 
   const removeFittingOutCategory = (categoryIndex: number) => {
@@ -769,7 +778,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       setFittingOut(fittingOut.filter((_, i) => i !== categoryIndex))
     } else {
       // Clear the single category instead of removing it if it's the last one
-      setFittingOut([{ name: "", products: [{ name: "", qty: 0, unit: "", price: 0, startDate: "", endDate: "" }] }])
+      setFittingOut([{ name: "", products: [{ name: "", qty: 0, unit: "", price: 0, tags: [], startDate: "", endDate: "" }] }])
     }
   }
 
@@ -787,7 +796,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
 
   const addFittingOutProduct = (categoryIndex: number) => {
     const newFittingOut = [...fittingOut]
-    newFittingOut[categoryIndex].products.push({ name: "", qty: 0, unit: "", price: 0, startDate: "", endDate: "" })
+    newFittingOut[categoryIndex].products.push({ name: "", qty: 0, unit: "", price: 0, tags: [], startDate: "", endDate: "" })
     setFittingOut(newFittingOut)
   }
 
@@ -822,7 +831,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
 
   const addFurnitureWorkProduct = (categoryIndex: number) => {
     const newFurnitureWork = [...furnitureWork]
-    newFurnitureWork[categoryIndex].products.push({ name: "", qty: 0, unit: "", price: 0, startDate: "", endDate: "" })
+    newFurnitureWork[categoryIndex].products.push({ name: "", qty: 0, unit: "", price: 0, tags: [], startDate: "", endDate: "" })
     setFurnitureWork(newFurnitureWork)
   }
 
@@ -835,7 +844,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       setFurnitureWork(newFurnitureWork)
     } else {
       // Clear the single product instead of removing it if it's the last one in the category
-      newFurnitureWork[categoryIndex].products = [{ name: "", qty: 0, unit: "", price: 0, startDate: "", endDate: "" }]
+      newFurnitureWork[categoryIndex].products = [{ name: "", qty: 0, unit: "", price: 0, tags: [], startDate: "", endDate: "" }]
       setFurnitureWork(newFurnitureWork)
     }
   }
@@ -843,7 +852,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   const addFurnitureWorkCategory = () => {
     setFurnitureWork([
       ...furnitureWork,
-      { name: "", products: [{ name: "", qty: 0, unit: "", price: 0, startDate: "", endDate: "" }] },
+      { name: "", products: [{ name: "", qty: 0, unit: "", price: 0, tags: [], startDate: "", endDate: "" }] },
     ])
   }
 
@@ -852,7 +861,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       setFurnitureWork(furnitureWork.filter((_, i) => i !== categoryIndex))
     } else {
       // Clear the single category instead of removing it if it's the last one
-      setFurnitureWork([{ name: "", products: [{ name: "", qty: 0, unit: "", price: 0, startDate: "", endDate: "" }] }])
+      setFurnitureWork([{ name: "", products: [{ name: "", qty: 0, unit: "", price: 0, tags: [], startDate: "", endDate: "" }] }])
     }
   }
 
@@ -866,6 +875,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       price: product.sellingPrice,
       productId: product._id,
       brand: product.brand || "",
+      tags: product.tags || [],
       startDate: newMechanicalElectrical[categoryIndex].products[productIndex].startDate || "", // Preserve existing dates
       endDate: newMechanicalElectrical[categoryIndex].products[productIndex].endDate || "", // Preserve existing dates
     }
@@ -893,7 +903,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
 
   const addMechanicalElectricalProduct = (categoryIndex: number) => {
     const newMechanicalElectrical = [...mechanicalElectrical]
-    newMechanicalElectrical[categoryIndex].products.push({ name: "", qty: 0, unit: "", price: 0, startDate: "", endDate: "" })
+    newMechanicalElectrical[categoryIndex].products.push({ name: "", qty: 0, unit: "", price: 0, tags: [], startDate: "", endDate: "" })
     setMechanicalElectrical(newMechanicalElectrical)
   }
 
@@ -906,7 +916,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       setMechanicalElectrical(newMechanicalElectrical)
     } else {
       // Clear the single product instead of removing it if it's the last one in the category
-      newMechanicalElectrical[categoryIndex].products = [{ name: "", qty: 0, unit: "", price: 0, startDate: "", endDate: "" }]
+      newMechanicalElectrical[categoryIndex].products = [{ name: "", qty: 0, unit: "", price: 0, tags: [], startDate: "", endDate: "" }]
       setMechanicalElectrical(newMechanicalElectrical)
     }
   }
@@ -914,7 +924,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   const addMechanicalElectricalCategory = () => {
     setMechanicalElectrical([
       ...mechanicalElectrical,
-      { name: "", products: [{ name: "", qty: 0, unit: "", price: 0, startDate: "", endDate: "" }] },
+      { name: "", products: [{ name: "", qty: 0, unit: "", price: 0, tags: [], startDate: "", endDate: "" }] },
     ])
   }
 
@@ -923,7 +933,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       setMechanicalElectrical(mechanicalElectrical.filter((_, i) => i !== categoryIndex))
     } else {
       // Clear the single category instead of removing it if it's the last one
-      setMechanicalElectrical([{ name: "", products: [{ name: "", qty: 0, unit: "", price: 0, startDate: "", endDate: "" }] }])
+      setMechanicalElectrical([{ name: "", products: [{ name: "", qty: 0, unit: "", price: 0, tags: [], startDate: "", endDate: "" }] }])
     }
   }
 
@@ -944,6 +954,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
           price: item.price,
           location: item.location || undefined,
           brand: item.brand || undefined,
+          tags: item.tags || [],
           startDate: item.startDate || undefined,
           endDate: item.endDate || undefined,
         }))
@@ -961,6 +972,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
               price: product.price,
               location: product.location || undefined,
               brand: product.brand || undefined,
+              tags: product.tags || [],
               startDate: product.startDate || undefined,
               endDate: product.endDate || undefined,
             })),
@@ -980,6 +992,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
               price: product.price,
               location: product.location || undefined,
               brand: product.brand || undefined,
+              tags: product.tags || [],
               startDate: product.startDate || undefined,
               endDate: product.endDate || undefined,
             })),
@@ -999,6 +1012,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
               price: product.price,
               location: product.location || undefined,
               brand: product.brand || undefined,
+              tags: product.tags || [],
               startDate: product.startDate || undefined,
               endDate: product.endDate || undefined,
             })),
@@ -1191,6 +1205,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
           price: item.price,
           location: item.location,
           brand: item.brand,
+          tags: item.tags || [],
         })),
         fittingOut: mainBOQ.fittingOut.map((category: any) => ({
           name: category.name,
@@ -1202,6 +1217,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
             price: product.price,
             location: product.location,
             brand: product.brand,
+            tags: product.tags || [],
           })),
         })),
         furnitureWork: mainBOQ.furnitureWork.map((category: any) => ({
@@ -1214,6 +1230,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
             price: product.price,
             location: product.location,
             brand: product.brand,
+            tags: product.tags || [],
           })),
         })),
         mechanicalElectrical: (mainBOQ.mechanicalElectrical || []).map((category: any) => ({
@@ -1226,6 +1243,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
             price: product.price,
             location: product.location,
             brand: product.brand,
+            tags: product.tags || [],
           })),
         })),
       }
@@ -1264,6 +1282,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
           name: item.name,
           unit: item.unit,
           price: item.price,
+          tags: item.tags || [],
         })),
         fittingOut: selectedReplaceTemplate.fittingOut.map((category: any) => ({
           name: category.name,
@@ -1273,6 +1292,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
             name: product.name,
             unit: product.unit,
             price: product.price,
+            tags: product.tags || [],
           })),
         })),
         furnitureWork: selectedReplaceTemplate.furnitureWork.map((category: any) => ({
@@ -1283,6 +1303,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
             name: product.name,
             unit: product.unit,
             price: product.price,
+            tags: product.tags || [],
           })),
         })),
         mechanicalElectrical: (selectedReplaceTemplate.mechanicalElectrical || []).map((category: any) => ({
@@ -1293,6 +1314,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
             name: product.name,
             unit: product.unit,
             price: product.price,
+            tags: product.tags || [],
           })),
         })),
       }

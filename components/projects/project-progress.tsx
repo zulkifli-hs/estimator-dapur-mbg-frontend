@@ -161,7 +161,9 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
       const response = await albumsApi.getByProject(projectId, { limit: 100 })
       if (response.success) {
         // Handle both array and paginated response
-        const albumsData = Array.isArray(response.data) ? response.data : response.data?.list || []
+        const albumsData = Array.isArray(response.data) 
+          ? response.data 
+          : (response.data as any)?.list || []
         setAlbums(albumsData)
       }
     } catch (error: any) {
@@ -504,7 +506,7 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
             </CardHeader>
             <CardContent>
               {loading ? (
-                <div className="flex items-center justify-center h-[400px]">
+                <div className="flex items-center justify-center h-100">
                   <p className="text-muted-foreground">Loading...</p>
                 </div>
               ) : !mainBOQ ? (
@@ -647,7 +649,7 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
               <CardDescription>Project progress vs planned progress</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-center h-[500px] bg-gradient-to-br from-primary/5 via-primary/10 to-background rounded-xl border-2 border-dashed border-primary/20">
+              <div className="flex items-center justify-center h-125 bg-linear-to-br from-primary/5 via-primary/10 to-background rounded-xl border-2 border-dashed border-primary/20">
                 <div className="text-center space-y-8 max-w-sm px-6">
                   <div className="relative inline-block">
                     <div className="absolute inset-0 animate-ping">
@@ -656,7 +658,7 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
                     <TrendingUp className="h-24 w-24 text-primary relative z-10" />
                   </div>
                   <div className="space-y-3">
-                    <h3 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                    <h3 className="text-3xl font-bold bg-linear-to-r from-primary to-primary/60 bg-clip-text text-transparent">
                       Coming Soon
                     </h3>
                     <Badge variant="outline" className="text-sm px-4 py-1 border-primary/40">

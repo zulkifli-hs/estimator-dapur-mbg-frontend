@@ -206,48 +206,6 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
     }
   }
 
-  // Dummy invoice data
-  const invoices = [
-    {
-      id: 1,
-      number: "INV-2025-001",
-      termin: "Termin 1",
-      amount: 50000000,
-      date: "2025-01-15",
-      status: "Paid",
-      dueDate: "2025-01-20",
-    },
-    {
-      id: 2,
-      number: "INV-2025-002",
-      termin: "Termin 2",
-      amount: 75000000,
-      date: "2025-01-20",
-      status: "Pending",
-      dueDate: "2025-01-25",
-    },
-  ]
-
-  // Dummy tax invoice data
-  const taxInvoices = [
-    {
-      id: 1,
-      number: "FP-001/2025",
-      invoiceNumber: "INV-2025-001",
-      date: "2025-01-16",
-      amount: 5500000,
-      status: "Uploaded",
-    },
-  ]
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      minimumFractionDigits: 0,
-    }).format(amount)
-  }
-
   return (
     <div className="space-y-6">
       <CreateTerminDialog
@@ -363,34 +321,17 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
                   <CardTitle>Invoices</CardTitle>
                   <CardDescription>Project invoices and payment tracking</CardDescription>
                 </div>
-                <Button>
+                <Button disabled>
                   <Upload className="h-4 w-4 mr-2" />
                   Create Invoice
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {invoices.map((invoice) => (
-                  <div
-                    key={invoice.id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-4">
-                      <FileText className="h-8 w-8 text-primary" />
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium">{invoice.number}</p>
-                          <Badge variant="outline">{invoice.termin}</Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          {formatCurrency(invoice.amount)} • Due: {invoice.dueDate}
-                        </p>
-                      </div>
-                    </div>
-                    <Badge variant={invoice.status === "Paid" ? "default" : "secondary"}>{invoice.status}</Badge>
-                  </div>
-                ))}
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <FileText className="h-16 w-16 text-muted-foreground/50 mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Under Construction</h3>
+                <p className="text-muted-foreground">This feature is currently being developed and will be available soon.</p>
               </div>
             </CardContent>
           </Card>
@@ -404,34 +345,17 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
                   <CardTitle>Tax Invoices (Faktur Pajak)</CardTitle>
                   <CardDescription>Upload and manage tax invoices</CardDescription>
                 </div>
-                <Button>
+                <Button disabled>
                   <Upload className="h-4 w-4 mr-2" />
                   Upload Tax Invoice
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {taxInvoices.map((tax) => (
-                  <div
-                    key={tax.id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-4">
-                      <FileText className="h-8 w-8 text-green-500" />
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium">{tax.number}</p>
-                          <Badge variant="outline">{tax.invoiceNumber}</Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          {formatCurrency(tax.amount)} • {tax.date}
-                        </p>
-                      </div>
-                    </div>
-                    <Badge variant="default">{tax.status}</Badge>
-                  </div>
-                ))}
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <FileText className="h-16 w-16 text-muted-foreground/50 mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Under Construction</h3>
+                <p className="text-muted-foreground">This feature is currently being developed and will be available soon.</p>
               </div>
             </CardContent>
           </Card>

@@ -97,6 +97,25 @@ export function CreateProductDialog({
     setProductDetails([])
   }
 
+  // Format number with thousands separator (e.g., 20000000 -> "20.000.000")
+  const formatNumberInput = (value: string | number): string => {
+    if (!value) return ""
+    const numString = value.toString().replace(/\D/g, "") // Remove non-digits
+    if (!numString) return ""
+    return new Intl.NumberFormat("id-ID").format(Number(numString))
+  }
+
+  // Parse formatted number back to plain number (e.g., "20.000.000" -> "20000000")
+  const parseNumberInput = (value: string): string => {
+    return value.replace(/\D/g, "") // Remove all non-digits
+  }
+
+  // Handle price input change with formatting
+  const handlePriceChange = (field: "purchasePrice" | "sellingPrice", value: string) => {
+    const plainValue = parseNumberInput(value)
+    setFormData({ ...formData, [field]: plainValue })
+  }
+
   const resolveTagInput = () => {
     const selected = formData.tag === "custom" ? formData.customTag.trim() : formData.tag.trim()
     return selected ? [selected] : undefined
@@ -352,20 +371,22 @@ export function CreateProductDialog({
               <Label htmlFor="create-product-purchase">Purchase Price (IDR) *</Label>
               <Input
                 id="create-product-purchase"
-                type="number"
-                value={formData.purchasePrice}
-                onChange={(e) => setFormData({ ...formData, purchasePrice: e.target.value })}
-                placeholder="e.g., 20000"
+                type="text"
+                inputMode="numeric"
+                value={formatNumberInput(formData.purchasePrice)}
+                onChange={(e) => handlePriceChange("purchasePrice", e.target.value)}
+                placeholder="e.g., 20.000.000"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="create-product-selling">Selling Price (IDR) *</Label>
               <Input
                 id="create-product-selling"
-                type="number"
-                value={formData.sellingPrice}
-                onChange={(e) => setFormData({ ...formData, sellingPrice: e.target.value })}
-                placeholder="e.g., 25000"
+                type="text"
+                inputMode="numeric"
+                value={formatNumberInput(formData.sellingPrice)}
+                onChange={(e) => handlePriceChange("sellingPrice", e.target.value)}
+                placeholder="e.g., 25.000.000"
               />
             </div>
           </div>

@@ -9,6 +9,8 @@ import { DialogContent } from "@/components/ui/dialog"
 import { Dialog } from "@/components/ui/dialog"
 
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Upload, Calendar, ImageIcon, TrendingUp, FileCheck, Edit, Plus, X, Download, Eye, MoreVertical } from 'lucide-react'
 import {
@@ -55,6 +57,9 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
   const [albumsLoading, setAlbumsLoading] = useState(false)
   const [showCreateAlbum, setShowCreateAlbum] = useState(false)
   const [selectedAlbum, setSelectedAlbum] = useState<{ id: string; name: string } | null>(null)
+  const [renamingAlbum, setRenamingAlbum] = useState<{ id: string; name: string } | null>(null)
+  const [renameValue, setRenameValue] = useState("")
+  const [renaming, setRenaming] = useState(false)
   const [deleteAlbumConfirm, setDeleteAlbumConfirm] = useState<{ id: string; name: string } | null>(null)
   const [deletingAlbum, setDeletingAlbum] = useState(false)
   const [exportingPdf, setExportingPdf] = useState<string | null>(null)
@@ -203,6 +208,38 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
     } finally {
       setDeletingAlbum(false)
       setDeleteAlbumConfirm(null)
+    }
+  }
+
+  const handleRenameAlbum = async () => {
+    if (!renamingAlbum || !renameValue.trim()) return
+
+    setRenaming(true)
+    try {
+      const response = await albumsApi.rename(projectId, renamingAlbum.id, renameValue.trim())
+
+      if (response.success) {
+        toast({
+          title: "Success",
+          description: "Album renamed successfully",
+        })
+        setSelectedAlbum((prev) =>
+          prev?.id === renamingAlbum.id ? { ...prev, name: renameValue.trim() } : prev,
+        )
+        setRenamingAlbum(null)
+        setRenameValue("")
+        await loadAlbums()
+      } else {
+        throw new Error("Failed to rename album")
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to rename album",
+        variant: "destructive",
+      })
+    } finally {
+      setRenaming(false)
     }
   }
 
@@ -612,6 +649,16 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
                               <DropdownMenuItem
                                 onClick={(e) => {
                                   e.stopPropagation()
+                                  setRenamingAlbum({ id: album._id, name: album.name })
+                                  setRenameValue(album.name)
+                                }}
+                              >
+                                <Edit className="h-4 w-4 mr-2" />
+                                Rename Album
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation()
                                   setDeleteAlbumConfirm({ id: album._id, name: album.name })
                                 }}
                                 className="text-destructive focus:text-destructive"
@@ -760,6 +807,61 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
           isExportingPdf={exportingPdf === selectedAlbum.id}
         />
       )}
+
+      <Dialog
+        open={!!renamingAlbum}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRenamingAlbum(null)
+            setRenameValue("")
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md" onClick={(e) => e.stopPropagation()}>
+          <DialogHeader>
+            <DialogTitle>Rename Album</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label htmlFor="rename-album">Album Name</Label>
+              <Input
+                id="rename-album"
+                value={renameValue}
+                onChange={(e) => setRenameValue(e.target.value)}
+                placeholder="Enter album name"
+                disabled={renaming}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleRenameAlbum()
+                  }
+                }}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setRenamingAlbum(null)
+                  setRenameValue("")
+                }}
+                disabled={renaming}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleRenameAlbum} disabled={renaming || !renameValue.trim()}>
+                {renaming ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Renaming...
+                  </>
+                ) : (
+                  "Rename"
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={!!deleteAlbumConfirm} onOpenChange={(open) => !open && setDeleteAlbumConfirm(null)}>
         <AlertDialogContent>

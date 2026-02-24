@@ -235,7 +235,7 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
         </div>
 
         {/* Desktop: Tabs */}
-        <TabsList className="hidden md:grid w-full grid-cols-4">
+        <TabsList className="hidden md:grid w-full grid-cols-2">
           {tabs.map((tab) => (
             <TabsTrigger key={tab.value} value={tab.value}>
               {tab.label}
@@ -309,54 +309,6 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
                   ))}
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="invoice">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Invoices</CardTitle>
-                  <CardDescription>Project invoices and payment tracking</CardDescription>
-                </div>
-                <Button disabled>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Create Invoice
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <FileText className="h-16 w-16 text-muted-foreground/50 mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Under Construction</h3>
-                <p className="text-muted-foreground">This feature is currently being developed and will be available soon.</p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="tax">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Tax Invoices (Faktur Pajak)</CardTitle>
-                  <CardDescription>Upload and manage tax invoices</CardDescription>
-                </div>
-                <Button disabled>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Upload Tax Invoice
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <FileText className="h-16 w-16 text-muted-foreground/50 mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Under Construction</h3>
-                <p className="text-muted-foreground">This feature is currently being developed and will be available soon.</p>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -523,6 +475,4 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
 const tabs = [
   { value: "contract", label: "Contract Files" },
   { value: "termin", label: "Termin" },
-  { value: "invoice", label: "Invoice" },
-  { value: "tax", label: "Tax Invoice" },
 ]

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import {
@@ -28,9 +28,22 @@ import { ProjectMembers } from "@/components/projects/project-members"
 import { ProjectProcurement } from "@/components/projects/project-procurement"
 import Link from "next/link"
 
+const PROJECT_TABS = [
+  { value: "overview", label: "Overview", icon: LayoutDashboard },
+  { value: "layout", label: "Layout", icon: Layout },
+  { value: "boq", label: "BOQ", icon: Calculator },
+  { value: "project", label: "Project", icon: TrendingUp },
+  { value: "procurement", label: "Procurement", icon: ShoppingCart },
+  { value: "invoice", label: "Invoice", icon: FileText },
+  { value: "documents", label: "Documents", icon: FolderOpen },
+  { value: "members", label: "Members", icon: Users },
+]
+
 export default function ProjectDetailPage() {
   const params = useParams()
   const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [project, setProject] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("overview")
@@ -40,6 +53,24 @@ export default function ProjectDetailPage() {
       loadProject()
     }
   }, [params.id])
+
+  useEffect(() => {
+    const tabFromQuery = searchParams.get("tab")
+    if (tabFromQuery && PROJECT_TABS.some((tab) => tab.value === tabFromQuery) && tabFromQuery !== activeTab) {
+      setActiveTab(tabFromQuery)
+    }
+  }, [searchParams, activeTab])
+
+  const handleTabChange = (nextTab: string) => {
+    setActiveTab(nextTab)
+
+    const params = new URLSearchParams(searchParams.toString())
+    params.set("tab", nextTab)
+    params.delete("subtab")
+
+    const queryString = params.toString()
+    router.replace(queryString ? `${pathname}?${queryString}` : pathname, { scroll: false })
+  }
 
   const loadProject = async () => {
     try {
@@ -74,17 +105,6 @@ export default function ProjectDetailPage() {
     )
   }
 
-  const tabs = [
-    { value: "overview", label: "Overview", icon: LayoutDashboard },
-    { value: "layout", label: "Layout", icon: Layout },
-    { value: "boq", label: "BOQ", icon: Calculator },
-    { value: "project", label: "Project", icon: TrendingUp },
-    { value: "procurement", label: "Procurement", icon: ShoppingCart },
-    { value: "invoice", label: "Invoice", icon: FileText },
-    { value: "documents", label: "Documents", icon: FolderOpen },
-    { value: "members", label: "Members", icon: Users },
-  ]
-
   return (
     <div className="space-y-4 md:space-y-6">
       <div className="flex items-center gap-2 md:gap-4">
@@ -105,10 +125,10 @@ export default function ProjectDetailPage() {
         </Button> */}
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 md:space-y-6">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4 md:space-y-6">
         <div className="relative">
           <TabsList className="inline-flex w-full md:grid md:grid-cols-8 h-auto p-1 overflow-x-auto scrollbar-hide">
-            {tabs.map((tab) => {
+            {PROJECT_TABS.map((tab) => {
               const Icon = tab.icon
               return (
                 <TabsTrigger

@@ -2,6 +2,7 @@
 
 import "@radix-ui/react-id"
 import React, { useEffect, useRef, useState } from "react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
@@ -66,6 +67,9 @@ interface ProjectBOQProps {
 }
 
 export function ProjectBOQ({ projectId }: ProjectBOQProps) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const { toast } = useToast() // Initialize toast here
   const [boqItems, setBoqItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -1398,6 +1402,32 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   const mainBOQ = boqItems.find((boq) => boq.number === 1)
   const additionalBOQs = boqItems.filter((boq) => boq.number > 1)
 
+  useEffect(() => {
+    const tabFromQuery = searchParams.get("tab")
+    const subTabFromQuery = searchParams.get("subtab")
+
+    if (tabFromQuery !== "boq") return
+    if (!subTabFromQuery) return
+
+    const isValidSubTab =
+      subTabFromQuery === "main" ||
+      subTabFromQuery === "additional" ||
+      (subTabFromQuery === "recap" && additionalBOQs.length > 0)
+
+    if (isValidSubTab && subTabFromQuery !== activeTab) {
+      setActiveTab(subTabFromQuery)
+    }
+  }, [searchParams, additionalBOQs.length, activeTab])
+
+  const syncSubTabQuery = (nextSubTab: string) => {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set("tab", "boq")
+    params.set("subtab", nextSubTab)
+
+    const queryString = params.toString()
+    router.replace(queryString ? `${pathname}?${queryString}` : pathname, { scroll: false })
+  }
+
   // Send approval request with selected email
   const sendApprovalRequest = async () => {
     const email = selectedApprovalEmail || customApprovalEmail
@@ -1461,6 +1491,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       return
     }
     setActiveTab(value)
+    syncSubTabQuery(value)
   }
 
   const getMergedBOQData = () => {
@@ -2717,18 +2748,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         {/* Mobile: Dropdown */}
         <div className="block md:hidden mb-4">
-          <Select value={activeTab} onValueChange={(value) => {
-            // Only allow switching to additional tab if main BOQ is accepted
-            if (value === "additional" && mainBOQ && mainBOQ.status.toLowerCase() !== "accepted") {
-              toast({
-                title: "Cannot Access",
-                description: "Additional BOQs can only be created after the main BOQ is accepted.",
-                variant: "destructive",
-              })
-              return
-            }
-            setActiveTab(value)
-          }}>
+          <Select value={activeTab} onValueChange={handleTabChange}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Select BOQ type" />
             </SelectTrigger>

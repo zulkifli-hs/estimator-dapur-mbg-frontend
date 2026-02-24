@@ -3,6 +3,7 @@
 import React from "react"
 
 import { useState, useEffect } from "react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -34,9 +35,12 @@ interface ProjectInvoiceProps {
 }
 
 export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceProps) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [termins, setTermins] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState("termin")
+  const [activeTab, setActiveTab] = useState("contract")
   const [showCreateTermin, setShowCreateTermin] = useState(false)
   const [terminMode, setTerminMode] = useState<"create" | "update">("create")
   const [uploading, setUploading] = useState(false)
@@ -52,6 +56,28 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
   useEffect(() => {
     loadTermins()
   }, [projectId])
+
+  useEffect(() => {
+    const tabFromQuery = searchParams.get("tab")
+    const subTabFromQuery = searchParams.get("subtab")
+
+    if (tabFromQuery !== "invoice") return
+
+    if (subTabFromQuery && tabs.some((tab) => tab.value === subTabFromQuery) && subTabFromQuery !== activeTab) {
+      setActiveTab(subTabFromQuery)
+    }
+  }, [searchParams, activeTab])
+
+  const handleSubTabChange = (nextSubTab: string) => {
+    setActiveTab(nextSubTab)
+
+    const params = new URLSearchParams(searchParams.toString())
+    params.set("tab", "invoice")
+    params.set("subtab", nextSubTab)
+
+    const queryString = params.toString()
+    router.replace(queryString ? `${pathname}?${queryString}` : pathname, { scroll: false })
+  }
 
   const loadTermins = async () => {
     try {
@@ -217,7 +243,7 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
         mode={terminMode}
       />
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs value={activeTab} onValueChange={handleSubTabChange} className="space-y-6">
         {/* Mobile: Dropdown */}
         <div className="block md:hidden">
           <Select value={activeTab} onValueChange={setActiveTab}>

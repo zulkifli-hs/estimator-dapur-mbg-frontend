@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Upload, FileText, Download, Eye, Trash2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { uploadProjectFile, deleteProjectFiles } from "@/lib/api/files"
@@ -39,6 +40,9 @@ const getUserName = (createdBy: any) => {
 }
 
 export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutProps) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const projectDetail = project?.detail || {}
   const layoutFiles = projectDetail.layout || []
   const cadFiles = projectDetail.cad || []
@@ -65,6 +69,28 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
     // { value: "material", label: "Approved Material" },
     // { value: "approved-furniture", label: "Approved Furniture" },
   ]
+
+  useEffect(() => {
+    const tabFromQuery = searchParams.get("tab")
+    const subTabFromQuery = searchParams.get("subtab")
+
+    if (tabFromQuery !== "layout") return
+
+    if (subTabFromQuery && tabs.some((tab) => tab.value === subTabFromQuery) && subTabFromQuery !== activeTab) {
+      setActiveTab(subTabFromQuery)
+    }
+  }, [searchParams, activeTab])
+
+  const handleSubTabChange = (nextSubTab: string) => {
+    setActiveTab(nextSubTab)
+
+    const params = new URLSearchParams(searchParams.toString())
+    params.set("tab", "layout")
+    params.set("subtab", nextSubTab)
+
+    const queryString = params.toString()
+    router.replace(queryString ? `${pathname}?${queryString}` : pathname, { scroll: false })
+  }
 
   const getFileUrl = (provider: string, url: string) => {
     const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.gema-interior.com"
@@ -203,10 +229,10 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
 
   return (
     <div className="space-y-6">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs value={activeTab} onValueChange={handleSubTabChange} className="space-y-6">
         {/* Mobile: Dropdown */}
         <div className="block md:hidden">
-          <Select value={activeTab} onValueChange={setActiveTab}>
+          <Select value={activeTab} onValueChange={handleSubTabChange}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Select section" />
             </SelectTrigger>

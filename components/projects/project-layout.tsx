@@ -919,10 +919,10 @@ export function ProjectLayout({ projectId, project, onUpdate }: ProjectLayoutPro
 
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
-          <DialogHeader>
+          <DialogHeader className="h-auto">
             <DialogTitle>File Preview</DialogTitle>
           </DialogHeader>
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 min-h-0 overflow-hidden">
             {previewUrl && (
               <object data={previewUrl} type="application/pdf" className="w-full h-full" aria-label="PDF preview">
                 <iframe

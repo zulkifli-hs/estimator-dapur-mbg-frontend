@@ -49,6 +49,7 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
   const [selectedFiles, setSelectedFiles] = useState<number[]>([])
   const [deleting, setDeleting] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<{ indexes: number[] } | null>(null)
+  const [terminUploadLoading, setTerminUploadLoading] = useState<Record<string, { invoice?: boolean; tax?: boolean }>>({})
   const { toast } = useToast()
 
   const contractFiles = project?.detail?.contract || []
@@ -77,6 +78,70 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
 
     const queryString = params.toString()
     router.replace(queryString ? `${pathname}?${queryString}` : pathname, { scroll: false })
+  }
+
+  const handleTerminFileUpload = async (terminId: string, file: File, type: "invoice" | "tax") => {
+    if (!file) return
+
+    if (file.type !== "application/pdf") {
+      toast({
+        title: "Upload Failed",
+        description: "Only PDF files are allowed",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setTerminUploadLoading((prev) => ({
+      ...prev,
+      [terminId]: {
+        ...prev[terminId],
+        [type]: true,
+      },
+    }))
+
+    try {
+      if (type === "invoice") {
+        await terminApi.uploadInvoicePdf(projectId, terminId, file)
+      } else {
+        await terminApi.uploadTaxPdf(projectId, terminId, file)
+      }
+
+      toast({
+        title: "Success",
+        description: `${type === "invoice" ? "Invoice" : "Tax"} PDF uploaded successfully`,
+      })
+
+      await loadTermins()
+      onUpdate?.()
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to upload file"
+      toast({
+        title: "Upload Failed",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    } finally {
+      setTerminUploadLoading((prev) => ({
+        ...prev,
+        [terminId]: {
+          ...prev[terminId],
+          [type]: false,
+        },
+      }))
+    }
+  }
+
+  const handleTerminPdfChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    terminId: string,
+    type: "invoice" | "tax",
+  ) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      handleTerminFileUpload(terminId, file, type)
+    }
+    e.target.value = ""
   }
 
   const loadTermins = async () => {
@@ -246,7 +311,7 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
       <Tabs value={activeTab} onValueChange={handleSubTabChange} className="space-y-6">
         {/* Mobile: Dropdown */}
         <div className="block md:hidden">
-          <Select value={activeTab} onValueChange={setActiveTab}>
+          <Select value={activeTab} onValueChange={handleSubTabChange}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Select section" />
             </SelectTrigger>
@@ -322,15 +387,126 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
                           )}
                         </div>
                       </div>
-                      <Badge 
-                        variant={
-                          termin.status === "Approved" ? "default" : 
-                          termin.status === "Rejected" ? "destructive" : 
-                          "secondary"
-                        }
-                      >
-                        {termin.status}
-                      </Badge>
+                      <div className="flex flex-col items-end gap-3">
+                        <Badge 
+                          variant={
+                            termin.status === "Approved" ? "default" : 
+                            termin.status === "Rejected" ? "destructive" : 
+                            "secondary"
+                          }
+                        >
+                          {termin.status}
+                        </Badge>
+                        <div className="flex flex-wrap justify-end gap-2">
+                          <Input
+                            id={`termin-invoice-upload-${termin._id}`}
+                            type="file"
+                            accept=".pdf,application/pdf"
+                            className="hidden"
+                            onChange={(e) => handleTerminPdfChange(e, termin._id, "invoice")}
+                            disabled={
+                              !!terminUploadLoading[termin._id]?.invoice ||
+                              !!terminUploadLoading[termin._id]?.tax
+                            }
+                          />
+                          <Button
+                            asChild
+                            variant="outline"
+                            size="sm"
+                            disabled={
+                              !!terminUploadLoading[termin._id]?.invoice ||
+                              !!terminUploadLoading[termin._id]?.tax
+                            }
+                          >
+                            <label htmlFor={`termin-invoice-upload-${termin._id}`} className="cursor-pointer">
+                              <Upload className="h-4 w-4 mr-2" />
+                              {terminUploadLoading[termin._id]?.invoice ? "Uploading..." : "Upload Invoice PDF"}
+                            </label>
+                          </Button>
+
+                          <Input
+                            id={`termin-tax-upload-${termin._id}`}
+                            type="file"
+                            accept=".pdf,application/pdf"
+                            className="hidden"
+                            onChange={(e) => handleTerminPdfChange(e, termin._id, "tax")}
+                            disabled={
+                              !!terminUploadLoading[termin._id]?.invoice ||
+                              !!terminUploadLoading[termin._id]?.tax
+                            }
+                          />
+                          <Button
+                            asChild
+                            variant="outline"
+                            size="sm"
+                            disabled={
+                              !!terminUploadLoading[termin._id]?.invoice ||
+                              !!terminUploadLoading[termin._id]?.tax
+                            }
+                          >
+                            <label htmlFor={`termin-tax-upload-${termin._id}`} className="cursor-pointer">
+                              <Upload className="h-4 w-4 mr-2" />
+                              {terminUploadLoading[termin._id]?.tax ? "Uploading..." : "Upload Tax PDF"}
+                            </label>
+                          </Button>
+                        </div>
+                        <div className="flex flex-col items-end gap-2">
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <span className="font-medium">Invoice:</span>
+                            {termin.invoice?.url ? (
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleView(termin.invoice.provider, termin.invoice.url, termin.invoice.name)}
+                                  title="Preview invoice"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleDownload(termin.invoice.provider, termin.invoice.url, termin.invoice.name)}
+                                  title="Download invoice"
+                                >
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">No invoice</span>
+                            )}
+                          </div>
+                          <div className="flex flex-col items-end gap-1">
+                            <span className="text-xs font-medium text-muted-foreground">Tax Files:</span>
+                            {termin.taxes && termin.taxes.length > 0 ? (
+                              <div className="flex flex-wrap justify-end gap-1">
+                                {termin.taxes.map((tax: any) => (
+                                  <div key={tax._id} className="flex items-center gap-1">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => handleView(tax.provider, tax.url, tax.name)}
+                                      title={`Preview ${tax.name}`}
+                                    >
+                                      <Eye className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => handleDownload(tax.provider, tax.url, tax.name)}
+                                      title={`Download ${tax.name}`}
+                                    >
+                                      <Download className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">No tax files</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -463,12 +639,14 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
 
       {/* Preview Dialog */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-w-4xl h-[80vh]">
-          <DialogHeader>
+        <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
+          <DialogHeader className="h-auto">
             <DialogTitle>File Preview</DialogTitle>
           </DialogHeader>
           {previewUrl && (
-            <iframe src={previewUrl} className="w-full h-full" title="File preview" />
+            <div className="flex-1 min-h-0">
+              <iframe src={previewUrl} className="w-full h-full" title="File preview" />
+            </div>
           )}
         </DialogContent>
       </Dialog>

@@ -171,6 +171,23 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
       })
     }
 
+    if (Array.isArray(boq.mechanicalElectrical)) {
+      boq.mechanicalElectrical.forEach((category: any) => {
+        if (Array.isArray(category.products)) {
+          category.products.forEach((product: any, index: number) => {
+            tasks.push({
+              id: `mechanical-${category.name}-${index}`,
+              name: product.name,
+              category: `mechanicalElectrical - ${category.name}`,
+              startDate: product.startDate ? new Date(product.startDate) : null,
+              endDate: product.endDate ? new Date(product.endDate) : null,
+              duration: product.startDate && product.endDate ? calculateDuration(product.startDate, product.endDate) : 0,
+            })
+          })
+        }
+      })
+    }
+
     setGanttTasks(tasks)
   }
 
@@ -442,6 +459,7 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
         preliminary: [],
         fittingOut: [],
         furnitureWork: [],
+        mechanicalElectrical: [],
       }
 
       if (Array.isArray(mainBOQ.preliminary)) {
@@ -465,6 +483,17 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
 
       if (Array.isArray(mainBOQ.furnitureWork)) {
         updatePayload.furnitureWork = mainBOQ.furnitureWork.map((category: any) => ({
+          name: category.name,
+          products: (category.products || []).map((product: any) => ({
+            name: product.name,
+            startDate: product.startDate ? formatDateForAPI(new Date(product.startDate)) : undefined,
+            endDate: product.endDate ? formatDateForAPI(new Date(product.endDate)) : undefined,
+          })),
+        }))
+      }
+
+      if (Array.isArray(mainBOQ.mechanicalElectrical)) {
+        updatePayload.mechanicalElectrical = mainBOQ.mechanicalElectrical.map((category: any) => ({
           name: category.name,
           products: (category.products || []).map((product: any) => ({
             name: product.name,
@@ -501,6 +530,17 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
         if (categoryIndex !== -1 && updatePayload.furnitureWork[categoryIndex].products[index]) {
           updatePayload.furnitureWork[categoryIndex].products[index].startDate = formatDateForAPI(startDate)
           updatePayload.furnitureWork[categoryIndex].products[index].endDate = formatDateForAPI(endDate)
+        }
+      } else if (taskId.startsWith("mechanical-")) {
+        // Parse category and index from taskId
+        const parts = taskId.split("-")
+        const categoryName = parts.slice(1, -1).join("-")
+        const index = Number.parseInt(parts[parts.length - 1])
+
+        const categoryIndex = updatePayload.mechanicalElectrical.findIndex((cat: any) => cat.name === categoryName)
+        if (categoryIndex !== -1 && updatePayload.mechanicalElectrical[categoryIndex].products[index]) {
+          updatePayload.mechanicalElectrical[categoryIndex].products[index].startDate = formatDateForAPI(startDate)
+          updatePayload.mechanicalElectrical[categoryIndex].products[index].endDate = formatDateForAPI(endDate)
         }
       }
 

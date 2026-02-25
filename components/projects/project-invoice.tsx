@@ -52,6 +52,8 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
   const [terminUploadLoading, setTerminUploadLoading] = useState<Record<string, { invoice?: boolean; tax?: boolean; slip?: boolean }>>({})
   const [terminTaxDeleting, setTerminTaxDeleting] = useState<Record<string, boolean>>({})
   const [taxDeleteConfirm, setTaxDeleteConfirm] = useState<{ terminId: string; taxIndex: number; taxName: string } | null>(null)
+  const [statusConfirm, setStatusConfirm] = useState<{ terminId: string; terminName: string; nextStatus: "Pending" | "Sent" } | null>(null)
+  const [statusUpdating, setStatusUpdating] = useState(false)
   const { toast } = useToast()
 
   const contractFiles = project?.detail?.contract || []
@@ -191,6 +193,45 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
     if (!taxDeleteConfirm) return
     await handleDeleteTaxFile(taxDeleteConfirm.terminId, taxDeleteConfirm.taxIndex)
     setTaxDeleteConfirm(null)
+  }
+
+  const getStatusBadgeVariant = (status?: string): "default" | "secondary" | "destructive" | "outline" => {
+    if (status === "Sent") return "default"
+    if (status === "Pending") return "outline"
+    if (status === "Draft") return "secondary"
+    if (status === "Rejected") return "destructive"
+    return "secondary"
+  }
+
+  const confirmUpdateStatus = async () => {
+    if (!statusConfirm) return
+
+    setStatusUpdating(true)
+    try {
+      if (statusConfirm.nextStatus === "Pending") {
+        await terminApi.setPending(projectId, statusConfirm.terminId)
+      } else {
+        await terminApi.setSent(projectId, statusConfirm.terminId)
+      }
+
+      toast({
+        title: "Success",
+        description: `Status updated to ${statusConfirm.nextStatus}`,
+      })
+
+      await loadTermins()
+      onUpdate?.()
+      setStatusConfirm(null)
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to update status"
+      toast({
+        title: "Update Failed",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    } finally {
+      setStatusUpdating(false)
+    }
   }
 
   const loadTermins = async () => {
@@ -438,15 +479,43 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
                               )}
                             </div>
                           </div>
-                          {/* <Badge 
-                            variant={
-                              termin.status === "Approved" ? "default" : 
-                              termin.status === "Rejected" ? "destructive" : 
-                              "secondary"
-                            }
-                          >
-                            {termin.status}
-                          </Badge> */}
+                          <div className="flex flex-col items-end gap-2">
+                            <Badge variant={getStatusBadgeVariant(termin.status)}>
+                              {termin.status || "Draft"}
+                            </Badge>
+                            <div className="flex items-center gap-2">
+                              {termin.status === "Draft" && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    setStatusConfirm({
+                                      terminId: termin._id,
+                                      terminName: termin.name || "Termin",
+                                      nextStatus: "Pending",
+                                    })
+                                  }
+                                >
+                                  Set Pending
+                                </Button>
+                              )}
+                              {termin.status === "Pending" && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    setStatusConfirm({
+                                      terminId: termin._id,
+                                      terminName: termin.name || "Termin",
+                                      nextStatus: "Sent",
+                                    })
+                                  }
+                                >
+                                  Set Sent
+                                </Button>
+                              )}
+                            </div>
+                          </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -848,6 +917,26 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
               {taxDeleteConfirm && terminTaxDeleting[`${taxDeleteConfirm.terminId}-${taxDeleteConfirm.taxIndex}`]
                 ? "Deleting..."
                 : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!statusConfirm} onOpenChange={() => setStatusConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Update termin status?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Change status of "{statusConfirm?.terminName}" to "{statusConfirm?.nextStatus}"?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={statusUpdating}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmUpdateStatus}
+              disabled={statusUpdating}
+            >
+              {statusUpdating ? "Updating..." : "Confirm"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

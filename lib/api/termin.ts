@@ -199,7 +199,7 @@ export const uploadTerminTaxPdf = async (projectId: string, terminId: string, fi
 // Change termin status to pending
 export const setTerminPending = async (projectId: string, terminId: string): Promise<Termin> => {
   const response = await apiRequest<Termin>(`/projects/${projectId}/termin/${terminId}/pending`, {
-    method: "PUT",
+    method: "PATCH",
   })
   return response.data
 }
@@ -207,7 +207,7 @@ export const setTerminPending = async (projectId: string, terminId: string): Pro
 // Change termin status to sent
 export const setTerminSent = async (projectId: string, terminId: string): Promise<Termin> => {
   const response = await apiRequest<Termin>(`/projects/${projectId}/termin/${terminId}/sent`, {
-    method: "PUT",
+    method: "PATCH",
   })
   return response.data
 }

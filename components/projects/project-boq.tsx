@@ -404,8 +404,8 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                     <TableRow key={item._id}>
                       <TableCell className="font-medium pl-8 pr-4">{itemNumber++}</TableCell>
                       <TableCell className="whitespace-normal wrap-break-word px-4">{item.name}</TableCell>
-                      <TableCell className="px-4">{item.brand || "-"}</TableCell>
-                      <TableCell className="px-4">{item.location || "-"}</TableCell>
+                      <TableCell className="whitespace-normal wrap-break-word px-4">{item.brand || "-"}</TableCell>
+                      <TableCell className="whitespace-normal wrap-break-word px-4">{item.location || "-"}</TableCell>
                       <TableCell className="text-right px-4">{item.qty}</TableCell>
                       <TableCell className="px-4">{item.unit}</TableCell>
                       <TableCell className="text-right px-4">{formatCurrency(item.price)}</TableCell>
@@ -454,8 +454,8 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                             <TableRow key={product._id}>
                               <TableCell className="font-medium pl-12 pr-4">{itemNumber++}</TableCell>
                               <TableCell className="whitespace-normal wrap-break-word px-4">{product.name}</TableCell>
-                              <TableCell className="px-4">{product.brand || "-"}</TableCell>
-                              <TableCell className="px-4">{product.location || "-"}</TableCell>
+                              <TableCell className="whitespace-normal wrap-break-word px-4">{product.brand || "-"}</TableCell>
+                              <TableCell className="whitespace-normal wrap-break-word px-4">{product.location || "-"}</TableCell>
                               <TableCell className="text-right px-4">{product.qty}</TableCell>
                               <TableCell className="px-4">{product.unit}</TableCell>
                               <TableCell className="text-right px-4">{formatCurrency(product.price)}</TableCell>
@@ -522,8 +522,8 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                             <TableRow key={product._id}>
                               <TableCell className="font-medium pl-12 pr-4">{itemNumber++}</TableCell>
                               <TableCell className="whitespace-normal wrap-break-word px-4">{product.name}</TableCell>
-                              <TableCell className="px-4">{product.brand || "-"}</TableCell>
-                              <TableCell className="px-4">{product.location || "-"}</TableCell>
+                              <TableCell className="whitespace-normal wrap-break-word px-4">{product.brand || "-"}</TableCell>
+                              <TableCell className="whitespace-normal wrap-break-word px-4">{product.location || "-"}</TableCell>
                               <TableCell className="text-right px-4">{product.qty}</TableCell>
                               <TableCell className="px-4">{product.unit}</TableCell>
                               <TableCell className="text-right px-4">{formatCurrency(product.price)}</TableCell>
@@ -590,8 +590,8 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                             <TableRow key={product._id}>
                               <TableCell className="font-medium pl-12 pr-4">{itemNumber++}</TableCell>
                               <TableCell className="whitespace-normal wrap-break-word px-4">{product.name}</TableCell>
-                              <TableCell className="px-4">{product.brand || "-"}</TableCell>
-                              <TableCell className="px-4">{product.location || "-"}</TableCell>
+                              <TableCell className="whitespace-normal wrap-break-word px-4">{product.brand || "-"}</TableCell>
+                              <TableCell className="whitespace-normal wrap-break-word px-4">{product.location || "-"}</TableCell>
                               <TableCell className="text-right px-4">{product.qty}</TableCell>
                               <TableCell className="px-4">{product.unit}</TableCell>
                               <TableCell className="text-right px-4">{formatCurrency(product.price)}</TableCell>
@@ -2825,7 +2825,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                     </CardDescription>
                   </div>
                   {["draft", "rejected"].includes(mainBOQ.status.toLowerCase()) && (
-                    <div className="flex gap-2 w-full sm:w-auto">
+                    <div className="grid grid-cols-2 sm:flex gap-2 w-full sm:w-auto">
                       <Button
                         variant="outline"
                         size="sm"
@@ -2833,47 +2833,44 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                           setEditingBOQ(mainBOQ)
                           setCreationMode("blank")
                         }}
-                        className="flex-1 sm:flex-initial"
                       >
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit
+                        <Edit className="h-4 w-4 sm:mr-2" />
+                        <span className="hidden sm:inline">Edit</span>
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => setSaveAsTemplateOpen(true)}
-                        className="flex-1 sm:flex-initial"
                       >
-                        <Save className="h-4 w-4 mr-2" />
-                        Save as Template
+                        <Save className="h-4 w-4 sm:mr-2" />
+                        <span className="hidden sm:inline">Save as Template</span>
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => setReplaceTemplateOpen(true)}
-                        className="flex-1 sm:flex-initial"
                       >
-                        <RefreshCw className="h-4 w-4 mr-2" />
-                        Replace with Template
+                        <RefreshCw className="h-4 w-4 sm:mr-2" />
+                        <span className="hidden sm:inline">Replace with Template</span>
                       </Button>
                       <Button
                         variant="default"
                         size="sm"
                         onClick={handleRequestApproval}
-                        className="flex-1 sm:flex-initial"
+                        // className="col-span-2 sm:col-span-1"
                       >
-                        <Send className="h-4 w-4 mr-2" />
-                        Request Approval
+                        <Send className="h-4 w-4 sm:mr-2" />
+                        <span className="hidden sm:inline">Request Approval</span>
                       </Button>
                     </div>
                   )}
                   {mainBOQ.status.toLowerCase() === "request" && (
-                    <div className="flex gap-2 w-full sm:w-auto">
+                    <div className="w-full sm:w-auto">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={handleRequestApproval}
-                        className="flex-1 sm:flex-initial"
+                        className="w-full sm:w-auto"
                       >
                         <Send className="h-4 w-4 mr-2" />
                         Re-request Approval

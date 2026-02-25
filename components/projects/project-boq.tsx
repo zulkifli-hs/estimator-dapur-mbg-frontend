@@ -38,12 +38,15 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CreateBOQDialog } from "./create-boq-dialog"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ProductSearchPopover } from "@/components/product-search-popover"
 import { CreateProductDialog } from "@/components/products/create-product-dialog"
-
+import { FullscreenBoqDialog } from "@/components/projects/boq/fullscreen-boq-dialog"
+import { MainBoqActions } from "@/components/projects/boq/main-boq-actions"
+import { AdditionalBoqActions } from "@/components/projects/boq/additional-boq-actions"
+import { BoqTable } from "@/components/projects/boq/boq-table"
+import { BoqRecap } from "@/components/projects/boq/boq-recap"
 
 interface ProductItem {
   name: string
@@ -54,8 +57,8 @@ interface ProductItem {
   location?: string
   brand?: string
   tags?: string[]
-  startDate?: string // Added startDate
-  endDate?: string // Added endDate
+  startDate?: string
+  endDate?: string
 }
 
 interface Category {
@@ -71,16 +74,15 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const { toast } = useToast() // Initialize toast here
+  const { toast } = useToast()
   const [boqItems, setBoqItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [editingBOQ, setEditingBOQ] = useState<any>(null)
   const [isCreatingAdditional, setIsCreatingAdditional] = useState(false)
   const [activeTab, setActiveTab] = useState("main")
 
-  // Creation mode states
   const [creationMode, setCreationMode] = useState<"blank" | "template" | null>(null)
-  const [boqType, setBOQType] = useState<"main" | "additional">("main") // Track whether creating main or additional BOQ
+  const [boqType, setBOQType] = useState<"main" | "additional">("main")
   const [templates, setTemplates] = useState<any[]>([])
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null)
   const [showTemplatePreview, setShowTemplatePreview] = useState(false)
@@ -93,7 +95,6 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     productIndex: number
   } | null>(null)
 
-  // Form states for blank creation
   const [preliminary, setPreliminary] = useState<PreliminaryItem[]>([])
   const [fittingOut, setFittingOut] = useState<Category[]>([])
   const [furnitureWork, setFurnitureWork] = useState<Category[]>([])
@@ -123,7 +124,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   const [fullscreenBoqTitle, setFullscreenBoqTitle] = useState("")
   const [fullscreenBoqData, setFullscreenBoqData] = useState<any | null>(null)
   const [fullscreenBoqType, setFullscreenBoqType] = useState<"table" | "recap">("table")
-  const [templateEditingBOQ, setTemplateEditingBOQ] = useState<any>(null) // Track which BOQ is being edited for template operations
+  const [templateEditingBOQ, setTemplateEditingBOQ] = useState<any>(null)
 
   // Approval request states
   const [showApprovalModal, setShowApprovalModal] = useState(false)
@@ -183,81 +184,37 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   }
 
   useEffect(() => {
-    fetchBOQ()
-    fetchTemplates()
-    fetchProject()
-  }, [projectId])
-
-  useEffect(() => {
-    console.log("[v0] Edit mode triggered:", { editingBOQ, creationMode })
-    if (editingBOQ && creationMode === "blank") {
-      console.log("[v0] Populating form with BOQ data:", editingBOQ)
-      setPreliminary(
-        editingBOQ.preliminary?.map((item: any) => ({
-          name: item.name || "",
-          qty: item.qty || 0,
-          unit: item.unit || "",
-          price: item.price || 0,
-          productId: item.productId || "",
-          location: item.location || "",
-          brand: item.brand || "",
-          tags: item.tags || [],
-          startDate: item.startDate ? new Date(item.startDate).toISOString().split("T")[0] : "",
-          endDate: item.endDate ? new Date(item.endDate).toISOString().split("T")[0] : "",
-        })) || [],
-      )
-
+    if (editingBOQ) {
+      console.log("[v0] Setting form data for editing BOQ:", editingBOQ)
+      setPreliminary(editingBOQ.preliminary || [])
       setFittingOut(
         editingBOQ.fittingOut?.map((category: any) => ({
-          name: category.name || "",
+          ...category,
           products:
             category.products?.map((product: any) => ({
-              name: product.name || "",
-              qty: product.qty || 0,
-              unit: product.unit || "",
-              price: product.price || 0,
-              productId: product.productId || "",
-              location: product.location || "",
-              brand: product.brand || "",
-              tags: product.tags || [],
+              ...product,
               startDate: product.startDate ? new Date(product.startDate).toISOString().split("T")[0] : "",
               endDate: product.endDate ? new Date(product.endDate).toISOString().split("T")[0] : "",
             })) || [],
         })) || [],
       )
-
       setFurnitureWork(
         editingBOQ.furnitureWork?.map((category: any) => ({
-          name: category.name || "",
+          ...category,
           products:
             category.products?.map((product: any) => ({
-              name: product.name || "",
-              qty: product.qty || 0,
-              unit: product.unit || "",
-              price: product.price || 0,
-              productId: product.productId || "",
-              location: product.location || "",
-              brand: product.brand || "",
-              tags: product.tags || [],
+              ...product,
               startDate: product.startDate ? new Date(product.startDate).toISOString().split("T")[0] : "",
               endDate: product.endDate ? new Date(product.endDate).toISOString().split("T")[0] : "",
             })) || [],
         })) || [],
       )
-
       setMechanicalElectrical(
         editingBOQ.mechanicalElectrical?.map((category: any) => ({
-          name: category.name || "",
+          ...category,
           products:
             category.products?.map((product: any) => ({
-              name: product.name || "",
-              qty: product.qty || 0,
-              unit: product.unit || "",
-              price: product.price || 0,
-              productId: product.productId || "",
-              location: product.location || "",
-              brand: product.brand || "",
-              tags: product.tags || [],
+              ...product,
               startDate: product.startDate ? new Date(product.startDate).toISOString().split("T")[0] : "",
               endDate: product.endDate ? new Date(product.endDate).toISOString().split("T")[0] : "",
             })) || [],
@@ -296,6 +253,13 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       setLoadingProducts(false)
     }
   }
+
+  useEffect(() => {
+    fetchBOQ()
+    fetchTemplates()
+    fetchProducts()
+    fetchProject()
+  }, [projectId])
 
   const calculateBOQBudget = (boq: any): number => {
     let budget = 0
@@ -373,288 +337,6 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       maximumFractionDigits: 0,
     }).format(value)
   }
-
-  const renderBOQTable = (boq: any) => {
-    let itemNumber = 1
-    let grandTotal = 0
-
-    return (
-      <div className="border rounded-lg overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-15 px-4">No</TableHead>
-              <TableHead className="min-w-62.5 max-w-100 px-4">Item Name</TableHead>
-              <TableHead className="w-30 px-4">Brand/Equal</TableHead>
-              <TableHead className="w-30 px-4">Location</TableHead>
-              <TableHead className="text-right w-20 px-4">Qty</TableHead>
-              <TableHead className="w-20 px-4">Unit</TableHead>
-              <TableHead className="text-right w-37.5 px-4">Unit Price</TableHead>
-              <TableHead className="text-right w-37.5 px-4">Total Price</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {/* PRELIMINARY SECTION */}
-            {Array.isArray(boq.preliminary) && boq.preliminary.length > 0 && (
-              <>
-                <TableRow className="bg-primary/10">
-                  <TableCell colSpan={8} className="font-bold text-primary uppercase px-4 py-3">
-                    PRELIMINARY
-                  </TableCell>
-                </TableRow>
-                {boq.preliminary.map((item: any) => {
-                  const total = (item.qty || 0) * (item.price || 0)
-                  grandTotal += total
-                  return (
-                    <TableRow key={item._id}>
-                      <TableCell className="font-medium pl-8 pr-4">{itemNumber++}</TableCell>
-                      <TableCell className="whitespace-normal wrap-break-word px-4">{item.name}</TableCell>
-                      <TableCell className="whitespace-normal wrap-break-word px-4">{item.brand || "-"}</TableCell>
-                      <TableCell className="whitespace-normal wrap-break-word px-4">{item.location || "-"}</TableCell>
-                      <TableCell className="text-right px-4">{item.qty}</TableCell>
-                      <TableCell className="px-4">{item.unit}</TableCell>
-                      <TableCell className="text-right px-4">{formatCurrency(item.price)}</TableCell>
-                      <TableCell className="text-right font-medium px-4">{formatCurrency(total)}</TableCell>
-                    </TableRow>
-                  )
-                })}
-                <TableRow className="bg-muted/30">
-                  <TableCell colSpan={7} className="text-right font-semibold px-4 py-3">
-                    Subtotal Preliminary
-                  </TableCell>
-                  <TableCell className="text-right font-semibold px-4 py-3">
-                    {formatCurrency(
-                      boq.preliminary.reduce((sum: number, item: any) => sum + (item.qty || 0) * (item.price || 0), 0),
-                    )}
-                  </TableCell>
-                </TableRow>
-              </>
-            )}
-
-            {/* FITTING OUT SECTION */}
-            {Array.isArray(boq.fittingOut) && boq.fittingOut.length > 0 && (
-              <>
-                <TableRow className="bg-primary/10">
-                  <TableCell colSpan={8} className="font-bold text-primary uppercase px-4 py-3">
-                    FITTING OUT
-                  </TableCell>
-                </TableRow>
-                {boq.fittingOut.map((category: any) => {
-                  const categoryTotal =
-                    Array.isArray(category.products) &&
-                    category.products.reduce((sum: number, p: any) => sum + (p.qty || 0) * (p.price || 0), 0)
-                  grandTotal += categoryTotal || 0
-
-                  return (
-                    <React.Fragment key={category._id}>
-                      <TableRow className="bg-muted/50">
-                        <TableCell colSpan={8} className="font-semibold pl-8 pr-4 py-2">
-                          {category.name}
-                        </TableCell>
-                      </TableRow>
-                      {Array.isArray(category.products) &&
-                        category.products.map((product: any) => {
-                          const total = (product.qty || 0) * (product.price || 0)
-                          return (
-                            <TableRow key={product._id}>
-                              <TableCell className="font-medium pl-12 pr-4">{itemNumber++}</TableCell>
-                              <TableCell className="whitespace-normal wrap-break-word px-4">{product.name}</TableCell>
-                              <TableCell className="whitespace-normal wrap-break-word px-4">{product.brand || "-"}</TableCell>
-                              <TableCell className="whitespace-normal wrap-break-word px-4">{product.location || "-"}</TableCell>
-                              <TableCell className="text-right px-4">{product.qty}</TableCell>
-                              <TableCell className="px-4">{product.unit}</TableCell>
-                              <TableCell className="text-right px-4">{formatCurrency(product.price)}</TableCell>
-                              <TableCell className="text-right font-medium px-4">{formatCurrency(total)}</TableCell>
-                            </TableRow>
-                          )
-                        })}
-                      <TableRow className="bg-muted/20">
-                        <TableCell colSpan={7} className="text-right text-sm font-medium pl-12 pr-4 py-2">
-                          Subtotal {category.name}
-                        </TableCell>
-                        <TableCell className="text-right text-sm font-medium px-4 py-2">
-                          {formatCurrency(categoryTotal || 0)}
-                        </TableCell>
-                      </TableRow>
-                    </React.Fragment>
-                  )
-                })}
-                <TableRow className="bg-muted/30">
-                  <TableCell colSpan={7} className="text-right font-semibold px-4 py-3">
-                    Subtotal Fitting Out
-                  </TableCell>
-                  <TableCell className="text-right font-semibold px-4 py-3">
-                    {formatCurrency(
-                      boq.fittingOut.reduce(
-                        (sum: number, cat: any) =>
-                          sum +
-                          (Array.isArray(cat.products)
-                            ? cat.products.reduce((s: number, p: any) => s + (p.qty || 0) * (p.price || 0), 0)
-                            : 0),
-                        0,
-                      ),
-                    )}
-                  </TableCell>
-                </TableRow>
-              </>
-            )}
-
-            {/* FURNITURE WORK SECTION */}
-            {Array.isArray(boq.furnitureWork) && boq.furnitureWork.length > 0 && (
-              <>
-                <TableRow className="bg-primary/10">
-                  <TableCell colSpan={8} className="font-bold text-primary uppercase px-4 py-3">
-                    FURNITURE WORK
-                  </TableCell>
-                </TableRow>
-                {boq.furnitureWork.map((category: any) => {
-                  const categoryTotal =
-                    Array.isArray(category.products) &&
-                    category.products.reduce((sum: number, p: any) => sum + (p.qty || 0) * (p.price || 0), 0)
-                  grandTotal += categoryTotal || 0
-
-                  return (
-                    <React.Fragment key={category._id}>
-                      <TableRow className="bg-muted/50">
-                        <TableCell colSpan={8} className="font-semibold pl-8 pr-4 py-2">
-                          {category.name}
-                        </TableCell>
-                      </TableRow>
-                      {Array.isArray(category.products) &&
-                        category.products.map((product: any) => {
-                          const total = (product.qty || 0) * (product.price || 0)
-                          return (
-                            <TableRow key={product._id}>
-                              <TableCell className="font-medium pl-12 pr-4">{itemNumber++}</TableCell>
-                              <TableCell className="whitespace-normal wrap-break-word px-4">{product.name}</TableCell>
-                              <TableCell className="whitespace-normal wrap-break-word px-4">{product.brand || "-"}</TableCell>
-                              <TableCell className="whitespace-normal wrap-break-word px-4">{product.location || "-"}</TableCell>
-                              <TableCell className="text-right px-4">{product.qty}</TableCell>
-                              <TableCell className="px-4">{product.unit}</TableCell>
-                              <TableCell className="text-right px-4">{formatCurrency(product.price)}</TableCell>
-                              <TableCell className="text-right font-medium px-4">{formatCurrency(total)}</TableCell>
-                            </TableRow>
-                          )
-                        })}
-                      <TableRow className="bg-muted/20">
-                        <TableCell colSpan={7} className="text-right text-sm font-medium pl-12 pr-4 py-2">
-                          Subtotal {category.name}
-                        </TableCell>
-                        <TableCell className="text-right text-sm font-medium px-4 py-2">
-                          {formatCurrency(categoryTotal || 0)}
-                        </TableCell>
-                      </TableRow>
-                    </React.Fragment>
-                  )
-                })}
-                <TableRow className="bg-muted/30">
-                  <TableCell colSpan={7} className="text-right font-semibold px-4 py-3">
-                    Subtotal Furniture Work
-                  </TableCell>
-                  <TableCell className="text-right font-semibold px-4 py-3">
-                    {formatCurrency(
-                      boq.furnitureWork.reduce(
-                        (sum: number, cat: any) =>
-                          sum +
-                          (Array.isArray(cat.products)
-                            ? cat.products.reduce((s: number, p: any) => s + (p.qty || 0) * (p.price || 0), 0)
-                            : 0),
-                        0,
-                      ),
-                    )}
-                  </TableCell>
-                </TableRow>
-              </>
-            )}
-
-            {/* MECHANICAL / ELECTRICAL / PLUMBING SECTION */}
-            {Array.isArray(boq.mechanicalElectrical) && boq.mechanicalElectrical.length > 0 && (
-              <>
-                <TableRow className="bg-primary/10">
-                  <TableCell colSpan={8} className="font-bold text-primary uppercase px-4 py-3">
-                    MECHANICAL / ELECTRICAL / PLUMBING
-                  </TableCell>
-                </TableRow>
-                {boq.mechanicalElectrical.map((category: any) => {
-                  const categoryTotal =
-                    Array.isArray(category.products) &&
-                    category.products.reduce((sum: number, p: any) => sum + (p.qty || 0) * (p.price || 0), 0)
-                  grandTotal += categoryTotal || 0
-
-                  return (
-                    <React.Fragment key={category._id}>
-                      <TableRow className="bg-muted/50">
-                        <TableCell colSpan={8} className="font-semibold pl-8 pr-4 py-2">
-                          {category.name}
-                        </TableCell>
-                      </TableRow>
-                      {Array.isArray(category.products) &&
-                        category.products.map((product: any) => {
-                          const total = (product.qty || 0) * (product.price || 0)
-                          return (
-                            <TableRow key={product._id}>
-                              <TableCell className="font-medium pl-12 pr-4">{itemNumber++}</TableCell>
-                              <TableCell className="whitespace-normal wrap-break-word px-4">{product.name}</TableCell>
-                              <TableCell className="whitespace-normal wrap-break-word px-4">{product.brand || "-"}</TableCell>
-                              <TableCell className="whitespace-normal wrap-break-word px-4">{product.location || "-"}</TableCell>
-                              <TableCell className="text-right px-4">{product.qty}</TableCell>
-                              <TableCell className="px-4">{product.unit}</TableCell>
-                              <TableCell className="text-right px-4">{formatCurrency(product.price)}</TableCell>
-                              <TableCell className="text-right font-medium px-4">{formatCurrency(total)}</TableCell>
-                            </TableRow>
-                          )
-                        })}
-                      <TableRow className="bg-muted/20">
-                        <TableCell colSpan={7} className="text-right text-sm font-medium pl-12 pr-4 py-2">
-                          Subtotal {category.name}
-                        </TableCell>
-                        <TableCell className="text-right text-sm font-medium px-4 py-2">
-                          {formatCurrency(categoryTotal || 0)}
-                        </TableCell>
-                      </TableRow>
-                    </React.Fragment>
-                  )
-                })}
-                <TableRow className="bg-muted/30">
-                  <TableCell colSpan={7} className="text-right font-semibold px-4 py-3">
-                    Subtotal Mechanical / Electrical / Plumbing
-                  </TableCell>
-                  <TableCell className="text-right font-semibold px-4 py-3">
-                    {formatCurrency(
-                      boq.mechanicalElectrical.reduce(
-                        (sum: number, cat: any) =>
-                          sum +
-                          (Array.isArray(cat.products)
-                            ? cat.products.reduce((s: number, p: any) => s + (p.qty || 0) * (p.price || 0), 0)
-                            : 0),
-                        0,
-                      ),
-                    )}
-                  </TableCell>
-                </TableRow>
-              </>
-            )}
-
-            {/* GRAND TOTAL */}
-            {(Array.isArray(boq.preliminary) && boq.preliminary.length > 0) ||
-            (Array.isArray(boq.fittingOut) && boq.fittingOut.length > 0) ||
-            (Array.isArray(boq.furnitureWork) && boq.furnitureWork.length > 0) ||
-            (Array.isArray(boq.mechanicalElectrical) && boq.mechanicalElectrical.length > 0) ? (
-              <>
-                <TableRow className="bg-primary/20 font-bold">
-                  <TableCell colSpan={7} className="text-right text-lg px-4 py-4">
-                    GRAND TOTAL
-                  </TableCell>
-                  <TableCell className="text-right text-lg px-4 py-4">{formatCurrency(grandTotal)}</TableCell>
-                </TableRow>
-              </>
-            ) : null}
-          </TableBody>
-        </Table>
-      </div>
-    )
-  }
-
 
   const handleDialogClose = (open: boolean) => {
     // This handler is for the old CreateBOQDialog, which is being replaced
@@ -1499,402 +1181,6 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     syncSubTabQuery(value)
   }
 
-  const getMergedBOQData = () => {
-    const merged = {
-      preliminary: [] as any[],
-      fittingOut: {} as { [key: string]: any },
-      furnitureWork: {} as { [key: string]: any },
-      mechanicalElectrical: {} as { [key: string]: any },
-    }
-
-    const addItemsWithSource = (items: any[], source: string, section: "preliminary") => {
-      items.forEach((item: any) => {
-        merged[section].push({
-          ...item,
-          _source: source,
-        })
-      })
-    }
-
-    const addCategoryItemsWithSource = (
-      categories: any[],
-      source: string,
-      section: "fittingOut" | "furnitureWork" | "mechanicalElectrical"
-    ) => {
-      categories.forEach((category: any) => {
-        const categoryKey = category.name || "Uncategorized"
-        if (!merged[section][categoryKey]) {
-          merged[section][categoryKey] = {
-            name: categoryKey,
-            products: [],
-          }
-        }
-        category.products?.forEach((product: any) => {
-          merged[section][categoryKey].products.push({
-            ...product,
-            _source: source,
-          })
-        })
-      })
-    }
-
-    // Add main BOQ
-    if (mainBOQ) {
-      addItemsWithSource(mainBOQ.preliminary || [], "Main BOQ", "preliminary")
-      addCategoryItemsWithSource(mainBOQ.fittingOut || [], "Main BOQ", "fittingOut")
-      addCategoryItemsWithSource(mainBOQ.furnitureWork || [], "Main BOQ", "furnitureWork")
-      addCategoryItemsWithSource(mainBOQ.mechanicalElectrical || [], "Main BOQ", "mechanicalElectrical")
-    }
-
-    // Add additional BOQs
-    additionalBOQs.forEach((boq: any) => {
-      const source = `Additional BOQ #${boq.number}`
-      addItemsWithSource(boq.preliminary || [], source, "preliminary")
-      addCategoryItemsWithSource(boq.fittingOut || [], source, "fittingOut")
-      addCategoryItemsWithSource(boq.furnitureWork || [], source, "furnitureWork")
-      addCategoryItemsWithSource(boq.mechanicalElectrical || [], source, "mechanicalElectrical")
-    })
-
-    return merged
-  }
-
-  const renderRecapBOQ = () => {
-    const merged = getMergedBOQData()
-    let itemNumber = 1
-    let grandTotal = 0
-
-    // Calculate preliminary subtotal
-    const preliminarySubtotal = merged.preliminary.reduce((sum, item) => {
-      return sum + (item.qty || 0) * (item.price || 0)
-    }, 0)
-    grandTotal += preliminarySubtotal
-
-    // Calculate fitting out subtotal
-    const fittingOutSubtotal = Object.values(merged.fittingOut).reduce((sum: number, category: any) => {
-      return (
-        sum +
-        category.products.reduce((catSum: number, product: any) => {
-          return catSum + (product.qty || 0) * (product.price || 0)
-        }, 0)
-      )
-    }, 0)
-    grandTotal += fittingOutSubtotal
-
-    // Calculate furniture work subtotal
-    const furnitureWorkSubtotal = Object.values(merged.furnitureWork).reduce((sum: number, category: any) => {
-      return (
-        sum +
-        category.products.reduce((catSum: number, product: any) => {
-          return catSum + (product.qty || 0) * (product.price || 0)
-        }, 0)
-      )
-    }, 0)
-    grandTotal += furnitureWorkSubtotal
-
-    // Calculate MEP subtotal
-    const mepSubtotal = Object.values(merged.mechanicalElectrical).reduce((sum: number, category: any) => {
-      return (
-        sum +
-        category.products.reduce((catSum: number, product: any) => {
-          return catSum + (product.qty || 0) * (product.price || 0)
-        }, 0)
-      )
-    }, 0)
-    grandTotal += mepSubtotal
-
-    return (
-      <div className="space-y-6">
-        {/* Preliminary */}
-        {merged.preliminary.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">I. PRELIMINARY</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="border rounded-lg overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-15 px-4">No</TableHead>
-                      <TableHead className="min-w-50 max-w-100 px-4">Item Name</TableHead>
-                      <TableHead className="w-25 px-4">Source</TableHead>
-                      <TableHead className="text-right w-20 px-4">Qty</TableHead>
-                      <TableHead className="w-20 px-4">Unit</TableHead>
-                      <TableHead className="text-right w-37.5 px-4">Unit Price</TableHead>
-                      <TableHead className="text-right w-37.5 px-4">Total Price</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {merged.preliminary.map((item: any) => (
-                      <TableRow key={`${item._source}-${item.name}-${itemNumber}`}>
-                        <TableCell className="px-4">{itemNumber++}</TableCell>
-                        <TableCell className="px-4">{item.name || "-"}</TableCell>
-                        <TableCell className="px-4">
-                          <Badge
-                            variant={item._source === "Main BOQ" ? "default" : "secondary"}
-                            className="whitespace-nowrap"
-                          >
-                            {item._source}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right px-4">{item.qty || 0}</TableCell>
-                        <TableCell className="px-4">{item.unit || "-"}</TableCell>
-                        <TableCell className="text-right px-4">{formatCurrency(item.price || 0)}</TableCell>
-                        <TableCell className="text-right px-4 font-semibold">
-                          {formatCurrency((item.qty || 0) * (item.price || 0))}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    <TableRow className="bg-muted font-semibold border-t-2 border-t-foreground">
-                      <TableCell colSpan={6} className="px-4 text-right">
-                        SUBTOTAL PRELIMINARY:
-                      </TableCell>
-                      <TableCell className="text-right px-4">{formatCurrency(preliminarySubtotal)}</TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Fitting Out */}
-        {Object.keys(merged.fittingOut).length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">II. FITTING OUT</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {Object.entries(merged.fittingOut).map(([categoryName, categoryData]: [string, any]) => (
-                <div key={categoryName} className="border rounded-lg overflow-hidden">
-                  <div className="bg-muted px-4 py-2 font-semibold">{categoryName}</div>
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-15 px-4">No</TableHead>
-                          <TableHead className="min-w-50 max-w-100 px-4">Item Name</TableHead>
-                          <TableHead className="w-25 px-4">Source</TableHead>
-                          <TableHead className="text-right w-20 px-4">Qty</TableHead>
-                          <TableHead className="w-20 px-4">Unit</TableHead>
-                          <TableHead className="text-right w-37.5 px-4">Unit Price</TableHead>
-                          <TableHead className="text-right w-37.5 px-4">Total Price</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {categoryData.products.map((product: any) => {
-                          const itemTotal = (product.qty || 0) * (product.price || 0)
-                          return (
-                            <TableRow key={`${categoryName}-${product._source}-${product.name}-${itemNumber}`}>
-                              <TableCell className="px-4">{itemNumber++}</TableCell>
-                              <TableCell className="px-4">{product.name || "-"}</TableCell>
-                              <TableCell className="px-4">
-                                <Badge
-                                  variant={product._source === "Main BOQ" ? "default" : "secondary"}
-                                  className="whitespace-nowrap"
-                                >
-                                  {product._source}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-right px-4">{product.qty || 0}</TableCell>
-                              <TableCell className="px-4">{product.unit || "-"}</TableCell>
-                              <TableCell className="text-right px-4">{formatCurrency(product.price || 0)}</TableCell>
-                              <TableCell className="text-right px-4 font-semibold">
-                                {formatCurrency(itemTotal)}
-                              </TableCell>
-                            </TableRow>
-                          )
-                        })}
-                        <TableRow className="bg-muted/50 font-semibold border-t">
-                          <TableCell colSpan={6} className="px-4 text-right">
-                            Subtotal {categoryName}:
-                          </TableCell>
-                          <TableCell className="text-right px-4">
-                            {formatCurrency(
-                              categoryData.products.reduce((sum: number, p: any) => sum + (p.qty || 0) * (p.price || 0), 0)
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      </TableBody>
-                    </Table>
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Furniture Work */}
-        {Object.keys(merged.furnitureWork).length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">III. FURNITURE WORK</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {Object.entries(merged.furnitureWork).map(([categoryName, categoryData]: [string, any]) => (
-                <div key={categoryName} className="border rounded-lg overflow-hidden">
-                  <div className="bg-muted px-4 py-2 font-semibold">{categoryName}</div>
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-15 px-4">No</TableHead>
-                          <TableHead className="min-w-50 max-w-100 px-4">Item Name</TableHead>
-                          <TableHead className="w-25 px-4">Source</TableHead>
-                          <TableHead className="text-right w-20 px-4">Qty</TableHead>
-                          <TableHead className="w-20 px-4">Unit</TableHead>
-                          <TableHead className="text-right w-37.5 px-4">Unit Price</TableHead>
-                          <TableHead className="text-right w-37.5 px-4">Total Price</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {categoryData.products.map((product: any) => {
-                          const itemTotal = (product.qty || 0) * (product.price || 0)
-                          return (
-                            <TableRow key={`${categoryName}-${product._source}-${product.name}-${itemNumber}`}>
-                              <TableCell className="px-4">{itemNumber++}</TableCell>
-                              <TableCell className="px-4">{product.name || "-"}</TableCell>
-                              <TableCell className="px-4">
-                                <Badge
-                                  variant={product._source === "Main BOQ" ? "default" : "secondary"}
-                                  className="whitespace-nowrap"
-                                >
-                                  {product._source}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-right px-4">{product.qty || 0}</TableCell>
-                              <TableCell className="px-4">{product.unit || "-"}</TableCell>
-                              <TableCell className="text-right px-4">{formatCurrency(product.price || 0)}</TableCell>
-                              <TableCell className="text-right px-4 font-semibold">
-                                {formatCurrency(itemTotal)}
-                              </TableCell>
-                            </TableRow>
-                          )
-                        })}
-                        <TableRow className="bg-muted/50 font-semibold border-t">
-                          <TableCell colSpan={6} className="px-4 text-right">
-                            Subtotal {categoryName}:
-                          </TableCell>
-                          <TableCell className="text-right px-4">
-                            {formatCurrency(
-                              categoryData.products.reduce((sum: number, p: any) => sum + (p.qty || 0) * (p.price || 0), 0)
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      </TableBody>
-                    </Table>
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Mechanical / Electrical / Plumbing */}
-        {Object.keys(merged.mechanicalElectrical).length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">IV. MECHANICAL / ELECTRICAL / PLUMBING</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {Object.entries(merged.mechanicalElectrical).map(([categoryName, categoryData]: [string, any]) => (
-                <div key={categoryName} className="border rounded-lg overflow-hidden">
-                  <div className="bg-muted px-4 py-2 font-semibold">{categoryName}</div>
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-15 px-4">No</TableHead>
-                          <TableHead className="min-w-50 max-w-100 px-4">Item Name</TableHead>
-                          <TableHead className="w-25 px-4">Source</TableHead>
-                          <TableHead className="text-right w-20 px-4">Qty</TableHead>
-                          <TableHead className="w-20 px-4">Unit</TableHead>
-                          <TableHead className="text-right w-37.5 px-4">Unit Price</TableHead>
-                          <TableHead className="text-right w-37.5 px-4">Total Price</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {categoryData.products.map((product: any) => {
-                          const itemTotal = (product.qty || 0) * (product.price || 0)
-                          return (
-                            <TableRow key={`${categoryName}-${product._source}-${product.name}-${itemNumber}`}>
-                              <TableCell className="px-4">{itemNumber++}</TableCell>
-                              <TableCell className="px-4">{product.name || "-"}</TableCell>
-                              <TableCell className="px-4">
-                                <Badge
-                                  variant={product._source === "Main BOQ" ? "default" : "secondary"}
-                                  className="whitespace-nowrap"
-                                >
-                                  {product._source}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-right px-4">{product.qty || 0}</TableCell>
-                              <TableCell className="px-4">{product.unit || "-"}</TableCell>
-                              <TableCell className="text-right px-4">{formatCurrency(product.price || 0)}</TableCell>
-                              <TableCell className="text-right px-4 font-semibold">
-                                {formatCurrency(itemTotal)}
-                              </TableCell>
-                            </TableRow>
-                          )
-                        })}
-                        <TableRow className="bg-muted/50 font-semibold border-t">
-                          <TableCell colSpan={6} className="px-4 text-right">
-                            Subtotal {categoryName}:
-                          </TableCell>
-                          <TableCell className="text-right px-4">
-                            {formatCurrency(
-                              categoryData.products.reduce((sum: number, p: any) => sum + (p.qty || 0) * (p.price || 0), 0)
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      </TableBody>
-                    </Table>
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Grand Total */}
-        <Card className="border-2 border-primary bg-primary/5">
-          <CardContent className="pt-6">
-            <div className="flex justify-between items-center">
-              <span className="text-xl font-bold">GRAND TOTAL</span>
-              <span className="text-3xl font-bold text-primary">{formatCurrency(grandTotal)}</span>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t">
-              {merged.preliminary.length > 0 && (
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Preliminary</p>
-                  <p className="font-semibold">{formatCurrency(preliminarySubtotal)}</p>
-                </div>
-              )}
-              {Object.keys(merged.fittingOut).length > 0 && (
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Fitting Out</p>
-                  <p className="font-semibold">{formatCurrency(fittingOutSubtotal)}</p>
-                </div>
-              )}
-              {Object.keys(merged.furnitureWork).length > 0 && (
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Furniture Work</p>
-                  <p className="font-semibold">{formatCurrency(furnitureWorkSubtotal)}</p>
-                </div>
-              )}
-              {Object.keys(merged.mechanicalElectrical).length > 0 && (
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">MEP</p>
-                  <p className="font-semibold">{formatCurrency(mepSubtotal)}</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
   const openFullscreenBoq = (title: string, type: "table" | "recap", data?: any) => {
     setFullscreenBoqTitle(title)
     setFullscreenBoqType(type)
@@ -2062,7 +1348,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
               <DialogTitle>{selectedTemplate?.name}</DialogTitle>
               <DialogDescription>Preview template details</DialogDescription>
             </DialogHeader>
-            {selectedTemplate && renderBOQTable(selectedTemplate)}
+            {selectedTemplate && <BoqTable boq={selectedTemplate} formatCurrency={formatCurrency} />}
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowTemplatePreview(false)}>
                 Close
@@ -2132,17 +1418,17 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                             {index + 1}
                           </div>
                           <div className="flex-1 min-w-0">
-                  <Label className="text-xs text-muted-foreground mb-1.5 block">Item Name</Label>
-                  <ProductSearchPopover
-                    selectedProductName={item.name}
-                    onSelect={(product) => selectPreliminaryProduct(index, product)}
-                    onCreateNew={() => {
-                      setPendingProductSelection({ type: 'preliminary', productIndex: index })
-                      setCreateProductDialogOpen(true)
-                    }}
-                    formatCurrency={formatCurrency}
-                    className="w-full"
-                  />
+                            <Label className="text-xs text-muted-foreground mb-1.5 block">Item Name</Label>
+                            <ProductSearchPopover
+                              selectedProductName={item.name}
+                              onSelect={(product) => selectPreliminaryProduct(index, product)}
+                              onCreateNew={() => {
+                                setPendingProductSelection({ type: "preliminary", productIndex: index })
+                                setCreateProductDialogOpen(true)
+                              }}
+                              formatCurrency={formatCurrency}
+                              className="w-full"
+                            />
                           </div>
                           <Button
                             variant="ghost"
@@ -2153,8 +1439,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
-                        
-                        {/* Second Row: Other Fields */}
+
                         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pl-11">
                           <div>
                             <Label className="text-xs text-muted-foreground mb-1.5 block">Brand/Equal</Label>
@@ -2697,12 +1982,14 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         </div>
         {/* This button logic is now handled by the creation mode state */}
         {!mainBOQ && !creationMode && (
-          <Button onClick={() => {
-            setBOQType("main")
-            setCreationMode("blank")
-          }} className="w-full sm:w-auto">
+          <Button
+            onClick={() => {
+              setBOQType("main")
+              setCreationMode("blank")
+            }}
+          >
             <Plus className="h-4 w-4 mr-2" />
-            Add Main BOQ
+            Create Main BOQ
           </Button>
         )}
       </div>
@@ -2758,24 +2045,6 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        {/* Mobile: Dropdown */}
-        <div className="block md:hidden mb-4">
-          <Select value={activeTab} onValueChange={handleTabChange}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select BOQ type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="main">Main BOQ {mainBOQ && `(${mainBOQ.status})`}</SelectItem>
-              <SelectItem value="additional" disabled={mainBOQ && mainBOQ.status.toLowerCase() !== "accepted"}>
-                Additional BOQs ({additionalBOQs.length})
-                {mainBOQ && mainBOQ.status.toLowerCase() !== "accepted" && " - Requires accepted main BOQ"}
-              </SelectItem>
-              {additionalBOQs.length > 0 && (
-                <SelectItem value="recap">Recap BOQ ({boqItems.length})</SelectItem>
-              )}
-            </SelectContent>
-          </Select>
-        </div>
 
         {/* Desktop: Tabs */}
         <TabsList className="hidden md:flex">
@@ -2836,75 +2105,22 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                       BOQ #{mainBOQ.number} • Created: {new Date(mainBOQ.createdAt).toLocaleDateString("id-ID")}
                     </CardDescription>
                   </div>
-                  
-                  {["draft", "rejected"].includes(mainBOQ.status.toLowerCase()) && (
-                    <div className="grid grid-cols-2 sm:flex gap-2 w-full sm:w-auto">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setEditingBOQ(mainBOQ)
-                          setCreationMode("blank")
-                        }}
-                      >
-                        <Edit className="h-4 w-4 sm:mr-2" />
-                        <span className="hidden sm:inline">Edit</span>
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setSaveAsTemplateOpen(true)}
-                      >
-                        <Save className="h-4 w-4 sm:mr-2" />
-                        <span className="hidden sm:inline">Save as Template</span>
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setReplaceTemplateOpen(true)}
-                      >
-                        <RefreshCw className="h-4 w-4 sm:mr-2" />
-                        <span className="hidden sm:inline">Replace with Template</span>
-                      </Button>
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={handleRequestApproval}
-                        // className="col-span-2 sm:col-span-1"
-                      >
-                        <Send className="h-4 w-4 sm:mr-2" />
-                        <span className="hidden sm:inline">Request Approval</span>
-                      </Button>
-                    </div>
-                  )}
-                  {mainBOQ.status.toLowerCase() === "request" && (
-                    <div className="w-full sm:w-auto">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleRequestApproval}
-                        className="w-full sm:w-auto"
-                      >
-                        <Send className="h-4 w-4 mr-2" />
-                        Re-request Approval
-                      </Button>
-                    </div>
-                  )}
-                </div>
-                <div className="mt-4 sm:mt-0 w-full sm:w-auto flex justify-end">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => openFullscreenBoq("Main BOQ", "table", mainBOQ)}
-                    className="w-full sm:w-auto"
-                  >
-                    <Maximize2 className="h-4 w-4 mr-2" />
-                    Full Screen
-                  </Button>
-
+                  <MainBoqActions
+                    status={mainBOQ.status}
+                    onFullscreen={() => openFullscreenBoq("Main BOQ", "table", mainBOQ)}
+                    onEdit={() => {
+                      setEditingBOQ(mainBOQ)
+                      setCreationMode("blank")
+                    }}
+                    onSaveTemplate={() => setSaveAsTemplateOpen(true)}
+                    onReplaceTemplate={() => setReplaceTemplateOpen(true)}
+                    onRequestApproval={handleRequestApproval}
+                  />
                 </div>
               </CardHeader>
-              <CardContent>{renderBOQTable(mainBOQ)}</CardContent>
+              <CardContent>
+                <BoqTable boq={mainBOQ} formatCurrency={formatCurrency} />
+              </CardContent>
             </Card>
           )}
         </TabsContent>
@@ -2964,85 +2180,29 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                       </div>
                       <CardDescription>Created: {new Date(boq.createdAt).toLocaleDateString("id-ID")}</CardDescription>
                     </div>
-                    <div className="flex gap-2 w-full sm:w-auto flex-wrap">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openFullscreenBoq(`Additional BOQ #${boq.number}`, "table", boq)}
-                        className="flex-1 sm:flex-none"
-                      >
-                        <Maximize2 className="h-4 w-4 mr-2" />
-                        Full Screen
-                      </Button>
-                      {["draft", "rejected"].includes(boq.status.toLowerCase()) && (
-                        <>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setEditingBOQ(boq)
-                              setCreationMode("blank")
-                              setIsCreatingAdditional(true)
-                            }}
-                            className="flex-1 sm:flex-none"
-                          >
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setTemplateEditingBOQ(boq)
-                              setSaveAsTemplateOpen(true)
-                            }}
-                            className="flex-1 sm:flex-none"
-                          >
-                            <Save className="h-4 w-4 mr-2" />
-                            Save as Template
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setTemplateEditingBOQ(boq)
-                              setReplaceTemplateOpen(true)
-                            }}
-                            className="flex-1 sm:flex-none"
-                          >
-                            <RefreshCw className="h-4 w-4 mr-2" />
-                            Replace with Template
-                          </Button>
-                        </>
-                      )}
-                      {!["draft", "rejected"].includes(boq.status.toLowerCase()) && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setEditingBOQ(boq)
-                            setCreationMode("blank")
-                            setIsCreatingAdditional(true)
-                          }}
-                          className="flex-1 sm:flex-none"
-                        >
-                          <Edit className="h-4 w-4 mr-2" />
-                          Edit
-                        </Button>
-                      )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 sm:flex-none bg-transparent"
-                        onClick={() => handleDeleteBOQ(boq._id)}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </Button>
-                    </div>
+                    <AdditionalBoqActions
+                      status={boq.status}
+                      onFullscreen={() => openFullscreenBoq(`Additional BOQ #${boq.number}`, "table", boq)}
+                      onEdit={() => {
+                        setEditingBOQ(boq)
+                        setCreationMode("blank")
+                        setIsCreatingAdditional(true)
+                      }}
+                      onSaveTemplate={() => {
+                        setTemplateEditingBOQ(boq)
+                        setSaveAsTemplateOpen(true)
+                      }}
+                      onReplaceTemplate={() => {
+                        setTemplateEditingBOQ(boq)
+                        setReplaceTemplateOpen(true)
+                      }}
+                      onDelete={() => handleDeleteBOQ(boq._id)}
+                    />
                   </div>
                 </CardHeader>
-                <CardContent>{renderBOQTable(boq)}</CardContent>
+                <CardContent>
+                  <BoqTable boq={boq} formatCurrency={formatCurrency} />
+                </CardContent>
               </Card>
             ))
           )}
@@ -3056,30 +2216,25 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                 Full Screen
               </Button>
             </div>
-            {renderRecapBOQ()}
+            {activeTab === "recap" ? (
+              <BoqRecap mainBOQ={mainBOQ} additionalBOQs={additionalBOQs} formatCurrency={formatCurrency} />
+            ) : null}
           </TabsContent>
         )}
       </Tabs>
 
-      <Dialog open={fullscreenBoqOpen} onOpenChange={setFullscreenBoqOpen}>
-        <DialogContent showCloseButton={false} className="w-screen h-screen max-w-none max-h-none rounded-none p-0 flex flex-col gap-0">
-          <DialogHeader className="h-auto border-b px-6 py-4 shrink-0">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <DialogTitle>{fullscreenBoqTitle}</DialogTitle>
-                <DialogDescription>Viewing BOQ in full-screen mode</DialogDescription>
-              </div>
-              <Button variant="outline" size="sm" onClick={() => setFullscreenBoqOpen(false)}>
-                <X className="h-4 w-4 mr-2" />
-                Close
-              </Button>
-            </div>
-          </DialogHeader>
-          <div className="flex-1 min-h-0 overflow-y-auto p-6">
-            {fullscreenBoqType === "recap" ? renderRecapBOQ() : fullscreenBoqData ? renderBOQTable(fullscreenBoqData) : null}
-          </div>
-        </DialogContent>
-      </Dialog>
+      <FullscreenBoqDialog
+        open={fullscreenBoqOpen}
+        title={fullscreenBoqTitle}
+        onOpenChange={setFullscreenBoqOpen}
+        renderContent={() =>
+          fullscreenBoqType === "recap" ? (
+            <BoqRecap mainBOQ={mainBOQ} additionalBOQs={additionalBOQs} formatCurrency={formatCurrency} />
+          ) : fullscreenBoqData ? (
+            <BoqTable boq={fullscreenBoqData} formatCurrency={formatCurrency} />
+          ) : null
+        }
+      />
 
       <CreateBOQDialog
         projectId={projectId}
@@ -3243,10 +2398,13 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
           </DialogHeader>
           {selectedReplaceTemplate && (
             <div className="space-y-4">
-              {renderBOQTable({
-                ...selectedReplaceTemplate,
-                mechanicalElectrical: selectedReplaceTemplate.mechanicalElectrical || [],
-              })}
+              <BoqTable
+                boq={{
+                  ...selectedReplaceTemplate,
+                  mechanicalElectrical: selectedReplaceTemplate.mechanicalElectrical || [],
+                }}
+                formatCurrency={formatCurrency}
+              />
             </div>
           )}
           <DialogFooter>

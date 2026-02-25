@@ -77,11 +77,11 @@ export function AppHeader({ user, onMenuClick, mobileMenuContent }: AppHeaderPro
           </Button>
 
           {/* Notifications */}
-          <Button variant="ghost" size="icon" className="relative h-9 w-9">
+          {/* <Button variant="ghost" size="icon" className="relative h-9 w-9">
             <Bell className="h-5 w-5" />
             <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-primary" />
             <span className="sr-only">Notifications</span>
-          </Button>
+          </Button> */}
 
           {/* User Menu */}
           {user && (
@@ -114,11 +114,11 @@ export function AppHeader({ user, onMenuClick, mobileMenuContent }: AppHeaderPro
                   <User className="mr-2 h-4 w-4" />
                   Profile
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push("/settings")}>
+                {/* <DropdownMenuItem onClick={() => router.push("/settings")}>
                   <Settings className="mr-2 h-4 w-4" />
                   Settings
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
+                <DropdownMenuSeparator /> */}
                 <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
                   Logout

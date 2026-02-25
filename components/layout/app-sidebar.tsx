@@ -19,6 +19,7 @@ import {
   Package,
   User,
   FileText,
+  PanelLeft,
 } from "lucide-react"
 import { getProfile, type UserProfile } from "@/lib/api/auth"
 
@@ -39,7 +40,7 @@ interface AppSidebarProps {
 const mainNavigation: NavItem[] = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Projects", href: "/projects", icon: FolderKanban },
-  { name: "AI Assistant", href: "/ai-assistant", icon: MessageSquare },
+  // { name: "AI Assistant", href: "/ai-assistant", icon: MessageSquare },
   { name: "User Management", href: "/users", icon: Users, adminOnly: true }, // Marked as admin only
   { name: "Product Management", href: "/products", icon: Package, adminOnly: true }, // Marked as admin only
   { name: "BOQ Templates", href: "/boq-templates", icon: FileText, adminOnly: true }, // Added BOQ Templates menu
@@ -110,6 +111,16 @@ export function AppSidebar({ collapsed = false, onCollapse, className }: AppSide
       {/* Logo Header */}
       <div className="flex h-14 sm:h-16 items-center justify-between border-b px-4">
         {!collapsed && <GemaLogo className="h-6 sm:h-8" />}
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="hidden lg:inline-flex h-8 w-8"
+          onClick={() => onCollapse?.(!collapsed)}
+        >
+          <PanelLeft className="h-4 w-4" />
+          <span className="sr-only">{collapsed ? "Expand sidebar" : "Collapse sidebar"}</span>
+        </Button>
       </div>
 
       {/* Navigation */}

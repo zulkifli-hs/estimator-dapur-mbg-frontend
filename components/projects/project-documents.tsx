@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus, FolderIcon, Trash2, Upload, FileText, Download, ChevronRight, Home, MoreVertical, FolderOpen, Edit2, Loader2, Eye, ChevronLeft } from 'lucide-react'
+import { Plus, FolderIcon, Trash2, Upload, FileText, Download, ChevronRight, Home, MoreVertical, FolderOpen, Edit2, Loader2, Eye, ChevronLeft, ArrowLeft } from 'lucide-react'
 import { foldersApi } from "@/lib/api/folders"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import {
@@ -26,6 +26,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 
 interface ProjectDocumentsProps {
   projectId: string
@@ -39,6 +40,9 @@ interface Folder {
 }
 
 export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [folders, setFolders] = useState<Folder[]>([])
   const [currentFolder, setCurrentFolder] = useState<Folder | null>(null)
   const [breadcrumbs, setBreadcrumbs] = useState<{ name: string; folder: Folder | null }[]>([
@@ -61,19 +65,37 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
 
   useEffect(() => {
     loadFolders()
-  }, [projectId])
+  }, [projectId, searchParams])
 
   const loadFolders = async () => {
     try {
       const response = await foldersApi.getByProject(projectId)
       if (response.success && response.data) {
         setFolders(response.data)
+
+        const folderIdFromQuery = searchParams.get("folderId")
+        if (folderIdFromQuery) {
+          await openFolderById(folderIdFromQuery, undefined, false)
+        }
       }
     } catch (error) {
       console.error("Failed to load folders:", error)
     } finally {
       setLoading(false)
     }
+  }
+
+  const updateFolderQuery = (folderId?: string) => {
+    const params = new URLSearchParams(searchParams.toString())
+
+    if (folderId) {
+      params.set("folderId", folderId)
+    } else {
+      params.delete("folderId")
+    }
+
+    const queryString = params.toString()
+    router.replace(queryString ? `${pathname}?${queryString}` : pathname, { scroll: false })
   }
 
   const handleCreateFolder = async () => {
@@ -133,34 +155,53 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
     }
   }
 
-  const handleFolderClick = async (folder: Folder) => {
+  const openFolderById = async (folderId: string, folderName?: string, updateQuery: boolean = true) => {
     try {
-      const response = await foldersApi.getFolder(projectId, folder._id)
+      const response = await foldersApi.getFolder(projectId, folderId)
       if (response.success && response.data) {
         const folderData = {
           ...response.data,
           files: response.data.list || response.data.files || []
         }
         setCurrentFolder(folderData)
-        setBreadcrumbs([...breadcrumbs, { name: folder.name, folder: folderData }])
+        setBreadcrumbs([
+          { name: "Documents", folder: null },
+          { name: folderName || response.data.name || "Folder", folder: folderData }
+        ])
         setSelectedItemKey(null)
+
+        if (updateQuery) {
+          updateFolderQuery(folderId)
+        }
       }
     } catch (error) {
       console.error("Failed to load folder details:", error)
     }
   }
 
+  const handleFolderClick = async (folder: Folder) => {
+    await openFolderById(folder._id, folder.name, true)
+  }
+
   const navigateToBreadcrumb = (index: number) => {
     const newBreadcrumbs = breadcrumbs.slice(0, index + 1)
     setBreadcrumbs(newBreadcrumbs)
-    setCurrentFolder(newBreadcrumbs[newBreadcrumbs.length - 1].folder)
+    const destinationFolder = newBreadcrumbs[newBreadcrumbs.length - 1].folder
+    setCurrentFolder(destinationFolder)
     setSelectedItemKey(null)
+
+    if (destinationFolder?._id) {
+      updateFolderQuery(destinationFolder._id)
+    } else {
+      updateFolderQuery()
+    }
   }
 
   const navigateToRoot = () => {
     setBreadcrumbs([{ name: "Documents", folder: null }])
     setCurrentFolder(null)
     setSelectedItemKey(null)
+    updateFolderQuery()
   }
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -402,6 +443,10 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
             <div className="flex items-center gap-2">
               {currentFolder && (
                 <>
+                  <Button size="sm" variant="outline" onClick={navigateToRoot}>
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back
+                  </Button>
                   <input
                     type="file"
                     id="file-upload-toolbar"
@@ -417,10 +462,12 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
                   </Button>
                 </>
               )}
-              <Button size="sm" onClick={() => setCreateDialogOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                New Folder
-              </Button>
+              {!currentFolder && (
+                <Button size="sm" onClick={() => setCreateDialogOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Folder
+                </Button>
+              )}
             </div>
           </div>
         </CardContent>

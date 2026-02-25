@@ -144,6 +144,18 @@ export const deleteTerminTaxFile = async (projectId: string, terminId: string, f
   return response.data
 }
 
+export const deleteTerminTaxByIndexes = async (
+  projectId: string,
+  terminId: string,
+  indexes: number[],
+): Promise<Termin> => {
+  const response = await apiRequest<Termin>(`/projects/${projectId}/termin/${terminId}/taxes/delete`, {
+    method: "POST",
+    body: JSON.stringify({ indexes }),
+  })
+  return response.data
+}
+
 export const uploadTerminInvoicePdf = async (projectId: string, terminId: string, file: File): Promise<Termin> => {
   const formData = new FormData()
   formData.append("file", file)
@@ -203,13 +215,13 @@ export const setTerminSent = async (projectId: string, terminId: string): Promis
 // Upload payment slip
 export const uploadTerminSlip = async (projectId: string, terminId: string, file: File): Promise<Termin> => {
   const formData = new FormData()
-  formData.append("slip", file)
+  formData.append("file", file)
 
   const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null
   const response = await fetch(
     `${process.env.NEXT_PUBLIC_API_BASE_URL}/projects/${projectId}/termin/${terminId}/slip`,
     {
-      method: "PUT",
+      method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -304,6 +316,10 @@ export const terminApi = {
   },
   deleteTaxFile: async (projectId: string, terminId: string, fileUrl: string) => {
     const data = await deleteTerminTaxFile(projectId, terminId, fileUrl)
+    return { success: true, data }
+  },
+  deleteTaxByIndexes: async (projectId: string, terminId: string, indexes: number[]) => {
+    const data = await deleteTerminTaxByIndexes(projectId, terminId, indexes)
     return { success: true, data }
   },
   setPending: async (projectId: string, terminId: string) => {

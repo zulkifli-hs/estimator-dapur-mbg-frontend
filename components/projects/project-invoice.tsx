@@ -49,7 +49,9 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
   const [selectedFiles, setSelectedFiles] = useState<number[]>([])
   const [deleting, setDeleting] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<{ indexes: number[] } | null>(null)
-  const [terminUploadLoading, setTerminUploadLoading] = useState<Record<string, { invoice?: boolean; tax?: boolean }>>({})
+  const [terminUploadLoading, setTerminUploadLoading] = useState<Record<string, { invoice?: boolean; tax?: boolean; slip?: boolean }>>({})
+  const [terminTaxDeleting, setTerminTaxDeleting] = useState<Record<string, boolean>>({})
+  const [taxDeleteConfirm, setTaxDeleteConfirm] = useState<{ terminId: string; taxIndex: number; taxName: string } | null>(null)
   const { toast } = useToast()
 
   const contractFiles = project?.detail?.contract || []
@@ -80,8 +82,12 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
     router.replace(queryString ? `${pathname}?${queryString}` : pathname, { scroll: false })
   }
 
-  const handleTerminFileUpload = async (terminId: string, file: File, type: "invoice" | "tax") => {
+  const handleTerminFileUpload = async (terminId: string, file: File, type: "invoice" | "tax" | "slip") => {
     if (!file) return
+
+    const currentTermin = termins.find((item) => item._id === terminId)
+    const isInvoiceReplace = type === "invoice" && !!currentTermin?.invoice?.url
+    const isSlipReplace = type === "slip" && !!currentTermin?.slip?.url
 
     if (file.type !== "application/pdf") {
       toast({
@@ -103,13 +109,24 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
     try {
       if (type === "invoice") {
         await terminApi.uploadInvoicePdf(projectId, terminId, file)
+      } else if (type === "slip") {
+        await terminApi.uploadSlip(projectId, terminId, file)
       } else {
         await terminApi.uploadTaxPdf(projectId, terminId, file)
       }
 
       toast({
         title: "Success",
-        description: `${type === "invoice" ? "Invoice" : "Tax"} PDF uploaded successfully`,
+        description:
+          type === "invoice"
+            ? isInvoiceReplace
+              ? "Invoice PDF replaced successfully"
+              : "Invoice PDF uploaded successfully"
+            : type === "tax"
+              ? "Tax PDF uploaded successfully"
+              : isSlipReplace
+                ? "Pay slip replaced successfully"
+                : "Pay slip uploaded successfully",
       })
 
       await loadTermins()
@@ -135,13 +152,45 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
   const handleTerminPdfChange = (
     e: React.ChangeEvent<HTMLInputElement>,
     terminId: string,
-    type: "invoice" | "tax",
+    type: "invoice" | "tax" | "slip",
   ) => {
     const file = e.target.files?.[0]
     if (file) {
       handleTerminFileUpload(terminId, file, type)
     }
     e.target.value = ""
+  }
+
+  const handleDeleteTaxFile = async (terminId: string, taxIndex: number) => {
+    const key = `${terminId}-${taxIndex}`
+    setTerminTaxDeleting((prev) => ({ ...prev, [key]: true }))
+
+    try {
+      await terminApi.deleteTaxByIndexes(projectId, terminId, [taxIndex])
+
+      toast({
+        title: "Success",
+        description: "Tax file deleted successfully",
+      })
+
+      await loadTermins()
+      onUpdate?.()
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to delete tax file"
+      toast({
+        title: "Delete Failed",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    } finally {
+      setTerminTaxDeleting((prev) => ({ ...prev, [key]: false }))
+    }
+  }
+
+  const confirmDeleteTaxFile = async () => {
+    if (!taxDeleteConfirm) return
+    await handleDeleteTaxFile(taxDeleteConfirm.terminId, taxDeleteConfirm.taxIndex)
+    setTaxDeleteConfirm(null)
   }
 
   const loadTermins = async () => {
@@ -368,93 +417,78 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
                   {termins.map((termin, index) => (
                     <div
                       key={termin._id}
-                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                      className="p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                     >
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 text-primary font-semibold">
-                          {index + 1}
-                        </div>
-                        <div>
-                          <p className="font-medium">{termin.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {termin.value}
-                            {termin.valueType === "%" ? "%" : " IDR"} • Category: {termin.category}
-                          </p>
-                          {termin.note && (
-                            <p className="text-sm text-muted-foreground mt-1">
-                              Note: {termin.note}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex flex-col items-end gap-3">
-                        <Badge 
-                          variant={
-                            termin.status === "Approved" ? "default" : 
-                            termin.status === "Rejected" ? "destructive" : 
-                            "secondary"
-                          }
-                        >
-                          {termin.status}
-                        </Badge>
-                        <div className="flex flex-wrap justify-end gap-2">
-                          <Input
-                            id={`termin-invoice-upload-${termin._id}`}
-                            type="file"
-                            accept=".pdf,application/pdf"
-                            className="hidden"
-                            onChange={(e) => handleTerminPdfChange(e, termin._id, "invoice")}
-                            disabled={
-                              !!terminUploadLoading[termin._id]?.invoice ||
-                              !!terminUploadLoading[termin._id]?.tax
-                            }
-                          />
-                          <Button
-                            asChild
-                            variant="outline"
-                            size="sm"
-                            disabled={
-                              !!terminUploadLoading[termin._id]?.invoice ||
-                              !!terminUploadLoading[termin._id]?.tax
+                      <div className="space-y-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex items-center gap-4">
+                            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 text-primary font-semibold">
+                              {index + 1}
+                            </div>
+                            <div>
+                              <p className="font-medium">{termin.name}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {termin.value}
+                                {termin.valueType === "%" ? "%" : " IDR"} • Category: {termin.category}
+                              </p>
+                              {termin.note && (
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  Note: {termin.note}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          {/* <Badge 
+                            variant={
+                              termin.status === "Approved" ? "default" : 
+                              termin.status === "Rejected" ? "destructive" : 
+                              "secondary"
                             }
                           >
-                            <label htmlFor={`termin-invoice-upload-${termin._id}`} className="cursor-pointer">
-                              <Upload className="h-4 w-4 mr-2" />
-                              {terminUploadLoading[termin._id]?.invoice ? "Uploading..." : "Upload Invoice PDF"}
-                            </label>
-                          </Button>
+                            {termin.status}
+                          </Badge> */}
+                        </div>
 
-                          <Input
-                            id={`termin-tax-upload-${termin._id}`}
-                            type="file"
-                            accept=".pdf,application/pdf"
-                            className="hidden"
-                            onChange={(e) => handleTerminPdfChange(e, termin._id, "tax")}
-                            disabled={
-                              !!terminUploadLoading[termin._id]?.invoice ||
-                              !!terminUploadLoading[termin._id]?.tax
-                            }
-                          />
-                          <Button
-                            asChild
-                            variant="outline"
-                            size="sm"
-                            disabled={
-                              !!terminUploadLoading[termin._id]?.invoice ||
-                              !!terminUploadLoading[termin._id]?.tax
-                            }
-                          >
-                            <label htmlFor={`termin-tax-upload-${termin._id}`} className="cursor-pointer">
-                              <Upload className="h-4 w-4 mr-2" />
-                              {terminUploadLoading[termin._id]?.tax ? "Uploading..." : "Upload Tax PDF"}
-                            </label>
-                          </Button>
-                        </div>
-                        <div className="flex flex-col items-end gap-2">
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <span className="font-medium">Invoice:</span>
-                            {termin.invoice?.url ? (
-                              <div className="flex items-center gap-1">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div className="rounded-md border bg-background p-3 space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-xs font-semibold text-muted-foreground">Invoice</p>
+                            <Input
+                              id={`termin-invoice-upload-${termin._id}`}
+                              type="file"
+                              accept=".pdf,application/pdf"
+                              className="hidden"
+                              onChange={(e) => handleTerminPdfChange(e, termin._id, "invoice")}
+                              disabled={
+                                !!terminUploadLoading[termin._id]?.invoice ||
+                                !!terminUploadLoading[termin._id]?.tax ||
+                                !!terminUploadLoading[termin._id]?.slip
+                              }
+                            />
+                            <Button
+                              asChild
+                              variant="outline"
+                              size="sm"
+                              disabled={
+                                !!terminUploadLoading[termin._id]?.invoice ||
+                                !!terminUploadLoading[termin._id]?.tax ||
+                                !!terminUploadLoading[termin._id]?.slip
+                              }
+                            >
+                              <label htmlFor={`termin-invoice-upload-${termin._id}`} className="cursor-pointer">
+                                <Upload className="h-4 w-4 mr-2" />
+                                {terminUploadLoading[termin._id]?.invoice
+                                  ? "Uploading..."
+                                  : termin.invoice?.url
+                                    ? "Replace"
+                                    : "Upload"}
+                              </label>
+                            </Button>
+                          </div>
+                          {termin.invoice?.url ? (
+                            <div className="flex items-center justify-between gap-2 text-xs">
+                              <span className="truncate text-muted-foreground">{termin.invoice.name}</span>
+                              <div className="flex items-center gap-1 shrink-0">
                                 <Button
                                   variant="ghost"
                                   size="icon"
@@ -472,16 +506,50 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
                                   <Download className="h-4 w-4" />
                                 </Button>
                               </div>
-                            ) : (
-                              <span className="text-muted-foreground">No invoice</span>
-                            )}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">No invoice uploaded</p>
+                          )}
+                        </div>
+
+                        <div className="rounded-md border bg-background p-3 space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-xs font-semibold text-muted-foreground">Tax Files</p>
+                            <Input
+                              id={`termin-tax-upload-${termin._id}`}
+                              type="file"
+                              accept=".pdf,application/pdf"
+                              className="hidden"
+                              onChange={(e) => handleTerminPdfChange(e, termin._id, "tax")}
+                              disabled={
+                                !!terminUploadLoading[termin._id]?.invoice ||
+                                !!terminUploadLoading[termin._id]?.tax ||
+                                !!terminUploadLoading[termin._id]?.slip
+                              }
+                            />
+                            <Button
+                              asChild
+                              variant="outline"
+                              size="sm"
+                              disabled={
+                                !!terminUploadLoading[termin._id]?.invoice ||
+                                !!terminUploadLoading[termin._id]?.tax ||
+                                !!terminUploadLoading[termin._id]?.slip
+                              }
+                            >
+                              <label htmlFor={`termin-tax-upload-${termin._id}`} className="cursor-pointer">
+                                <Upload className="h-4 w-4 mr-2" />
+                                {terminUploadLoading[termin._id]?.tax ? "Uploading..." : "Upload"}
+                              </label>
+                            </Button>
                           </div>
-                          <div className="flex flex-col items-end gap-1">
-                            <span className="text-xs font-medium text-muted-foreground">Tax Files:</span>
-                            {termin.taxes && termin.taxes.length > 0 ? (
-                              <div className="flex flex-wrap justify-end gap-1">
-                                {termin.taxes.map((tax: any) => (
-                                  <div key={tax._id} className="flex items-center gap-1">
+
+                          {termin.taxes && termin.taxes.length > 0 ? (
+                            <div className="space-y-1">
+                              {termin.taxes.map((tax: any, taxIndex: number) => (
+                                <div key={tax._id} className="flex items-center justify-between gap-2 text-xs">
+                                  <span className="truncate text-muted-foreground">{tax.name}</span>
+                                  <div className="flex items-center gap-1 shrink-0">
                                     <Button
                                       variant="ghost"
                                       size="icon"
@@ -498,13 +566,92 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
                                     >
                                       <Download className="h-4 w-4" />
                                     </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() =>
+                                        setTaxDeleteConfirm({
+                                          terminId: termin._id,
+                                          taxIndex,
+                                          taxName: tax.name || "tax file",
+                                        })
+                                      }
+                                      title={`Delete ${tax.name}`}
+                                      disabled={terminTaxDeleting[`${termin._id}-${taxIndex}`]}
+                                    >
+                                      <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
                                   </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">No tax files</span>
-                            )}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">No tax files uploaded</p>
+                          )}
+                        </div>
+
+                        <div className="rounded-md border bg-background p-3 space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-xs font-semibold text-muted-foreground">Pay Slip</p>
+                            <Input
+                              id={`termin-slip-upload-${termin._id}`}
+                              type="file"
+                              accept=".pdf,application/pdf"
+                              className="hidden"
+                              onChange={(e) => handleTerminPdfChange(e, termin._id, "slip")}
+                              disabled={
+                                !!terminUploadLoading[termin._id]?.invoice ||
+                                !!terminUploadLoading[termin._id]?.tax ||
+                                !!terminUploadLoading[termin._id]?.slip
+                              }
+                            />
+                            <Button
+                              asChild
+                              variant="outline"
+                              size="sm"
+                              disabled={
+                                !!terminUploadLoading[termin._id]?.invoice ||
+                                !!terminUploadLoading[termin._id]?.tax ||
+                                !!terminUploadLoading[termin._id]?.slip
+                              }
+                            >
+                              <label htmlFor={`termin-slip-upload-${termin._id}`} className="cursor-pointer">
+                                <Upload className="h-4 w-4 mr-2" />
+                                {terminUploadLoading[termin._id]?.slip
+                                  ? "Uploading..."
+                                  : termin.slip?.url
+                                    ? "Replace"
+                                    : "Upload"}
+                              </label>
+                            </Button>
                           </div>
+
+                          {termin.slip?.url ? (
+                            <div className="flex items-center justify-between gap-2 text-xs">
+                              <span className="truncate text-muted-foreground">{termin.slip.name}</span>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleView(termin.slip.provider, termin.slip.url, termin.slip.name)}
+                                  title="Preview pay slip"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleDownload(termin.slip.provider, termin.slip.url, termin.slip.name)}
+                                  title="Download pay slip"
+                                >
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">No pay slip uploaded</p>
+                          )}
+                        </div>
                         </div>
                       </div>
                     </div>
@@ -668,6 +815,39 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!taxDeleteConfirm} onOpenChange={() => setTaxDeleteConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete tax file?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete "{taxDeleteConfirm?.taxName}". This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              disabled={
+                !!taxDeleteConfirm &&
+                !!terminTaxDeleting[`${taxDeleteConfirm.terminId}-${taxDeleteConfirm.taxIndex}`]
+              }
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteTaxFile}
+              disabled={
+                !!taxDeleteConfirm &&
+                !!terminTaxDeleting[`${taxDeleteConfirm.terminId}-${taxDeleteConfirm.taxIndex}`]
+              }
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {taxDeleteConfirm && terminTaxDeleting[`${taxDeleteConfirm.terminId}-${taxDeleteConfirm.taxIndex}`]
+                ? "Deleting..."
+                : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

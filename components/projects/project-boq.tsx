@@ -18,6 +18,7 @@ import {
   RefreshCw,
   AlertCircle,
   Send,
+  Maximize2,
 } from "lucide-react"
 import { boqApi } from "@/lib/api/boq"
 import { templatesApi, type CreateTemplateInput } from "@/lib/api/templates"
@@ -118,6 +119,10 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   const [replaceTemplateOpen, setReplaceTemplateOpen] = useState(false)
   const [selectedReplaceTemplate, setSelectedReplaceTemplate] = useState<any>(null)
   const [replaceTemplatePreviewOpen, setReplaceTemplatePreviewOpen] = useState(false)
+  const [fullscreenBoqOpen, setFullscreenBoqOpen] = useState(false)
+  const [fullscreenBoqTitle, setFullscreenBoqTitle] = useState("")
+  const [fullscreenBoqData, setFullscreenBoqData] = useState<any | null>(null)
+  const [fullscreenBoqType, setFullscreenBoqType] = useState<"table" | "recap">("table")
   const [templateEditingBOQ, setTemplateEditingBOQ] = useState<any>(null) // Track which BOQ is being edited for template operations
 
   // Approval request states
@@ -1890,6 +1895,13 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     )
   }
 
+  const openFullscreenBoq = (title: string, type: "table" | "recap", data?: any) => {
+    setFullscreenBoqTitle(title)
+    setFullscreenBoqType(type)
+    setFullscreenBoqData(data ?? null)
+    setFullscreenBoqOpen(true)
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -2824,6 +2836,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                       BOQ #{mainBOQ.number} • Created: {new Date(mainBOQ.createdAt).toLocaleDateString("id-ID")}
                     </CardDescription>
                   </div>
+                  
                   {["draft", "rejected"].includes(mainBOQ.status.toLowerCase()) && (
                     <div className="grid grid-cols-2 sm:flex gap-2 w-full sm:w-auto">
                       <Button
@@ -2877,6 +2890,18 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                       </Button>
                     </div>
                   )}
+                </div>
+                <div className="mt-4 sm:mt-0 w-full sm:w-auto flex justify-end">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => openFullscreenBoq("Main BOQ", "table", mainBOQ)}
+                    className="w-full sm:w-auto"
+                  >
+                    <Maximize2 className="h-4 w-4 mr-2" />
+                    Full Screen
+                  </Button>
+
                 </div>
               </CardHeader>
               <CardContent>{renderBOQTable(mainBOQ)}</CardContent>
@@ -2940,6 +2965,15 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                       <CardDescription>Created: {new Date(boq.createdAt).toLocaleDateString("id-ID")}</CardDescription>
                     </div>
                     <div className="flex gap-2 w-full sm:w-auto flex-wrap">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openFullscreenBoq(`Additional BOQ #${boq.number}`, "table", boq)}
+                        className="flex-1 sm:flex-none"
+                      >
+                        <Maximize2 className="h-4 w-4 mr-2" />
+                        Full Screen
+                      </Button>
                       {["draft", "rejected"].includes(boq.status.toLowerCase()) && (
                         <>
                           <Button
@@ -3016,10 +3050,36 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
 
         {additionalBOQs.length > 0 && (
           <TabsContent value="recap" className="space-y-4">
+            <div className="flex justify-end">
+              <Button variant="outline" size="sm" onClick={() => openFullscreenBoq("Recap BOQ", "recap")}>
+                <Maximize2 className="h-4 w-4 mr-2" />
+                Full Screen
+              </Button>
+            </div>
             {renderRecapBOQ()}
           </TabsContent>
         )}
       </Tabs>
+
+      <Dialog open={fullscreenBoqOpen} onOpenChange={setFullscreenBoqOpen}>
+        <DialogContent showCloseButton={false} className="w-screen h-screen max-w-none max-h-none rounded-none p-0 flex flex-col gap-0">
+          <DialogHeader className="h-auto border-b px-6 py-4 shrink-0">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <DialogTitle>{fullscreenBoqTitle}</DialogTitle>
+                <DialogDescription>Viewing BOQ in full-screen mode</DialogDescription>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => setFullscreenBoqOpen(false)}>
+                <X className="h-4 w-4 mr-2" />
+                Close
+              </Button>
+            </div>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 overflow-y-auto p-6">
+            {fullscreenBoqType === "recap" ? renderRecapBOQ() : fullscreenBoqData ? renderBOQTable(fullscreenBoqData) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <CreateBOQDialog
         projectId={projectId}

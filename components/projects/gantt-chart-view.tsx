@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Pencil, Plus } from 'lucide-react'
 import { cn } from "@/lib/utils"
+import { useToast } from "@/hooks/use-toast"
 
 interface GanttTask {
   id: string
@@ -23,6 +24,7 @@ interface GanttChartViewProps {
 }
 
 export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
+  const { toast } = useToast()
   const [hoveredTaskId, setHoveredTaskId] = useState<string | null>(null)
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
   const [editStartDate, setEditStartDate] = useState<string>("")
@@ -132,19 +134,10 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
 
   const handleStartDateChange = (value: string) => {
     setEditStartDate(value)
-    // If end date exists and new start date is after it, clear end date
-    if (editEndDate && value > editEndDate) {
-      setEditEndDate(value)
-    }
   }
 
   const handleEndDateChange = (value: string) => {
-    // Only allow end date if it's >= start date
-    if (editStartDate && value >= editStartDate) {
-      setEditEndDate(value)
-    } else if (!editStartDate) {
-      setEditEndDate(value)
-    }
+    setEditEndDate(value)
   }
 
   const handleDeleteDates = async () => {
@@ -167,9 +160,30 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
   const handleSaveEdit = async () => {
     if (!editingTaskId || !editStartDate || !editEndDate || !onUpdateTask) return
 
+    const start = new Date(editStartDate)
+    const end = new Date(editEndDate)
+
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      toast({
+        title: "Invalid date",
+        description: "Please enter valid start and end dates.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (end < start) {
+      toast({
+        title: "Invalid date range",
+        description: "End date cannot be earlier than start date.",
+        variant: "destructive",
+      })
+      return
+    }
+
     setSaving(true)
     try {
-      await onUpdateTask(editingTaskId, new Date(editStartDate), new Date(editEndDate))
+      await onUpdateTask(editingTaskId, start, end)
       setEditingTaskId(null)
     } catch (error) {
       console.error("Failed to update task:", error)
@@ -363,7 +377,6 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
                                                 type="date"
                                                 value={editStartDate}
                                                 onChange={(e) => handleStartDateChange(e.target.value)}
-                                                max={editEndDate || undefined}
                                               />
                                             </div>
                                             <div className="space-y-2">
@@ -372,7 +385,6 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
                                                 type="date"
                                                 value={editEndDate}
                                                 onChange={(e) => handleEndDateChange(e.target.value)}
-                                                min={editStartDate || undefined}
                                               />
                                             </div>
                                           </div>
@@ -446,7 +458,6 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
                                             type="date"
                                             value={editStartDate}
                                             onChange={(e) => handleStartDateChange(e.target.value)}
-                                            max={editEndDate || undefined}
                                           />
                                         </div>
                                         <div className="space-y-2">
@@ -455,7 +466,6 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
                                             type="date"
                                             value={editEndDate}
                                             onChange={(e) => handleEndDateChange(e.target.value)}
-                                            min={editStartDate || undefined}
                                           />
                                         </div>
                                       </div>

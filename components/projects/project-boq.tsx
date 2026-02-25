@@ -1,21 +1,17 @@
 "use client"
 
 import "@radix-ui/react-id"
-import React, { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
-  Edit,
-  Trash2,
   Plus,
   Eye,
   FileSpreadsheet,
   Sparkles,
   X,
   Loader2,
-  Save,
-  RefreshCw,
   AlertCircle,
   Send,
   Maximize2,
@@ -37,16 +33,15 @@ import {
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { CreateBOQDialog } from "./create-boq-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { ProductSearchPopover } from "@/components/product-search-popover"
 import { CreateProductDialog } from "@/components/products/create-product-dialog"
 import { FullscreenBoqDialog } from "@/components/projects/boq/fullscreen-boq-dialog"
 import { MainBoqActions } from "@/components/projects/boq/main-boq-actions"
 import { AdditionalBoqActions } from "@/components/projects/boq/additional-boq-actions"
 import { BoqTable } from "@/components/projects/boq/boq-table"
 import { BoqRecap } from "@/components/projects/boq/boq-recap"
+import { BoqEditForm } from "@/components/projects/boq/boq-edit-form"
 
 interface ProductItem {
   name: string
@@ -337,16 +332,6 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       maximumFractionDigits: 0,
     }).format(value)
   }
-
-  const handleDialogClose = (open: boolean) => {
-    // This handler is for the old CreateBOQDialog, which is being replaced
-    // It's kept here for now but might be removed or refactored later.
-    if (!open) {
-      setEditingBOQ(null)
-      setIsCreatingAdditional(false)
-    }
-  }
-
 
   const getStatusBadge = (status: string) => {
     const statusLower = status.toLowerCase()
@@ -1365,610 +1350,62 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
 
   if ((editingBOQ && creationMode === "blank") || (!mainBOQ && creationMode === "blank") || (boqType === "additional" && creationMode === "blank")) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold">{editingBOQ ? "Edit BOQ" : boqType === "additional" ? "Create Additional BOQ" : "Create Main BOQ"}</h2>
-            <p className="text-muted-foreground">Fill in the details for your Bill of Quantities</p>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setCreationMode(null)
-                setEditingBOQ(null)
-                setBOQType("main")
-                if (boqType === "additional") {
-                  setActiveTab("additional")
-                }
-                setPreliminary([])
-                setFittingOut([])
-                setFurnitureWork([])
-              }}
-              disabled={loading}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleCreateMainBOQ} disabled={loading}>
-              {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {editingBOQ ? "Update BOQ" : "Create BOQ"}
-            </Button>
-          </div>
-        </div>
-
-        {/* Preliminary Section - Same as template creation */}
-        <Card>
-          <CardHeader>
-            <h3 className="text-lg font-semibold">I. PRELIMINARY</h3>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="border">
-              <div className="overflow-x-auto">
-                {preliminary.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No items yet. Click "Add Item" button below to start adding items.
-                  </div>
-                ) : (
-                  <div className="divide-y">
-                    {preliminary.map((item, index) => (
-                      <div key={index} className="p-4 space-y-3">
-                        {/* First Row: Number and Item Name */}
-                        <div className="flex items-start gap-3">
-                          <div className="shrink-0 w-8 h-10 flex items-center justify-center font-medium text-sm">
-                            {index + 1}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <Label className="text-xs text-muted-foreground mb-1.5 block">Item Name</Label>
-                            <ProductSearchPopover
-                              selectedProductName={item.name}
-                              onSelect={(product) => selectPreliminaryProduct(index, product)}
-                              onCreateNew={() => {
-                                setPendingProductSelection({ type: "preliminary", productIndex: index })
-                                setCreateProductDialogOpen(true)
-                              }}
-                              formatCurrency={formatCurrency}
-                              className="w-full"
-                            />
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removePreliminaryItem(index)}
-                            className="shrink-0"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-
-                        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pl-11">
-                          <div>
-                            <Label className="text-xs text-muted-foreground mb-1.5 block">Brand/Equal</Label>
-                            <Input
-                              value={item.brand || ""}
-                              onChange={(e) => updatePreliminaryItem(index, "brand", e.target.value)}
-                              placeholder="e.g. Jayaboard, Elephant"
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-xs text-muted-foreground mb-1.5 block">Location (optional)</Label>
-                            <Input
-                              value={item.location || ""}
-                              onChange={(e) => updatePreliminaryItem(index, "location", e.target.value)}
-                              placeholder="e.g. Front, Back"
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-xs text-muted-foreground mb-1.5 block">Quantity</Label>
-                            <Input
-                              ref={(el) => {
-                                preliminaryQtyRefs.current[index] = el
-                              }}
-                              type="number"
-                              value={item.qty}
-                              onChange={(e) => updatePreliminaryItem(index, "qty", Number(e.target.value))}
-                              placeholder="0"
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-xs text-muted-foreground mb-1.5 block">Unit</Label>
-                            <Input
-                              value={item.unit}
-                              onChange={(e) => updatePreliminaryItem(index, "unit", e.target.value)}
-                              placeholder="ls, m2"
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-xs text-muted-foreground mb-1.5 block">Price</Label>
-                            <Input
-                              type="number"
-                              value={item.price}
-                              onChange={(e) => updatePreliminaryItem(index, "price", Number(e.target.value))}
-                              placeholder="0"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="p-4 border-t">
-              <Button type="button" onClick={addPreliminaryItem} variant="outline" className="w-full bg-transparent">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Item
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Fitting Out Section */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">II. FITTING OUT</h3>
-          {fittingOut.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center text-muted-foreground">
-                No categories yet. Click "Add Category" button below to start adding fitting out categories.
-              </CardContent>
-            </Card>
-          ) : (
-            fittingOut.map((category, categoryIndex) => (
-              <Card key={categoryIndex}>
-                <CardHeader>
-                  <div className="flex items-center gap-4">
-                    <div className="flex-1">
-                      <Label>Category Name</Label>
-                      <Input
-                        value={category.name}
-                        onChange={(e) => updateFittingOutCategory(categoryIndex, e.target.value)}
-                        placeholder="e.g., Partition Work, Wall Finishes"
-                      />
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeFittingOutCategory(categoryIndex)}
-                      // Removed disabled check here as it's handled by the ternary above
-                      // disabled={fittingOut.length === 1}
-                      className="mt-6"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <div className="border-t">
-                    <div className="divide-y">
-                      {category.products.map((product, productIndex) => (
-                        <div key={productIndex} className="p-4 space-y-3">
-                          {/* First Row: Number and Product Name */}
-                          <div className="flex items-start gap-3">
-                            <div className="shrink-0 w-8 h-10 flex items-center justify-center font-medium text-sm">
-                              {productIndex + 1}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                  <Label className="text-xs text-muted-foreground mb-1.5 block">Product Name</Label>
-                  <ProductSearchPopover
-                    selectedProductName={product.name}
-                    onSelect={(prod) => selectFittingOutProduct(categoryIndex, productIndex, prod)}
-                    onCreateNew={() => {
-                      setPendingProductSelection({
-                        type: 'fittingOut',
-                        categoryIndex,
-                        productIndex
-                      })
-                      setCreateProductDialogOpen(true)
-                    }}
-                    formatCurrency={formatCurrency}
-                    className="w-full"
-                  />
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => removeFittingOutProduct(categoryIndex, productIndex)}
-                              className="shrink-0"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                          
-                          {/* Second Row: Other Fields */}
-                          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pl-11">
-                            <div>
-                              <Label className="text-xs text-muted-foreground mb-1.5 block">Brand/Equal</Label>
-                              <Input
-                                value={product.brand || ""}
-                                onChange={(e) =>
-                                  updateFittingOutProduct(categoryIndex, productIndex, "brand", e.target.value)
-                                }
-                                placeholder="e.g. Jayaboard, Elephant"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs text-muted-foreground mb-1.5 block">Location (optional)</Label>
-                              <Input
-                                value={product.location || ""}
-                                onChange={(e) =>
-                                  updateFittingOutProduct(categoryIndex, productIndex, "location", e.target.value)
-                                }
-                                placeholder="e.g. Front, Back"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs text-muted-foreground mb-1.5 block">Quantity</Label>
-                              <Input
-                                ref={(el) => {
-                                  fittingOutQtyRefs.current[`${categoryIndex}-${productIndex}`] = el
-                                }}
-                                type="number"
-                                value={product.qty}
-                                onChange={(e) =>
-                                  updateFittingOutProduct(categoryIndex, productIndex, "qty", Number(e.target.value))
-                                }
-                                placeholder="0"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs text-muted-foreground mb-1.5 block">Unit</Label>
-                              <Input
-                                value={product.unit}
-                                onChange={(e) =>
-                                  updateFittingOutProduct(categoryIndex, productIndex, "unit", e.target.value)
-                                }
-                                placeholder="ls, m2"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs text-muted-foreground mb-1.5 block">Price</Label>
-                              <Input
-                                type="number"
-                                value={product.price}
-                                onChange={(e) =>
-                                  updateFittingOutProduct(categoryIndex, productIndex, "price", Number(e.target.value))
-                                }
-                                placeholder="0"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="p-4 border-t">
-                    <Button
-                      type="button"
-                      onClick={() => addFittingOutProduct(categoryIndex)}
-                      variant="outline"
-                      className="w-full bg-transparent"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Product
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
-          <Button type="button" onClick={addFittingOutCategory} variant="outline" className="w-full bg-transparent">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Category
-          </Button>
-        </div>
-
-        {/* Furniture Work Section */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">III. FURNITURE WORK</h3>
-          {furnitureWork.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center text-muted-foreground">
-                No categories yet. Click "Add Category" button below to start adding furniture work categories.
-              </CardContent>
-            </Card>
-          ) : (
-            furnitureWork.map((category, categoryIndex) => (
-              <Card key={categoryIndex}>
-                <CardHeader>
-                  <div className="flex items-center gap-4">
-                    <div className="flex-1">
-                      <Label>Category Name</Label>
-                      <Input
-                        value={category.name}
-                        onChange={(e) => updateFurnitureWorkCategory(categoryIndex, e.target.value)}
-                        placeholder="e.g., Cabinet Work, Furniture Installation"
-                      />
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeFurnitureWorkCategory(categoryIndex)}
-                      // Removed disabled check here as it's handled by the ternary above
-                      // disabled={furnitureWork.length === 1}
-                      className="mt-6"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <div className="border-t">
-                    <div className="divide-y">
-                      {category.products.map((product, productIndex) => (
-                        <div key={productIndex} className="p-4 space-y-3">
-                          {/* First Row: Number and Product Name */}
-                          <div className="flex items-start gap-3">
-                            <div className="shrink-0 w-8 h-10 flex items-center justify-center font-medium text-sm">
-                              {productIndex + 1}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                  <Label className="text-xs text-muted-foreground mb-1.5 block">Product Name</Label>
-                  <ProductSearchPopover
-                    selectedProductName={product.name}
-                    onSelect={(prod) => selectFurnitureWorkProduct(categoryIndex, productIndex, prod)}
-                    onCreateNew={() => {
-                      setPendingProductSelection({
-                        type: 'furnitureWork',
-                        categoryIndex,
-                        productIndex
-                      })
-                      setCreateProductDialogOpen(true)
-                    }}
-                    formatCurrency={formatCurrency}
-                    className="w-full"
-                  />
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => removeFurnitureWorkProduct(categoryIndex, productIndex)}
-                              className="shrink-0"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                          
-                          {/* Second Row: Other Fields */}
-                          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pl-11">
-                            <div>
-                              <Label className="text-xs text-muted-foreground mb-1.5 block">Brand/Equal</Label>
-                              <Input
-                                value={product.brand || ""}
-                                onChange={(e) =>
-                                  updateFurnitureWorkProduct(categoryIndex, productIndex, "brand", e.target.value)
-                                }
-                                placeholder="e.g. Jayaboard, Elephant"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs text-muted-foreground mb-1.5 block">Location (optional)</Label>
-                              <Input
-                                value={product.location || ""}
-                                onChange={(e) =>
-                                  updateFurnitureWorkProduct(categoryIndex, productIndex, "location", e.target.value)
-                                }
-                                placeholder="e.g. Front, Back"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs text-muted-foreground mb-1.5 block">Quantity</Label>
-                              <Input
-                                ref={(el) => {
-                                  furnitureWorkQtyRefs.current[`${categoryIndex}-${productIndex}`] = el
-                                }}
-                                type="number"
-                                value={product.qty}
-                                onChange={(e) =>
-                                  updateFurnitureWorkProduct(categoryIndex, productIndex, "qty", Number(e.target.value))
-                                }
-                                placeholder="0"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs text-muted-foreground mb-1.5 block">Unit</Label>
-                              <Input
-                                value={product.unit}
-                                onChange={(e) =>
-                                  updateFurnitureWorkProduct(categoryIndex, productIndex, "unit", e.target.value)
-                                }
-                                placeholder="ls, m2"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs text-muted-foreground mb-1.5 block">Price</Label>
-                              <Input
-                                type="number"
-                                value={product.price}
-                                onChange={(e) =>
-                                  updateFurnitureWorkProduct(categoryIndex, productIndex, "price", Number(e.target.value))
-                                }
-                                placeholder="0"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="p-4 border-t">
-                    <Button
-                      type="button"
-                      onClick={() => addFurnitureWorkProduct(categoryIndex)}
-                      variant="outline"
-                      className="w-full bg-transparent"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Product
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
-          <Button type="button" onClick={addFurnitureWorkCategory} variant="outline" className="w-full bg-transparent">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Category
-          </Button>
-        </div>
-
-        {/* Mechanical / Electrical / Plumbing Section */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">IV. MECHANICAL / ELECTRICAL / PLUMBING</h3>
-          {mechanicalElectrical.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center text-muted-foreground">
-                No categories yet. Click "Add Category" button below to start adding MEP categories.
-              </CardContent>
-            </Card>
-          ) : (
-            mechanicalElectrical.map((category, categoryIndex) => (
-              <Card key={categoryIndex}>
-                <CardHeader>
-                  <div className="flex items-center gap-4">
-                    <div className="flex-1">
-                      <Label>Category Name</Label>
-                      <Input
-                        value={category.name}
-                        onChange={(e) => updateMechanicalElectricalCategory(categoryIndex, e.target.value)}
-                        placeholder="e.g., Electrical Installation, Plumbing, HVAC"
-                      />
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeMechanicalElectricalCategory(categoryIndex)}
-                      className="mt-6"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <div className="border-t">
-                    <div className="divide-y">
-                      {category.products.map((product, productIndex) => (
-                        <div key={productIndex} className="p-4 space-y-3">
-                          {/* First Row: Number and Product Name */}
-                          <div className="flex items-start gap-3">
-                            <div className="shrink-0 w-8 h-10 flex items-center justify-center font-medium text-sm">
-                              {productIndex + 1}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                  <Label className="text-xs text-muted-foreground mb-1.5 block">Product Name</Label>
-                  <ProductSearchPopover
-                    selectedProductName={product.name}
-                    onSelect={(prod) => selectMechanicalElectricalProduct(categoryIndex, productIndex, prod)}
-                    onCreateNew={() => {
-                      setPendingProductSelection({
-                        type: 'mechanicalElectrical',
-                        categoryIndex,
-                        productIndex
-                      })
-                      setCreateProductDialogOpen(true)
-                    }}
-                    formatCurrency={formatCurrency}
-                    className="w-full"
-                  />
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => removeMechanicalElectricalProduct(categoryIndex, productIndex)}
-                              className="shrink-0"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                          
-                          {/* Second Row: Other Fields */}
-                          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pl-11">
-                            <div>
-                              <Label className="text-xs text-muted-foreground mb-1.5 block">Brand/Equal</Label>
-                              <Input
-                                value={product.brand || ""}
-                                onChange={(e) =>
-                                  updateMechanicalElectricalProduct(categoryIndex, productIndex, "brand", e.target.value)
-                                }
-                                placeholder="e.g. Panasonic, Schneider"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs text-muted-foreground mb-1.5 block">Location (optional)</Label>
-                              <Input
-                                value={product.location || ""}
-                                onChange={(e) =>
-                                  updateMechanicalElectricalProduct(categoryIndex, productIndex, "location", e.target.value)
-                                }
-                                placeholder="e.g. Floor 1, Ceiling"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs text-muted-foreground mb-1.5 block">Quantity</Label>
-                              <Input
-                                ref={(el) => {
-                                  mechanicalElectricalQtyRefs.current[`${categoryIndex}-${productIndex}`] = el
-                                }}
-                                type="number"
-                                value={product.qty}
-                                onChange={(e) =>
-                                  updateMechanicalElectricalProduct(categoryIndex, productIndex, "qty", Number(e.target.value))
-                                }
-                                placeholder="0"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs text-muted-foreground mb-1.5 block">Unit</Label>
-                              <Input
-                                value={product.unit}
-                                onChange={(e) =>
-                                  updateMechanicalElectricalProduct(categoryIndex, productIndex, "unit", e.target.value)
-                                }
-                                placeholder="ls, set, pcs"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs text-muted-foreground mb-1.5 block">Price</Label>
-                              <Input
-                                type="number"
-                                value={product.price}
-                                onChange={(e) =>
-                                  updateMechanicalElectricalProduct(categoryIndex, productIndex, "price", Number(e.target.value))
-                                }
-                                placeholder="0"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="p-4 border-t">
-                    <Button
-                      type="button"
-                      onClick={() => addMechanicalElectricalProduct(categoryIndex)}
-                      variant="outline"
-                      className="w-full bg-transparent"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Product
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
-          <Button type="button" onClick={addMechanicalElectricalCategory} variant="outline" className="w-full bg-transparent">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Category
-          </Button>
-        </div>
-
-        <CreateProductDialog
-          open={createProductDialogOpen}
-          onOpenChange={setCreateProductDialogOpen}
-          uploadPhoto={uploadProductPhoto}
-          onCreated={handleProductCreated}
-        />
-      </div>
+      <BoqEditForm
+        editingBOQ={editingBOQ}
+        boqType={boqType}
+        loading={loading}
+        preliminary={preliminary}
+        fittingOut={fittingOut}
+        furnitureWork={furnitureWork}
+        mechanicalElectrical={mechanicalElectrical}
+        createProductDialogOpen={createProductDialogOpen}
+        preliminaryQtyRefs={preliminaryQtyRefs}
+        fittingOutQtyRefs={fittingOutQtyRefs}
+        furnitureWorkQtyRefs={furnitureWorkQtyRefs}
+        mechanicalElectricalQtyRefs={mechanicalElectricalQtyRefs}
+        onCancel={() => {
+          setCreationMode(null)
+          setEditingBOQ(null)
+          setBOQType("main")
+          if (boqType === "additional") {
+            setActiveTab("additional")
+          }
+          setPreliminary([])
+          setFittingOut([])
+          setFurnitureWork([])
+        }}
+        onSubmit={handleCreateMainBOQ}
+        onSetCreateProductDialogOpen={setCreateProductDialogOpen}
+        onSetPendingProductSelection={setPendingProductSelection}
+        onSelectPreliminaryProduct={selectPreliminaryProduct}
+        onSelectFittingOutProduct={selectFittingOutProduct}
+        onSelectFurnitureWorkProduct={selectFurnitureWorkProduct}
+        onSelectMechanicalElectricalProduct={selectMechanicalElectricalProduct}
+        onRemovePreliminaryItem={removePreliminaryItem}
+        onUpdatePreliminaryItem={updatePreliminaryItem}
+        onAddPreliminaryItem={addPreliminaryItem}
+        onUpdateFittingOutCategory={updateFittingOutCategory}
+        onRemoveFittingOutCategory={removeFittingOutCategory}
+        onRemoveFittingOutProduct={removeFittingOutProduct}
+        onUpdateFittingOutProduct={updateFittingOutProduct}
+        onAddFittingOutProduct={addFittingOutProduct}
+        onAddFittingOutCategory={addFittingOutCategory}
+        onUpdateFurnitureWorkCategory={updateFurnitureWorkCategory}
+        onRemoveFurnitureWorkCategory={removeFurnitureWorkCategory}
+        onRemoveFurnitureWorkProduct={removeFurnitureWorkProduct}
+        onUpdateFurnitureWorkProduct={updateFurnitureWorkProduct}
+        onAddFurnitureWorkProduct={addFurnitureWorkProduct}
+        onAddFurnitureWorkCategory={addFurnitureWorkCategory}
+        onUpdateMechanicalElectricalCategory={updateMechanicalElectricalCategory}
+        onRemoveMechanicalElectricalCategory={removeMechanicalElectricalCategory}
+        onRemoveMechanicalElectricalProduct={removeMechanicalElectricalProduct}
+        onUpdateMechanicalElectricalProduct={updateMechanicalElectricalProduct}
+        onAddMechanicalElectricalProduct={addMechanicalElectricalProduct}
+        onAddMechanicalElectricalCategory={addMechanicalElectricalCategory}
+        uploadProductPhoto={uploadProductPhoto}
+        onProductCreated={handleProductCreated}
+        formatCurrency={formatCurrency}
+      />
     )
   }
 
@@ -2234,15 +1671,6 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
             <BoqTable boq={fullscreenBoqData} formatCurrency={formatCurrency} />
           ) : null
         }
-      />
-
-      <CreateBOQDialog
-        projectId={projectId}
-        open={false} // This dialog is no longer the primary way of creating/editing BOQs
-        onOpenChange={handleDialogClose}
-        onSuccess={fetchBOQ} // Use renamed function
-        boq={editingBOQ}
-        isAdditional={isCreatingAdditional}
       />
 
       <CreateProductDialog

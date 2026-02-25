@@ -954,8 +954,8 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
           setPreviewPdf(null)
         }
       }}>
-        <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
-          <DialogHeader>
+        <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
+          <DialogHeader className="h-auto">
             <DialogTitle>{previewPdf?.name} - Preview</DialogTitle>
           </DialogHeader>
           <div className="flex-1 overflow-hidden">

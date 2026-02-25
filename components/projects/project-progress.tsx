@@ -22,6 +22,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useEffect, useState } from "react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { boqApi } from "@/lib/api/boq"
 import { albumsApi } from "@/lib/api/albums"
 // import { GanttChartEditor } from "./gantt-chart-editor"
@@ -47,6 +48,9 @@ interface ProjectProgressProps {
 }
 
 export function ProjectProgress({ projectId }: ProjectProgressProps) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState("gantt")
   const [mainBOQ, setMainBOQ] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -77,6 +81,28 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
     loadBOQData()
     loadAlbums()
   }, [projectId])
+
+  useEffect(() => {
+    const tabFromQuery = searchParams.get("tab")
+    const subTabFromQuery = searchParams.get("subtab")
+
+    if (tabFromQuery !== "project") return
+
+    if (subTabFromQuery && tabs.some((tab) => tab.value === subTabFromQuery) && subTabFromQuery !== activeTab) {
+      setActiveTab(subTabFromQuery)
+    }
+  }, [searchParams, activeTab])
+
+  const handleSubTabChange = (nextSubTab: string) => {
+    setActiveTab(nextSubTab)
+
+    const params = new URLSearchParams(searchParams.toString())
+    params.set("tab", "project")
+    params.set("subtab", nextSubTab)
+
+    const queryString = params.toString()
+    router.replace(queryString ? `${pathname}?${queryString}` : pathname, { scroll: false })
+  }
 
   const loadBOQData = async () => {
     try {
@@ -499,10 +525,10 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
 
   return (
     <div className="space-y-6">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs value={activeTab} onValueChange={handleSubTabChange} className="space-y-6">
         {/* Mobile: Dropdown */}
         <div className="block md:hidden">
-          <Select value={activeTab} onValueChange={setActiveTab}>
+          <Select value={activeTab} onValueChange={handleSubTabChange}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Select section" />
             </SelectTrigger>

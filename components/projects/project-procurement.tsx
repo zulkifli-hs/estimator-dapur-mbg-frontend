@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -69,6 +70,9 @@ interface GroupedItems {
 }
 
 export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const { toast } = useToast()
   const [activeSubTab, setActiveSubTab] = useState("vendor")
   const [loading, setLoading] = useState(true)
@@ -566,6 +570,28 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
     { value: "others", label: "Others", icon: MoreHorizontal },
   ]
 
+  useEffect(() => {
+    const tabFromQuery = searchParams.get("tab")
+    const subTabFromQuery = searchParams.get("subtab")
+
+    if (tabFromQuery !== "procurement") return
+
+    if (subTabFromQuery && subTabs.some((tab) => tab.value === subTabFromQuery) && subTabFromQuery !== activeSubTab) {
+      setActiveSubTab(subTabFromQuery)
+    }
+  }, [searchParams, activeSubTab])
+
+  const handleSubTabChange = (nextSubTab: string) => {
+    setActiveSubTab(nextSubTab)
+
+    const params = new URLSearchParams(searchParams.toString())
+    params.set("tab", "procurement")
+    params.set("subtab", nextSubTab)
+
+    const queryString = params.toString()
+    router.replace(queryString ? `${pathname}?${queryString}` : pathname, { scroll: false })
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -573,7 +599,7 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
         <p className="text-muted-foreground">Manage procurement for vendors, MEP, workshop, and more</p>
       </div>
 
-      <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="space-y-4">
+      <Tabs value={activeSubTab} onValueChange={handleSubTabChange} className="space-y-4">
         <TabsList className="grid w-full grid-cols-5">
           {subTabs.map((tab) => {
             const Icon = tab.icon

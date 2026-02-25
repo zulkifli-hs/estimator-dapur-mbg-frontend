@@ -3,6 +3,7 @@
 import React from "react"
 
 import { useState, useEffect } from "react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -34,9 +35,12 @@ interface ProjectInvoiceProps {
 }
 
 export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceProps) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [termins, setTermins] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState("termin")
+  const [activeTab, setActiveTab] = useState("contract")
   const [showCreateTermin, setShowCreateTermin] = useState(false)
   const [terminMode, setTerminMode] = useState<"create" | "update">("create")
   const [uploading, setUploading] = useState(false)
@@ -45,6 +49,11 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
   const [selectedFiles, setSelectedFiles] = useState<number[]>([])
   const [deleting, setDeleting] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<{ indexes: number[] } | null>(null)
+  const [terminUploadLoading, setTerminUploadLoading] = useState<Record<string, { invoice?: boolean; tax?: boolean; slip?: boolean }>>({})
+  const [terminTaxDeleting, setTerminTaxDeleting] = useState<Record<string, boolean>>({})
+  const [taxDeleteConfirm, setTaxDeleteConfirm] = useState<{ terminId: string; taxIndex: number; taxName: string } | null>(null)
+  const [statusConfirm, setStatusConfirm] = useState<{ terminId: string; terminName: string; nextStatus: "Pending" | "Sent" } | null>(null)
+  const [statusUpdating, setStatusUpdating] = useState(false)
   const { toast } = useToast()
 
   const contractFiles = project?.detail?.contract || []
@@ -52,6 +61,178 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
   useEffect(() => {
     loadTermins()
   }, [projectId])
+
+  useEffect(() => {
+    const tabFromQuery = searchParams.get("tab")
+    const subTabFromQuery = searchParams.get("subtab")
+
+    if (tabFromQuery !== "invoice") return
+
+    if (subTabFromQuery && tabs.some((tab) => tab.value === subTabFromQuery) && subTabFromQuery !== activeTab) {
+      setActiveTab(subTabFromQuery)
+    }
+  }, [searchParams, activeTab])
+
+  const handleSubTabChange = (nextSubTab: string) => {
+    setActiveTab(nextSubTab)
+
+    const params = new URLSearchParams(searchParams.toString())
+    params.set("tab", "invoice")
+    params.set("subtab", nextSubTab)
+
+    const queryString = params.toString()
+    router.replace(queryString ? `${pathname}?${queryString}` : pathname, { scroll: false })
+  }
+
+  const handleTerminFileUpload = async (terminId: string, file: File, type: "invoice" | "tax" | "slip") => {
+    if (!file) return
+
+    const currentTermin = termins.find((item) => item._id === terminId)
+    const isInvoiceReplace = type === "invoice" && !!currentTermin?.invoice?.url
+    const isSlipReplace = type === "slip" && !!currentTermin?.slip?.url
+
+    if (file.type !== "application/pdf") {
+      toast({
+        title: "Upload Failed",
+        description: "Only PDF files are allowed",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setTerminUploadLoading((prev) => ({
+      ...prev,
+      [terminId]: {
+        ...prev[terminId],
+        [type]: true,
+      },
+    }))
+
+    try {
+      if (type === "invoice") {
+        await terminApi.uploadInvoicePdf(projectId, terminId, file)
+      } else if (type === "slip") {
+        await terminApi.uploadSlip(projectId, terminId, file)
+      } else {
+        await terminApi.uploadTaxPdf(projectId, terminId, file)
+      }
+
+      toast({
+        title: "Success",
+        description:
+          type === "invoice"
+            ? isInvoiceReplace
+              ? "Invoice PDF replaced successfully"
+              : "Invoice PDF uploaded successfully"
+            : type === "tax"
+              ? "Tax PDF uploaded successfully"
+              : isSlipReplace
+                ? "Pay slip replaced successfully"
+                : "Pay slip uploaded successfully",
+      })
+
+      await loadTermins()
+      onUpdate?.()
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to upload file"
+      toast({
+        title: "Upload Failed",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    } finally {
+      setTerminUploadLoading((prev) => ({
+        ...prev,
+        [terminId]: {
+          ...prev[terminId],
+          [type]: false,
+        },
+      }))
+    }
+  }
+
+  const handleTerminPdfChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    terminId: string,
+    type: "invoice" | "tax" | "slip",
+  ) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      handleTerminFileUpload(terminId, file, type)
+    }
+    e.target.value = ""
+  }
+
+  const handleDeleteTaxFile = async (terminId: string, taxIndex: number) => {
+    const key = `${terminId}-${taxIndex}`
+    setTerminTaxDeleting((prev) => ({ ...prev, [key]: true }))
+
+    try {
+      await terminApi.deleteTaxByIndexes(projectId, terminId, [taxIndex])
+
+      toast({
+        title: "Success",
+        description: "Tax file deleted successfully",
+      })
+
+      await loadTermins()
+      onUpdate?.()
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to delete tax file"
+      toast({
+        title: "Delete Failed",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    } finally {
+      setTerminTaxDeleting((prev) => ({ ...prev, [key]: false }))
+    }
+  }
+
+  const confirmDeleteTaxFile = async () => {
+    if (!taxDeleteConfirm) return
+    await handleDeleteTaxFile(taxDeleteConfirm.terminId, taxDeleteConfirm.taxIndex)
+    setTaxDeleteConfirm(null)
+  }
+
+  const getStatusBadgeVariant = (status?: string): "default" | "secondary" | "destructive" | "outline" => {
+    if (status === "Sent") return "default"
+    if (status === "Pending") return "outline"
+    if (status === "Draft") return "secondary"
+    if (status === "Rejected") return "destructive"
+    return "secondary"
+  }
+
+  const confirmUpdateStatus = async () => {
+    if (!statusConfirm) return
+
+    setStatusUpdating(true)
+    try {
+      if (statusConfirm.nextStatus === "Pending") {
+        await terminApi.setPending(projectId, statusConfirm.terminId)
+      } else {
+        await terminApi.setSent(projectId, statusConfirm.terminId)
+      }
+
+      toast({
+        title: "Success",
+        description: `Status updated to ${statusConfirm.nextStatus}`,
+      })
+
+      await loadTermins()
+      onUpdate?.()
+      setStatusConfirm(null)
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to update status"
+      toast({
+        title: "Update Failed",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    } finally {
+      setStatusUpdating(false)
+    }
+  }
 
   const loadTermins = async () => {
     try {
@@ -217,10 +398,10 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
         mode={terminMode}
       />
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs value={activeTab} onValueChange={handleSubTabChange} className="space-y-6">
         {/* Mobile: Dropdown */}
         <div className="block md:hidden">
-          <Select value={activeTab} onValueChange={setActiveTab}>
+          <Select value={activeTab} onValueChange={handleSubTabChange}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Select section" />
             </SelectTrigger>
@@ -235,7 +416,7 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
         </div>
 
         {/* Desktop: Tabs */}
-        <TabsList className="hidden md:grid w-full grid-cols-4">
+        <TabsList className="hidden md:grid w-full grid-cols-2">
           {tabs.map((tab) => (
             <TabsTrigger key={tab.value} value={tab.value}>
               {tab.label}
@@ -277,86 +458,275 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
                   {termins.map((termin, index) => (
                     <div
                       key={termin._id}
-                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                      className="p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                     >
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 text-primary font-semibold">
-                          {index + 1}
+                      <div className="space-y-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex items-center gap-4">
+                            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 text-primary font-semibold">
+                              {index + 1}
+                            </div>
+                            <div>
+                              <p className="font-medium">{termin.name}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {termin.value}
+                                {termin.valueType === "%" ? "%" : " IDR"} • Category: {termin.category}
+                              </p>
+                              {termin.note && (
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  Note: {termin.note}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-end gap-2">
+                            <Badge variant={getStatusBadgeVariant(termin.status)}>
+                              {termin.status || "Draft"}
+                            </Badge>
+                            <div className="flex items-center gap-2">
+                              {termin.status === "Draft" && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    setStatusConfirm({
+                                      terminId: termin._id,
+                                      terminName: termin.name || "Termin",
+                                      nextStatus: "Pending",
+                                    })
+                                  }
+                                >
+                                  Set Pending
+                                </Button>
+                              )}
+                              {termin.status === "Pending" && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    setStatusConfirm({
+                                      terminId: termin._id,
+                                      terminName: termin.name || "Termin",
+                                      nextStatus: "Sent",
+                                    })
+                                  }
+                                >
+                                  Set Sent
+                                </Button>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium">{termin.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {termin.value}
-                            {termin.valueType === "%" ? "%" : " IDR"} • Category: {termin.category}
-                          </p>
-                          {termin.note && (
-                            <p className="text-sm text-muted-foreground mt-1">
-                              Note: {termin.note}
-                            </p>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div className="rounded-md border bg-background p-3 space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-xs font-semibold text-muted-foreground">Invoice</p>
+                            <Input
+                              id={`termin-invoice-upload-${termin._id}`}
+                              type="file"
+                              accept=".pdf,application/pdf"
+                              className="hidden"
+                              onChange={(e) => handleTerminPdfChange(e, termin._id, "invoice")}
+                              disabled={
+                                !!terminUploadLoading[termin._id]?.invoice ||
+                                !!terminUploadLoading[termin._id]?.tax ||
+                                !!terminUploadLoading[termin._id]?.slip
+                              }
+                            />
+                            <Button
+                              asChild
+                              variant="outline"
+                              size="sm"
+                              disabled={
+                                !!terminUploadLoading[termin._id]?.invoice ||
+                                !!terminUploadLoading[termin._id]?.tax ||
+                                !!terminUploadLoading[termin._id]?.slip
+                              }
+                            >
+                              <label htmlFor={`termin-invoice-upload-${termin._id}`} className="cursor-pointer">
+                                <Upload className="h-4 w-4 mr-2" />
+                                {terminUploadLoading[termin._id]?.invoice
+                                  ? "Uploading..."
+                                  : termin.invoice?.url
+                                    ? "Replace"
+                                    : "Upload"}
+                              </label>
+                            </Button>
+                          </div>
+                          {termin.invoice?.url ? (
+                            <div className="flex items-center justify-between gap-2 text-xs">
+                              <span className="truncate text-muted-foreground">{termin.invoice.name}</span>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleView(termin.invoice.provider, termin.invoice.url, termin.invoice.name)}
+                                  title="Preview invoice"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleDownload(termin.invoice.provider, termin.invoice.url, termin.invoice.name)}
+                                  title="Download invoice"
+                                >
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">No invoice uploaded</p>
                           )}
                         </div>
+
+                        <div className="rounded-md border bg-background p-3 space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-xs font-semibold text-muted-foreground">Tax Files</p>
+                            <Input
+                              id={`termin-tax-upload-${termin._id}`}
+                              type="file"
+                              accept=".pdf,application/pdf"
+                              className="hidden"
+                              onChange={(e) => handleTerminPdfChange(e, termin._id, "tax")}
+                              disabled={
+                                !!terminUploadLoading[termin._id]?.invoice ||
+                                !!terminUploadLoading[termin._id]?.tax ||
+                                !!terminUploadLoading[termin._id]?.slip
+                              }
+                            />
+                            <Button
+                              asChild
+                              variant="outline"
+                              size="sm"
+                              disabled={
+                                !!terminUploadLoading[termin._id]?.invoice ||
+                                !!terminUploadLoading[termin._id]?.tax ||
+                                !!terminUploadLoading[termin._id]?.slip
+                              }
+                            >
+                              <label htmlFor={`termin-tax-upload-${termin._id}`} className="cursor-pointer">
+                                <Upload className="h-4 w-4 mr-2" />
+                                {terminUploadLoading[termin._id]?.tax ? "Uploading..." : "Upload"}
+                              </label>
+                            </Button>
+                          </div>
+
+                          {termin.taxes && termin.taxes.length > 0 ? (
+                            <div className="space-y-1">
+                              {termin.taxes.map((tax: any, taxIndex: number) => (
+                                <div key={tax._id} className="flex items-center justify-between gap-2 text-xs">
+                                  <span className="truncate text-muted-foreground">{tax.name}</span>
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => handleView(tax.provider, tax.url, tax.name)}
+                                      title={`Preview ${tax.name}`}
+                                    >
+                                      <Eye className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => handleDownload(tax.provider, tax.url, tax.name)}
+                                      title={`Download ${tax.name}`}
+                                    >
+                                      <Download className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() =>
+                                        setTaxDeleteConfirm({
+                                          terminId: termin._id,
+                                          taxIndex,
+                                          taxName: tax.name || "tax file",
+                                        })
+                                      }
+                                      title={`Delete ${tax.name}`}
+                                      disabled={terminTaxDeleting[`${termin._id}-${taxIndex}`]}
+                                    >
+                                      <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">No tax files uploaded</p>
+                          )}
+                        </div>
+
+                        <div className="rounded-md border bg-background p-3 space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-xs font-semibold text-muted-foreground">Pay Slip</p>
+                            <Input
+                              id={`termin-slip-upload-${termin._id}`}
+                              type="file"
+                              accept=".pdf,application/pdf"
+                              className="hidden"
+                              onChange={(e) => handleTerminPdfChange(e, termin._id, "slip")}
+                              disabled={
+                                !!terminUploadLoading[termin._id]?.invoice ||
+                                !!terminUploadLoading[termin._id]?.tax ||
+                                !!terminUploadLoading[termin._id]?.slip
+                              }
+                            />
+                            <Button
+                              asChild
+                              variant="outline"
+                              size="sm"
+                              disabled={
+                                !!terminUploadLoading[termin._id]?.invoice ||
+                                !!terminUploadLoading[termin._id]?.tax ||
+                                !!terminUploadLoading[termin._id]?.slip
+                              }
+                            >
+                              <label htmlFor={`termin-slip-upload-${termin._id}`} className="cursor-pointer">
+                                <Upload className="h-4 w-4 mr-2" />
+                                {terminUploadLoading[termin._id]?.slip
+                                  ? "Uploading..."
+                                  : termin.slip?.url
+                                    ? "Replace"
+                                    : "Upload"}
+                              </label>
+                            </Button>
+                          </div>
+
+                          {termin.slip?.url ? (
+                            <div className="flex items-center justify-between gap-2 text-xs">
+                              <span className="truncate text-muted-foreground">{termin.slip.name}</span>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleView(termin.slip.provider, termin.slip.url, termin.slip.name)}
+                                  title="Preview pay slip"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleDownload(termin.slip.provider, termin.slip.url, termin.slip.name)}
+                                  title="Download pay slip"
+                                >
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">No pay slip uploaded</p>
+                          )}
+                        </div>
+                        </div>
                       </div>
-                      <Badge 
-                        variant={
-                          termin.status === "Approved" ? "default" : 
-                          termin.status === "Rejected" ? "destructive" : 
-                          "secondary"
-                        }
-                      >
-                        {termin.status}
-                      </Badge>
                     </div>
                   ))}
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="invoice">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Invoices</CardTitle>
-                  <CardDescription>Project invoices and payment tracking</CardDescription>
-                </div>
-                <Button disabled>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Create Invoice
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <FileText className="h-16 w-16 text-muted-foreground/50 mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Under Construction</h3>
-                <p className="text-muted-foreground">This feature is currently being developed and will be available soon.</p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="tax">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Tax Invoices (Faktur Pajak)</CardTitle>
-                  <CardDescription>Upload and manage tax invoices</CardDescription>
-                </div>
-                <Button disabled>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Upload Tax Invoice
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <FileText className="h-16 w-16 text-muted-foreground/50 mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Under Construction</h3>
-                <p className="text-muted-foreground">This feature is currently being developed and will be available soon.</p>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -485,12 +855,14 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
 
       {/* Preview Dialog */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-w-4xl h-[80vh]">
-          <DialogHeader>
+        <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
+          <DialogHeader className="h-auto">
             <DialogTitle>File Preview</DialogTitle>
           </DialogHeader>
           {previewUrl && (
-            <iframe src={previewUrl} className="w-full h-full" title="File preview" />
+            <div className="flex-1 min-h-0">
+              <iframe src={previewUrl} className="w-full h-full" title="File preview" />
+            </div>
           )}
         </DialogContent>
       </Dialog>
@@ -516,6 +888,59 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={!!taxDeleteConfirm} onOpenChange={() => setTaxDeleteConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete tax file?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete "{taxDeleteConfirm?.taxName}". This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              disabled={
+                !!taxDeleteConfirm &&
+                !!terminTaxDeleting[`${taxDeleteConfirm.terminId}-${taxDeleteConfirm.taxIndex}`]
+              }
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteTaxFile}
+              disabled={
+                !!taxDeleteConfirm &&
+                !!terminTaxDeleting[`${taxDeleteConfirm.terminId}-${taxDeleteConfirm.taxIndex}`]
+              }
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {taxDeleteConfirm && terminTaxDeleting[`${taxDeleteConfirm.terminId}-${taxDeleteConfirm.taxIndex}`]
+                ? "Deleting..."
+                : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!statusConfirm} onOpenChange={() => setStatusConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Update termin status?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Change status of "{statusConfirm?.terminName}" to "{statusConfirm?.nextStatus}"?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={statusUpdating}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmUpdateStatus}
+              disabled={statusUpdating}
+            >
+              {statusUpdating ? "Updating..." : "Confirm"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
@@ -523,6 +948,4 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
 const tabs = [
   { value: "contract", label: "Contract Files" },
   { value: "termin", label: "Termin" },
-  { value: "invoice", label: "Invoice" },
-  { value: "tax", label: "Tax Invoice" },
 ]

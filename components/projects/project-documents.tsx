@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus, FolderIcon, Trash2, Upload, FileText, Download, ChevronRight, Home, MoreVertical, File, FolderOpen, Edit2, Loader2 } from 'lucide-react'
+import { Plus, FolderIcon, Trash2, Upload, FileText, Download, ChevronRight, Home, MoreVertical, FolderOpen, Edit2, Loader2, Eye, ChevronLeft } from 'lucide-react'
 import { foldersApi } from "@/lib/api/folders"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import {
@@ -51,6 +51,9 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
   const [renameDialogOpen, setRenameDialogOpen] = useState(false)
   const [renamingFolder, setRenamingFolder] = useState<Folder | null>(null)
   const [renameValue, setRenameValue] = useState("")
+  const [selectedItemKey, setSelectedItemKey] = useState<string | null>(null)
+  const [previewDialogOpen, setPreviewDialogOpen] = useState(false)
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [itemToDelete, setItemToDelete] = useState<{ type: 'folder' | 'file', item: any, index?: number } | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -140,6 +143,7 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
         }
         setCurrentFolder(folderData)
         setBreadcrumbs([...breadcrumbs, { name: folder.name, folder: folderData }])
+        setSelectedItemKey(null)
       }
     } catch (error) {
       console.error("Failed to load folder details:", error)
@@ -150,11 +154,13 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
     const newBreadcrumbs = breadcrumbs.slice(0, index + 1)
     setBreadcrumbs(newBreadcrumbs)
     setCurrentFolder(newBreadcrumbs[newBreadcrumbs.length - 1].folder)
+    setSelectedItemKey(null)
   }
 
   const navigateToRoot = () => {
     setBreadcrumbs([{ name: "Documents", folder: null }])
     setCurrentFolder(null)
+    setSelectedItemKey(null)
   }
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -290,7 +296,73 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
     }
   }
 
+  const getFileUrl = (provider: string, url: string) => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.gema-interior.com"
+    return `${baseUrl}/public/${provider}/${url}`
+  }
+
   const displayItems = currentFolder ? currentFolder.files || [] : folders
+  const isFileView = Boolean(currentFolder)
+
+  const getItemKey = (item: any, index: number) => {
+    if (item?._id) return String(item._id)
+    return `${isFileView ? 'file' : 'folder'}-${index}`
+  }
+
+  const getFilePreviewType = (file: any): 'pdf' | 'image' | 'unsupported' => {
+    const resolvedUrl = getFileUrl(file?.provider || '', file?.url || '')
+    const url = resolvedUrl || file?.url || ''
+    const cleanUrl = url.split('?')[0].split('#')[0].toLowerCase()
+
+    if (cleanUrl.endsWith('.pdf')) {
+      return 'pdf'
+    }
+
+    if (/\.(png|jpe?g|gif|webp|bmp|svg|avif)$/.test(cleanUrl)) {
+      return 'image'
+    }
+
+    return 'unsupported'
+  }
+
+  const openFilePreview = (index: number) => {
+    setPreviewIndex(index)
+    setPreviewDialogOpen(true)
+  }
+
+  const handleItemClick = (item: any, index: number) => {
+    setSelectedItemKey(getItemKey(item, index))
+  }
+
+  const handleItemDoubleClick = (item: any, index: number, isFolder: boolean) => {
+    if (isFolder) {
+      handleFolderClick(item)
+      return
+    }
+
+    openFilePreview(index)
+  }
+
+  const filesInCurrentFolder = isFileView ? displayItems : []
+  const selectedPreviewFile = previewIndex !== null ? filesInCurrentFolder[previewIndex] : null
+  const selectedPreviewFileUrl = selectedPreviewFile
+    ? getFileUrl(selectedPreviewFile.provider || '', selectedPreviewFile.url || '')
+    : ''
+  const previewType = selectedPreviewFile ? getFilePreviewType(selectedPreviewFile) : 'unsupported'
+  const canGoPrevious = previewIndex !== null && previewIndex > 0
+  const canGoNext = previewIndex !== null && previewIndex < filesInCurrentFolder.length - 1
+
+  const handlePreviewNavigation = (direction: 'previous' | 'next') => {
+    if (previewIndex === null) return
+
+    if (direction === 'previous' && canGoPrevious) {
+      setPreviewIndex(previewIndex - 1)
+    }
+
+    if (direction === 'next' && canGoNext) {
+      setPreviewIndex(previewIndex + 1)
+    }
+  }
 
   return (
     <div className="h-full flex flex-col">
@@ -386,18 +458,20 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
                 {displayItems.map((item: any, index: number) => {
                   const isFolder = !currentFolder
                   const fileCount = isFolder ? (item.list || item.files || []).length : 0
+                  const itemKey = getItemKey(item, index)
                   
                   return (
                     <div
-                      key={item._id || index}
-                      className="px-4 py-3 grid grid-cols-12 gap-4 items-center hover:bg-muted/50 cursor-pointer transition-colors"
-                      onClick={() => isFolder && handleFolderClick(item)}
+                      key={itemKey}
+                      className={`px-4 py-3 grid grid-cols-12 gap-4 items-center hover:bg-muted/50 cursor-pointer transition-colors ${selectedItemKey === itemKey ? 'bg-muted' : ''}`}
+                      onClick={() => handleItemClick(item, index)}
+                      onDoubleClick={() => handleItemDoubleClick(item, index, isFolder)}
                     >
                       <div className="col-span-6 flex items-center gap-3 min-w-0">
                         {isFolder ? (
-                          <FolderIcon className="h-5 w-5 text-primary flex-shrink-0" />
+                          <FolderIcon className="h-5 w-5 text-primary shrink-0" />
                         ) : (
-                          <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                          <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
                         )}
                         <span className="font-medium truncate">
                           {item.name || `File ${index + 1}`}
@@ -434,8 +508,23 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
                               </DropdownMenuItem>
                             )}
                             {!isFolder && (
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  openFilePreview(index)
+                                }}
+                              >
+                                <Eye className="h-4 w-4 mr-2" />
+                                Preview
+                              </DropdownMenuItem>
+                            )}
+                            {!isFolder && (
                               <DropdownMenuItem asChild>
-                                <a href={item.url} target="_blank" rel="noopener noreferrer">
+                                <a
+                                  href={getFileUrl(item.provider || '', item.url || '')}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
                                   <Download className="h-4 w-4 mr-2" />
                                   Download
                                 </a>
@@ -522,6 +611,96 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
               </Button>
               <Button onClick={handleRenameFolder}>Rename</Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={previewDialogOpen}
+        onOpenChange={(open) => {
+          setPreviewDialogOpen(open)
+          if (!open) {
+            setPreviewIndex(null)
+          }
+        }}
+      >
+        <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
+          <DialogHeader className="h-auto">
+            <DialogTitle className="truncate">
+              {selectedPreviewFile?.name || (previewIndex !== null ? `File ${previewIndex + 1}` : 'File Preview')}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="flex-1 min-h-0 overflow-hidden w-full relative">
+            {filesInCurrentFolder.length > 1 && (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handlePreviewNavigation('previous')}
+                  disabled={!canGoPrevious}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 z-10"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handlePreviewNavigation('next')}
+                  disabled={!canGoNext}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 z-10"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </>
+            )}
+
+            {!selectedPreviewFile ? (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                No file selected for preview.
+              </div>
+            ) : previewType === 'pdf' ? (
+              <object
+                data={selectedPreviewFileUrl}
+                type="application/pdf"
+                className="w-full h-full"
+                aria-label={selectedPreviewFile.name || 'PDF preview'}
+              >
+                <iframe
+                  src={`https://docs.google.com/viewer?url=${encodeURIComponent(selectedPreviewFileUrl)}&embedded=true`}
+                  className="w-full h-full border-0"
+                  title={selectedPreviewFile.name || 'PDF preview'}
+                >
+                  <p className="text-center text-muted-foreground py-8">
+                    Unable to display PDF. Please{" "}
+                    <a
+                      href={selectedPreviewFileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary underline"
+                    >
+                      download the file
+                    </a>{" "}
+                    to view.
+                  </p>
+                </iframe>
+              </object>
+            ) : previewType === 'image' ? (
+              <div className="w-full h-full flex items-center justify-center bg-muted/30 p-4 rounded-md">
+                <img
+                  src={selectedPreviewFileUrl}
+                  alt={selectedPreviewFile.name || 'Image Preview'}
+                  className="max-h-full max-w-full object-contain"
+                />
+              </div>
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center text-center border rounded-md p-6">
+                <p className="text-base font-medium">Preview is not available for this file type.</p>
+                <p className="text-sm text-muted-foreground mt-2">Please download the file to view its content.</p>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>

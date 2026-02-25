@@ -1,6 +1,7 @@
 import { apiRequest, type ApiResponse } from "./config"
 
 export interface Folder {
+  list: { name: string; url: string; provider: string; createdBy: string; _id: string; createdAt: string; updatedAt: string }[]
   _id: string
   name: string
   files: Array<{
@@ -26,13 +27,15 @@ export const createFolder = async (projectId: string, name: string): Promise<Api
 export const getFolders = async (
   projectId: string,
   params?: { page?: number; limit?: number },
-): Promise<ApiResponse<{ folders: Folder[]; total: number }>> => {
+): Promise<ApiResponse<{
+  list: Folder[]; folders: Folder[]; total: number 
+}>> => {
   const queryParams = new URLSearchParams()
   if (params?.page) queryParams.append("page", params.page.toString())
   if (params?.limit) queryParams.append("limit", params.limit.toString())
 
   const queryString = queryParams.toString()
-  return apiRequest<{ folders: Folder[]; total: number }>(
+  return apiRequest<{ list: Folder[]; folders: Folder[]; total: number }>(
     `/projects/${projectId}/folder${queryString ? `?${queryString}` : ""}`,
     { method: "GET" },
   )

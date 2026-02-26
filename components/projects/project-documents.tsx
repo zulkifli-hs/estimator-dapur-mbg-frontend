@@ -83,7 +83,7 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
       if (response.success && response.data) {
         setFolders(response.data)
 
-        const folderIdFromQuery = searchParams.get("folderId")
+        const folderIdFromQuery = searchParams.get("subtab")
         if (folderIdFromQuery) {
           await openFolderById(folderIdFromQuery, undefined, false)
         }
@@ -99,9 +99,9 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
     const params = new URLSearchParams(searchParams.toString())
 
     if (folderId) {
-      params.set("folderId", folderId)
+      params.set("subtab", folderId)
     } else {
-      params.delete("folderId")
+      params.delete("subtab")
     }
 
     const queryString = params.toString()

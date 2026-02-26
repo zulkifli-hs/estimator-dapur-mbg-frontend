@@ -594,7 +594,7 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
                     <div
                       key={itemKey}
                       className={`relative px-4 py-3 grid grid-cols-12 gap-4 items-center hover:bg-muted/50 cursor-pointer transition-colors ${selectedItemKey === itemKey ? 'bg-muted' : ''}`}
-                      title={isFolder ? 'Double-click to open this folder.' : 'Double-click to preview this file.'}
+                      // title={isFolder ? 'Double-click to open this folder.' : 'Double-click to preview this file.'}
                       onClick={() => handleItemClick(item, index)}
                       onDoubleClick={() => handleItemDoubleClick(item, index, isFolder)}
                       onMouseEnter={() => setHintItemKey(itemKey)}

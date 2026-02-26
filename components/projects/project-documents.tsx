@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Plus, FolderIcon, Trash2, Upload, FileText, Download, ChevronRight, Home, MoreVertical, FolderOpen, Edit2, Loader2, Eye, ChevronLeft, ArrowLeft } from 'lucide-react'
@@ -56,16 +56,26 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
   const [renamingFolder, setRenamingFolder] = useState<Folder | null>(null)
   const [renameValue, setRenameValue] = useState("")
   const [selectedItemKey, setSelectedItemKey] = useState<string | null>(null)
+  const [hintItemKey, setHintItemKey] = useState<string | null>(null)
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false)
   const [previewIndex, setPreviewIndex] = useState<number | null>(null)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [itemToDelete, setItemToDelete] = useState<{ type: 'folder' | 'file', item: any, index?: number } | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const hintTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { toast } = useToast()
 
   useEffect(() => {
     loadFolders()
   }, [projectId, searchParams])
+
+  useEffect(() => {
+    return () => {
+      if (hintTimeoutRef.current) {
+        clearTimeout(hintTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const loadFolders = async () => {
     try {
@@ -350,6 +360,64 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
     return `${isFileView ? 'file' : 'folder'}-${index}`
   }
 
+  const getCreatedByName = (createdBy: any) => {
+    if (!createdBy) return "-"
+    if (createdBy?.profile?.name) return createdBy.profile.name
+    if (typeof createdBy === "string") return createdBy
+    if (createdBy?.email) return createdBy.email
+    return "-"
+  }
+
+  const getProviderLabel = (provider?: string) => {
+    if (!provider) return "File"
+    return provider.toLowerCase() === "local" ? "local server" : provider
+  }
+
+  const getFileExtension = (item: any) => {
+    const source = (item?.name || item?.url || "").toLowerCase()
+    const cleaned = source.split("?")[0].split("#")[0]
+    const fileName = cleaned.split("/").pop() || ""
+    const lastDotIndex = fileName.lastIndexOf(".")
+
+    if (lastDotIndex === -1 || lastDotIndex === fileName.length - 1) {
+      return ""
+    }
+
+    return fileName.slice(lastDotIndex + 1)
+  }
+
+  const getItemKind = (item: any, isFolder: boolean) => {
+    if (isFolder) {
+      return "Folder"
+    }
+
+    const extension = getFileExtension(item)
+    if (!extension) {
+      return "File"
+    }
+
+    const imageKinds: Record<string, string> = {
+      jpg: "JPG Image",
+      jpeg: "JPEG Image",
+      png: "PNG Image",
+      webp: "WebP Image",
+      gif: "GIF Image",
+      bmp: "BMP Image",
+      svg: "SVG Image",
+      avif: "AVIF Image",
+    }
+
+    if (extension === "pdf") {
+      return "PDF Document"
+    }
+
+    if (imageKinds[extension]) {
+      return imageKinds[extension]
+    }
+
+    return `${extension.toUpperCase()} File`
+  }
+
   const getFilePreviewType = (file: any): 'pdf' | 'image' | 'unsupported' => {
     const resolvedUrl = getFileUrl(file?.provider || '', file?.url || '')
     const url = resolvedUrl || file?.url || ''
@@ -371,8 +439,22 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
     setPreviewDialogOpen(true)
   }
 
+  const showInteractionHint = (itemKey: string) => {
+    setHintItemKey(itemKey)
+
+    if (hintTimeoutRef.current) {
+      clearTimeout(hintTimeoutRef.current)
+    }
+
+    hintTimeoutRef.current = setTimeout(() => {
+      setHintItemKey((current) => (current === itemKey ? null : current))
+    }, 1800)
+  }
+
   const handleItemClick = (item: any, index: number) => {
-    setSelectedItemKey(getItemKey(item, index))
+    const itemKey = getItemKey(item, index)
+    setSelectedItemKey(itemKey)
+    showInteractionHint(itemKey)
   }
 
   const handleItemDoubleClick = (item: any, index: number, isFolder: boolean) => {
@@ -495,9 +577,10 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
           ) : (
             <div className="overflow-y-auto h-full">
               <div className="sticky top-0 bg-muted/50 border-b px-4 py-3 grid grid-cols-12 gap-4 text-sm font-medium">
-                <div className="col-span-6">Name</div>
-                <div className="col-span-2">Type</div>
-                <div className="col-span-3">Modified</div>
+                <div className="col-span-4">Name</div>
+                <div className="col-span-2">Kind</div>
+                <div className="col-span-2">{currentFolder ? "File Location" : "Total Files"}</div>
+                <div className="col-span-3">{currentFolder ? "Uploaded" : "Created"}</div>
                 <div className="col-span-1 text-right">Actions</div>
               </div>
 
@@ -510,34 +593,50 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
                   return (
                     <div
                       key={itemKey}
-                      className={`px-4 py-3 grid grid-cols-12 gap-4 items-center hover:bg-muted/50 cursor-pointer transition-colors ${selectedItemKey === itemKey ? 'bg-muted' : ''}`}
+                      className={`relative px-4 py-3 grid grid-cols-12 gap-4 items-center hover:bg-muted/50 cursor-pointer transition-colors ${selectedItemKey === itemKey ? 'bg-muted' : ''}`}
+                      title={isFolder ? 'Double-click to open this folder.' : 'Double-click to preview this file.'}
                       onClick={() => handleItemClick(item, index)}
                       onDoubleClick={() => handleItemDoubleClick(item, index, isFolder)}
+                      onMouseEnter={() => setHintItemKey(itemKey)}
+                      onMouseLeave={() => setHintItemKey((current) => (current === itemKey ? null : current))}
                     >
-                      <div className="col-span-6 flex items-center gap-3 min-w-0">
+                      {hintItemKey === itemKey && (
+                        <div className="absolute right-0 -translate-x-1/2 top-1/2 -translate-y-1/2 z-20 rounded-md bg-muted-foreground text-background text-xs px-2 py-1 pointer-events-none shadow-sm whitespace-nowrap">
+                          {isFolder ? 'Double-click to open this folder.' : 'Double-click to preview this file.'}
+                        </div>
+                      )}
+
+                      <div className="col-span-4 flex items-center gap-3 min-w-0">
                         {isFolder ? (
                           <FolderIcon className="h-5 w-5 text-primary shrink-0" />
                         ) : (
                           <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
                         )}
-                        <span className="font-medium truncate">
+                        <span className="font-medium truncate block">
                           {item.name || `File ${index + 1}`}
                         </span>
                       </div>
 
+                      <div className="col-span-2 text-sm text-muted-foreground truncate">
+                        {getItemKind(item, isFolder)}
+                      </div>
+
                       <div className="col-span-2 text-sm text-muted-foreground">
-                        {isFolder ? `${fileCount} file${fileCount !== 1 ? 's' : ''}` : item.provider || 'File'}
+                        {isFolder ? `${fileCount} file${fileCount !== 1 ? 's' : ''}` : getProviderLabel(item.provider)}
                       </div>
 
                       <div className="col-span-3 text-sm text-muted-foreground">
-                        {item.createdAt 
-                          ? new Date(item.createdAt).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric'
-                            })
-                          : '-'
-                        }
+                        <div className="truncate">By {getCreatedByName(item.createdBy)}</div>
+                        <div>
+                          {item.createdAt 
+                            ? new Date(item.createdAt).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric'
+                              })
+                            : '-'
+                          }
+                        </div>
                       </div>
 
                       <div className="col-span-1 flex items-center justify-end">

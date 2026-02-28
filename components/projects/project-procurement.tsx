@@ -52,6 +52,8 @@ interface BOQItem {
   type?: string
   code?: string
   spesification?: string
+  startDate?: string
+  endDate?: string
   _source?: string
   _category?: string
   _boqId?: string
@@ -67,6 +69,35 @@ interface GroupedItems {
   workshop: BOQItem[]
   internal: BOQItem[]
   others: BOQItem[]
+}
+
+const editableTagOptions = [
+  { value: "Vendor", label: "Vendor" },
+  { value: "MEP", label: "MEP" },
+  { value: "Workshop", label: "Workshop" },
+  { value: "internal", label: "Internal" },
+] as const
+
+type EditableTagOption = (typeof editableTagOptions)[number]["value"]
+
+const normalizeTag = (tag: string) => tag.trim().toLowerCase()
+
+const getSelectedTagValue = (tags?: string[]): EditableTagOption | "custom" | "none" => {
+  const firstTag = tags?.[0]?.trim()
+  if (!firstTag) return "none"
+
+  const matchedOption = editableTagOptions.find((option) => normalizeTag(option.value) === normalizeTag(firstTag))
+  if (matchedOption) return matchedOption.value
+
+  return "custom"
+}
+
+const getCustomTagValue = (tags?: string[]) => {
+  const firstTag = tags?.[0]?.trim()
+  if (!firstTag) return ""
+
+  const isKnownTag = editableTagOptions.some((option) => normalizeTag(option.value) === normalizeTag(firstTag))
+  return isKnownTag ? "" : firstTag
 }
 
 export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
@@ -321,6 +352,28 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
       delete cleanItem._itemIndex
       delete cleanItem._categoryIndex
 
+      if (cleanItem.tags) {
+        const sanitizedTags = cleanItem.tags.map((tag) => tag.trim()).filter(Boolean)
+        cleanItem.tags = sanitizedTags.length > 0 ? sanitizedTags : undefined
+      }
+
+      // Normalize a date string to YYYY-MM-DD (handles ISO strings from API)
+      const normalizeDate = (date?: string): string | undefined => {
+        if (!date) return undefined
+        try {
+          return new Date(date).toISOString().split("T")[0]
+        } catch {
+          return undefined
+        }
+      }
+
+      // Normalize dates on an item before sending to API
+      const normalizeItemDates = (item: any) => ({
+        ...item,
+        startDate: normalizeDate(item.startDate) || undefined,
+        endDate: normalizeDate(item.endDate) || undefined,
+      })
+
       // Update the specific item in the BOQ structure
       if (editingItem._section === "preliminary") {
         updatedBOQ.preliminary[editingItem._itemIndex!] = cleanItem
@@ -332,12 +385,21 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
         updatedBOQ.mechanicalElectrical[editingItem._categoryIndex!].products[editingItem._itemIndex!] = cleanItem
       }
 
-      // Prepare the payload
+      // Prepare the payload — normalize ALL item dates to YYYY-MM-DD before sending
       const payload = {
-        preliminary: updatedBOQ.preliminary || [],
-        fittingOut: updatedBOQ.fittingOut || [],
-        furnitureWork: updatedBOQ.furnitureWork || [],
-        mechanicalElectrical: updatedBOQ.mechanicalElectrical || [],
+        preliminary: (updatedBOQ.preliminary || []).map(normalizeItemDates),
+        fittingOut: (updatedBOQ.fittingOut || []).map((cat: any) => ({
+          ...cat,
+          products: (cat.products || []).map(normalizeItemDates),
+        })),
+        furnitureWork: (updatedBOQ.furnitureWork || []).map((cat: any) => ({
+          ...cat,
+          products: (cat.products || []).map(normalizeItemDates),
+        })),
+        mechanicalElectrical: (updatedBOQ.mechanicalElectrical || []).map((cat: any) => ({
+          ...cat,
+          products: (cat.products || []).map(normalizeItemDates),
+        })),
       }
 
       // Call the update API
@@ -371,7 +433,7 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
     }
   }
 
-  const renderItemsTable = (items: BOQItem[], title: string) => {
+  const renderItemsTable = (items: BOQItem[], title: string, settings?: { showTags?: boolean }) => {
     if (loading) {
       return (
         <div className="flex items-center justify-center py-12">
@@ -395,6 +457,7 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
             <TableRow>
               <TableHead className="w-12">No</TableHead>
               <TableHead className="min-w-50">Item Name</TableHead>
+              {settings?.showTags && <TableHead>Tags</TableHead>}
               <TableHead>Source</TableHead>
               <TableHead className="text-center">Image</TableHead>
               <TableHead className="text-center">Approval</TableHead>
@@ -403,7 +466,7 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
               <TableHead>Type</TableHead>
               <TableHead>Finishing</TableHead>
               <TableHead>Specification</TableHead>
-              <TableHead>Note</TableHead>
+              {/* <TableHead>Note</TableHead> */}
               <TableHead className="text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -411,7 +474,18 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
             {items.map((item, index) => (
               <TableRow key={`${item._source}-${item.name}-${index}`}>
                 <TableCell>{index + 1}</TableCell>
-                <TableCell className="font-medium">{item.name || "-"}</TableCell>
+                <TableCell className="font-medium whitespace-normal wrap-break-word">{item.name || "-"}</TableCell>
+                {settings?.showTags && (
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {item.tags?.map((tag, i) => (
+                        <Badge key={i} variant="outline" className="text-xs">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </TableCell>
+                )}
                 <TableCell>
                   <Badge variant={item._source?.includes("Main") ? "default" : "secondary"} className="whitespace-nowrap">
                     {item._source || "-"}
@@ -517,11 +591,11 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
                     {item.spesification || "-"}
                   </div>
                 </TableCell>
-                <TableCell className="max-w-50">
+                {/* <TableCell className="max-w-50">
                   <div className="truncate" title={item.note || "-"}>
                     {item.note || "-"}
                   </div>
-                </TableCell>
+                </TableCell> */}
                 <TableCell className="text-center">
                   <Button
                     variant="ghost"
@@ -693,7 +767,7 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
                 )}
               </div>
               {/* Items Table */}
-              {renderItemsTable(getFilteredOthersItems(), "Others")}
+              {renderItemsTable(getFilteredOthersItems(), "Others", { showTags: true })}
             </CardContent>
           </Card>
         </TabsContent>
@@ -757,7 +831,7 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
                 />
               </div>
 
-              <div className="space-y-2">
+              {/* <div className="space-y-2">
                 <Label htmlFor="note">Note</Label>
                 <Textarea
                   id="note"
@@ -765,7 +839,53 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
                   onChange={(e) => setEditingItem({ ...editingItem, note: e.target.value })}
                   rows={2}
                 />
+              </div> */}
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-item-tag">Tag</Label>
+                <Select
+                  value={getSelectedTagValue(editingItem.tags)}
+                  onValueChange={(value: EditableTagOption | "custom" | "none") => {
+                    if (value === "none") {
+                      setEditingItem({ ...editingItem, tags: [] })
+                      return
+                    }
+
+                    if (value === "custom") {
+                      const existingCustomTag = getCustomTagValue(editingItem.tags)
+                      setEditingItem({ ...editingItem, tags: [existingCustomTag] })
+                      return
+                    }
+
+                    setEditingItem({ ...editingItem, tags: [value] })
+                  }}
+                >
+                  <SelectTrigger id="edit-item-tag">
+                    <SelectValue placeholder="Select a tag" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No Tag</SelectItem>
+                    {editableTagOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="custom">Custom</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+
+              {(getSelectedTagValue(editingItem.tags) === "custom" || (getSelectedTagValue(editingItem.tags) === "none" && editingItem.tags && editingItem.tags.length === 1 && editingItem.tags[0] === "")) && (
+                <div className="space-y-2">
+                  <Label htmlFor="edit-item-custom-tag">Custom Tag</Label>
+                  <Input
+                    id="edit-item-custom-tag"
+                    value={getCustomTagValue(editingItem.tags)}
+                    onChange={(e) => setEditingItem({ ...editingItem, tags: [e.target.value] })}
+                    placeholder="Type custom tag"
+                  />
+                </div>
+              )}
 
               <div className="space-y-4 border-t pt-4">
                 <h4 className="font-semibold">Image</h4>
@@ -773,7 +893,7 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
                   <div className="flex items-center gap-4">
                     <div className="flex-1">
                       <Label htmlFor="imageFile" className="cursor-pointer">
-                        <div className="flex items-center gap-2 px-4 py-2 border border-dashed rounded-md hover:bg-accent transition-colors">
+                        <div className="flex items-center gap-2 px-4 py-2 border border-dashed rounded-md hover:bg-primary hover:text-primary-foreground transition-colors">
                           {uploadingImage ? (
                             <>
                               <Loader2 className="h-4 w-4 animate-spin" />
@@ -847,7 +967,7 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
                   <div className="flex items-center gap-4">
                     <div className="flex-1">
                       <Label htmlFor="approvalFile" className="cursor-pointer">
-                        <div className="flex items-center gap-2 px-4 py-2 border border-dashed rounded-md hover:bg-accent transition-colors">
+                        <div className="flex items-center gap-2 px-4 py-2 border border-dashed rounded-md hover:bg-primary hover:text-primary-foreground transition-colors">
                           {uploadingApproval ? (
                             <>
                               <Loader2 className="h-4 w-4 animate-spin" />
@@ -936,7 +1056,7 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
                   <div className="flex items-center gap-4">
                     <div className="flex-1">
                       <Label htmlFor="noteImageFile" className="cursor-pointer">
-                        <div className="flex items-center gap-2 px-4 py-2 border border-dashed rounded-md hover:bg-accent transition-colors">
+                        <div className="flex items-center gap-2 px-4 py-2 border border-dashed rounded-md hover:bg-primary hover:text-primary-foreground transition-colors">
                           {uploadingNoteImage ? (
                             <>
                               <Loader2 className="h-4 w-4 animate-spin" />

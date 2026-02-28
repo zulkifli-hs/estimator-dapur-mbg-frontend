@@ -465,7 +465,7 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
               <TableHead>Type</TableHead>
               <TableHead>Finishing</TableHead>
               <TableHead>Specification</TableHead>
-              <TableHead>Note</TableHead>
+              {/* <TableHead>Note</TableHead> */}
               <TableHead className="text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -579,11 +579,11 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
                     {item.spesification || "-"}
                   </div>
                 </TableCell>
-                <TableCell className="max-w-50">
+                {/* <TableCell className="max-w-50">
                   <div className="truncate" title={item.note || "-"}>
                     {item.note || "-"}
                   </div>
-                </TableCell>
+                </TableCell> */}
                 <TableCell className="text-center">
                   <Button
                     variant="ghost"
@@ -819,7 +819,7 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
                 />
               </div>
 
-              <div className="space-y-2">
+              {/* <div className="space-y-2">
                 <Label htmlFor="note">Note</Label>
                 <Textarea
                   id="note"
@@ -827,7 +827,7 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
                   onChange={(e) => setEditingItem({ ...editingItem, note: e.target.value })}
                   rows={2}
                 />
-              </div>
+              </div> */}
 
               <div className="space-y-2">
                 <Label htmlFor="edit-item-tag">Tag</Label>
@@ -863,7 +863,7 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
                 </Select>
               </div>
 
-              {getSelectedTagValue(editingItem.tags) === "custom" && (
+              {(getSelectedTagValue(editingItem.tags) === "custom" || (getSelectedTagValue(editingItem.tags) === "none" && editingItem.tags && editingItem.tags.length === 1 && editingItem.tags[0] === "")) && (
                 <div className="space-y-2">
                   <Label htmlFor="edit-item-custom-tag">Custom Tag</Label>
                   <Input

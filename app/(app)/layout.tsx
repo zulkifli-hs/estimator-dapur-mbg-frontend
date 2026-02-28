@@ -11,10 +11,23 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   useEffect(() => {
     checkAuth()
   }, [])
+
+  useEffect(() => {
+    const savedSidebarState = localStorage.getItem("app_sidebar_collapsed")
+    if (savedSidebarState === "true") {
+      setSidebarCollapsed(true)
+    }
+  }, [])
+
+  const handleSidebarCollapse = (collapsed: boolean) => {
+    setSidebarCollapsed(collapsed)
+    localStorage.setItem("app_sidebar_collapsed", String(collapsed))
+  }
 
   const checkAuth = async () => {
     try {
@@ -56,7 +69,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-screen overflow-hidden">
       <div className="hidden lg:flex">
-        <AppSidebar />
+        <AppSidebar collapsed={sidebarCollapsed} onCollapse={handleSidebarCollapse} />
       </div>
       <div className="flex flex-1 flex-col overflow-hidden">
         <AppHeader user={user} mobileMenuContent={<AppSidebar />} />

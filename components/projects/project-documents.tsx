@@ -1,9 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus, FolderIcon, Trash2, Upload, FileText, Download, ChevronRight, Home, MoreVertical, File, FolderOpen, Edit2, Loader2 } from 'lucide-react'
+import { Plus, FolderIcon, Trash2, Upload, FileText, Download, ChevronRight, Home, MoreVertical, FolderOpen, Edit2, Loader2, Eye, ChevronLeft, ArrowLeft } from 'lucide-react'
 import { foldersApi } from "@/lib/api/folders"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import {
@@ -26,6 +26,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 
 interface ProjectDocumentsProps {
   projectId: string
@@ -39,6 +40,9 @@ interface Folder {
 }
 
 export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [folders, setFolders] = useState<Folder[]>([])
   const [currentFolder, setCurrentFolder] = useState<Folder | null>(null)
   const [breadcrumbs, setBreadcrumbs] = useState<{ name: string; folder: Folder | null }[]>([
@@ -51,26 +55,57 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
   const [renameDialogOpen, setRenameDialogOpen] = useState(false)
   const [renamingFolder, setRenamingFolder] = useState<Folder | null>(null)
   const [renameValue, setRenameValue] = useState("")
+  const [selectedItemKey, setSelectedItemKey] = useState<string | null>(null)
+  const [hintItemKey, setHintItemKey] = useState<string | null>(null)
+  const [previewDialogOpen, setPreviewDialogOpen] = useState(false)
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [itemToDelete, setItemToDelete] = useState<{ type: 'folder' | 'file', item: any, index?: number } | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const hintTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { toast } = useToast()
 
   useEffect(() => {
     loadFolders()
-  }, [projectId])
+  }, [projectId, searchParams])
+
+  useEffect(() => {
+    return () => {
+      if (hintTimeoutRef.current) {
+        clearTimeout(hintTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const loadFolders = async () => {
     try {
       const response = await foldersApi.getByProject(projectId)
       if (response.success && response.data) {
         setFolders(response.data)
+
+        const folderIdFromQuery = searchParams.get("subtab")
+        if (folderIdFromQuery) {
+          await openFolderById(folderIdFromQuery, undefined, false)
+        }
       }
     } catch (error) {
       console.error("Failed to load folders:", error)
     } finally {
       setLoading(false)
     }
+  }
+
+  const updateFolderQuery = (folderId?: string) => {
+    const params = new URLSearchParams(searchParams.toString())
+
+    if (folderId) {
+      params.set("subtab", folderId)
+    } else {
+      params.delete("subtab")
+    }
+
+    const queryString = params.toString()
+    router.replace(queryString ? `${pathname}?${queryString}` : pathname, { scroll: false })
   }
 
   const handleCreateFolder = async () => {
@@ -130,31 +165,53 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
     }
   }
 
-  const handleFolderClick = async (folder: Folder) => {
+  const openFolderById = async (folderId: string, folderName?: string, updateQuery: boolean = true) => {
     try {
-      const response = await foldersApi.getFolder(projectId, folder._id)
+      const response = await foldersApi.getFolder(projectId, folderId)
       if (response.success && response.data) {
         const folderData = {
           ...response.data,
           files: response.data.list || response.data.files || []
         }
         setCurrentFolder(folderData)
-        setBreadcrumbs([...breadcrumbs, { name: folder.name, folder: folderData }])
+        setBreadcrumbs([
+          { name: "Documents", folder: null },
+          { name: folderName || response.data.name || "Folder", folder: folderData }
+        ])
+        setSelectedItemKey(null)
+
+        if (updateQuery) {
+          updateFolderQuery(folderId)
+        }
       }
     } catch (error) {
       console.error("Failed to load folder details:", error)
     }
   }
 
+  const handleFolderClick = async (folder: Folder) => {
+    await openFolderById(folder._id, folder.name, true)
+  }
+
   const navigateToBreadcrumb = (index: number) => {
     const newBreadcrumbs = breadcrumbs.slice(0, index + 1)
     setBreadcrumbs(newBreadcrumbs)
-    setCurrentFolder(newBreadcrumbs[newBreadcrumbs.length - 1].folder)
+    const destinationFolder = newBreadcrumbs[newBreadcrumbs.length - 1].folder
+    setCurrentFolder(destinationFolder)
+    setSelectedItemKey(null)
+
+    if (destinationFolder?._id) {
+      updateFolderQuery(destinationFolder._id)
+    } else {
+      updateFolderQuery()
+    }
   }
 
   const navigateToRoot = () => {
     setBreadcrumbs([{ name: "Documents", folder: null }])
     setCurrentFolder(null)
+    setSelectedItemKey(null)
+    updateFolderQuery()
   }
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -290,7 +347,145 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
     }
   }
 
+  const getFileUrl = (provider: string, url: string) => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.gema-interior.com"
+    return `${baseUrl}/public/${provider}/${url}`
+  }
+
   const displayItems = currentFolder ? currentFolder.files || [] : folders
+  const isFileView = Boolean(currentFolder)
+
+  const getItemKey = (item: any, index: number) => {
+    if (item?._id) return String(item._id)
+    return `${isFileView ? 'file' : 'folder'}-${index}`
+  }
+
+  const getCreatedByName = (createdBy: any) => {
+    if (!createdBy) return "-"
+    if (createdBy?.profile?.name) return createdBy.profile.name
+    if (typeof createdBy === "string") return createdBy
+    if (createdBy?.email) return createdBy.email
+    return "-"
+  }
+
+  const getProviderLabel = (provider?: string) => {
+    if (!provider) return "File"
+    return provider.toLowerCase() === "local" ? "local server" : provider
+  }
+
+  const getFileExtension = (item: any) => {
+    const source = (item?.name || item?.url || "").toLowerCase()
+    const cleaned = source.split("?")[0].split("#")[0]
+    const fileName = cleaned.split("/").pop() || ""
+    const lastDotIndex = fileName.lastIndexOf(".")
+
+    if (lastDotIndex === -1 || lastDotIndex === fileName.length - 1) {
+      return ""
+    }
+
+    return fileName.slice(lastDotIndex + 1)
+  }
+
+  const getItemKind = (item: any, isFolder: boolean) => {
+    if (isFolder) {
+      return "Folder"
+    }
+
+    const extension = getFileExtension(item)
+    if (!extension) {
+      return "File"
+    }
+
+    const imageKinds: Record<string, string> = {
+      jpg: "JPG Image",
+      jpeg: "JPEG Image",
+      png: "PNG Image",
+      webp: "WebP Image",
+      gif: "GIF Image",
+      bmp: "BMP Image",
+      svg: "SVG Image",
+      avif: "AVIF Image",
+    }
+
+    if (extension === "pdf") {
+      return "PDF Document"
+    }
+
+    if (imageKinds[extension]) {
+      return imageKinds[extension]
+    }
+
+    return `${extension.toUpperCase()} File`
+  }
+
+  const getFilePreviewType = (file: any): 'pdf' | 'image' | 'unsupported' => {
+    const resolvedUrl = getFileUrl(file?.provider || '', file?.url || '')
+    const url = resolvedUrl || file?.url || ''
+    const cleanUrl = url.split('?')[0].split('#')[0].toLowerCase()
+
+    if (cleanUrl.endsWith('.pdf')) {
+      return 'pdf'
+    }
+
+    if (/\.(png|jpe?g|gif|webp|bmp|svg|avif)$/.test(cleanUrl)) {
+      return 'image'
+    }
+
+    return 'unsupported'
+  }
+
+  const openFilePreview = (index: number) => {
+    setPreviewIndex(index)
+    setPreviewDialogOpen(true)
+  }
+
+  const showInteractionHint = (itemKey: string) => {
+    setHintItemKey(itemKey)
+
+    if (hintTimeoutRef.current) {
+      clearTimeout(hintTimeoutRef.current)
+    }
+
+    hintTimeoutRef.current = setTimeout(() => {
+      setHintItemKey((current) => (current === itemKey ? null : current))
+    }, 1800)
+  }
+
+  const handleItemClick = (item: any, index: number) => {
+    const itemKey = getItemKey(item, index)
+    setSelectedItemKey(itemKey)
+    showInteractionHint(itemKey)
+  }
+
+  const handleItemDoubleClick = (item: any, index: number, isFolder: boolean) => {
+    if (isFolder) {
+      handleFolderClick(item)
+      return
+    }
+
+    openFilePreview(index)
+  }
+
+  const filesInCurrentFolder = isFileView ? displayItems : []
+  const selectedPreviewFile = previewIndex !== null ? filesInCurrentFolder[previewIndex] : null
+  const selectedPreviewFileUrl = selectedPreviewFile
+    ? getFileUrl(selectedPreviewFile.provider || '', selectedPreviewFile.url || '')
+    : ''
+  const previewType = selectedPreviewFile ? getFilePreviewType(selectedPreviewFile) : 'unsupported'
+  const canGoPrevious = previewIndex !== null && previewIndex > 0
+  const canGoNext = previewIndex !== null && previewIndex < filesInCurrentFolder.length - 1
+
+  const handlePreviewNavigation = (direction: 'previous' | 'next') => {
+    if (previewIndex === null) return
+
+    if (direction === 'previous' && canGoPrevious) {
+      setPreviewIndex(previewIndex - 1)
+    }
+
+    if (direction === 'next' && canGoNext) {
+      setPreviewIndex(previewIndex + 1)
+    }
+  }
 
   return (
     <div className="h-full flex flex-col">
@@ -330,6 +525,10 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
             <div className="flex items-center gap-2">
               {currentFolder && (
                 <>
+                  <Button size="sm" variant="outline" onClick={navigateToRoot}>
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back
+                  </Button>
                   <input
                     type="file"
                     id="file-upload-toolbar"
@@ -345,10 +544,12 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
                   </Button>
                 </>
               )}
-              <Button size="sm" onClick={() => setCreateDialogOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                New Folder
-              </Button>
+              {!currentFolder && (
+                <Button size="sm" onClick={() => setCreateDialogOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Folder
+                </Button>
+              )}
             </div>
           </div>
         </CardContent>
@@ -376,9 +577,10 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
           ) : (
             <div className="overflow-y-auto h-full">
               <div className="sticky top-0 bg-muted/50 border-b px-4 py-3 grid grid-cols-12 gap-4 text-sm font-medium">
-                <div className="col-span-6">Name</div>
-                <div className="col-span-2">Type</div>
-                <div className="col-span-3">Modified</div>
+                <div className="col-span-4">Name</div>
+                <div className="col-span-2">Kind</div>
+                <div className="col-span-2">{currentFolder ? "File Location" : "Total Files"}</div>
+                <div className="col-span-3">{currentFolder ? "Uploaded" : "Created"}</div>
                 <div className="col-span-1 text-right">Actions</div>
               </div>
 
@@ -386,37 +588,55 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
                 {displayItems.map((item: any, index: number) => {
                   const isFolder = !currentFolder
                   const fileCount = isFolder ? (item.list || item.files || []).length : 0
+                  const itemKey = getItemKey(item, index)
                   
                   return (
                     <div
-                      key={item._id || index}
-                      className="px-4 py-3 grid grid-cols-12 gap-4 items-center hover:bg-muted/50 cursor-pointer transition-colors"
-                      onClick={() => isFolder && handleFolderClick(item)}
+                      key={itemKey}
+                      className={`relative px-4 py-3 grid grid-cols-12 gap-4 items-center hover:bg-muted/50 cursor-pointer transition-colors ${selectedItemKey === itemKey ? 'bg-muted' : ''}`}
+                      // title={isFolder ? 'Double-click to open this folder.' : 'Double-click to preview this file.'}
+                      onClick={() => handleItemClick(item, index)}
+                      onDoubleClick={() => handleItemDoubleClick(item, index, isFolder)}
+                      onMouseEnter={() => setHintItemKey(itemKey)}
+                      onMouseLeave={() => setHintItemKey((current) => (current === itemKey ? null : current))}
                     >
-                      <div className="col-span-6 flex items-center gap-3 min-w-0">
+                      {hintItemKey === itemKey && (
+                        <div className="absolute right-0 -translate-x-1/2 top-1/2 -translate-y-1/2 z-20 rounded-md bg-muted-foreground text-background text-xs px-2 py-1 pointer-events-none shadow-sm whitespace-nowrap">
+                          {isFolder ? 'Double-click to open this folder.' : 'Double-click to preview this file.'}
+                        </div>
+                      )}
+
+                      <div className="col-span-4 flex items-center gap-3 min-w-0">
                         {isFolder ? (
-                          <FolderIcon className="h-5 w-5 text-primary flex-shrink-0" />
+                          <FolderIcon className="h-5 w-5 text-primary shrink-0" />
                         ) : (
-                          <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                          <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
                         )}
-                        <span className="font-medium truncate">
+                        <span className="font-medium truncate block">
                           {item.name || `File ${index + 1}`}
                         </span>
                       </div>
 
+                      <div className="col-span-2 text-sm text-muted-foreground truncate">
+                        {getItemKind(item, isFolder)}
+                      </div>
+
                       <div className="col-span-2 text-sm text-muted-foreground">
-                        {isFolder ? `${fileCount} file${fileCount !== 1 ? 's' : ''}` : item.provider || 'File'}
+                        {isFolder ? `${fileCount} file${fileCount !== 1 ? 's' : ''}` : getProviderLabel(item.provider)}
                       </div>
 
                       <div className="col-span-3 text-sm text-muted-foreground">
-                        {item.createdAt 
-                          ? new Date(item.createdAt).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric'
-                            })
-                          : '-'
-                        }
+                        <div className="truncate">By {getCreatedByName(item.createdBy)}</div>
+                        <div>
+                          {item.createdAt 
+                            ? new Date(item.createdAt).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric'
+                              })
+                            : '-'
+                          }
+                        </div>
                       </div>
 
                       <div className="col-span-1 flex items-center justify-end">
@@ -434,8 +654,23 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
                               </DropdownMenuItem>
                             )}
                             {!isFolder && (
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  openFilePreview(index)
+                                }}
+                              >
+                                <Eye className="h-4 w-4 mr-2" />
+                                Preview
+                              </DropdownMenuItem>
+                            )}
+                            {!isFolder && (
                               <DropdownMenuItem asChild>
-                                <a href={item.url} target="_blank" rel="noopener noreferrer">
+                                <a
+                                  href={getFileUrl(item.provider || '', item.url || '')}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
                                   <Download className="h-4 w-4 mr-2" />
                                   Download
                                 </a>
@@ -522,6 +757,96 @@ export function ProjectDocuments({ projectId }: ProjectDocumentsProps) {
               </Button>
               <Button onClick={handleRenameFolder}>Rename</Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={previewDialogOpen}
+        onOpenChange={(open) => {
+          setPreviewDialogOpen(open)
+          if (!open) {
+            setPreviewIndex(null)
+          }
+        }}
+      >
+        <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
+          <DialogHeader className="h-auto">
+            <DialogTitle className="truncate">
+              {selectedPreviewFile?.name || (previewIndex !== null ? `File ${previewIndex + 1}` : 'File Preview')}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="flex-1 min-h-0 overflow-hidden w-full relative">
+            {filesInCurrentFolder.length > 1 && (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handlePreviewNavigation('previous')}
+                  disabled={!canGoPrevious}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 z-10"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handlePreviewNavigation('next')}
+                  disabled={!canGoNext}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 z-10"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </>
+            )}
+
+            {!selectedPreviewFile ? (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                No file selected for preview.
+              </div>
+            ) : previewType === 'pdf' ? (
+              <object
+                data={selectedPreviewFileUrl}
+                type="application/pdf"
+                className="w-full h-full"
+                aria-label={selectedPreviewFile.name || 'PDF preview'}
+              >
+                <iframe
+                  src={`https://docs.google.com/viewer?url=${encodeURIComponent(selectedPreviewFileUrl)}&embedded=true`}
+                  className="w-full h-full border-0"
+                  title={selectedPreviewFile.name || 'PDF preview'}
+                >
+                  <p className="text-center text-muted-foreground py-8">
+                    Unable to display PDF. Please{" "}
+                    <a
+                      href={selectedPreviewFileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary underline"
+                    >
+                      download the file
+                    </a>{" "}
+                    to view.
+                  </p>
+                </iframe>
+              </object>
+            ) : previewType === 'image' ? (
+              <div className="w-full h-full flex items-center justify-center bg-muted/30 p-4 rounded-md">
+                <img
+                  src={selectedPreviewFileUrl}
+                  alt={selectedPreviewFile.name || 'Image Preview'}
+                  className="max-h-full max-w-full object-contain"
+                />
+              </div>
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center text-center border rounded-md p-6">
+                <p className="text-base font-medium">Preview is not available for this file type.</p>
+                <p className="text-sm text-muted-foreground mt-2">Please download the file to view its content.</p>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>

@@ -5,9 +5,100 @@ export interface UploadResponse {
   provider: string
 }
 
+const MAX_IMAGE_SIZE_BYTES = 2 * 1024 * 1024
+
+const canvasToBlob = (canvas: HTMLCanvasElement, type: string, quality?: number): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) {
+          resolve(blob)
+        } else {
+          reject(new Error("Failed to create image blob"))
+        }
+      },
+      type,
+      quality,
+    )
+  })
+}
+
+const loadImageFromFile = (file: File): Promise<HTMLImageElement> => {
+  return new Promise((resolve, reject) => {
+    const image = new Image()
+    const objectUrl = URL.createObjectURL(file)
+
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl)
+      resolve(image)
+    }
+
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl)
+      reject(new Error("Failed to load image for compression"))
+    }
+
+    image.src = objectUrl
+  })
+}
+
+const compressImageIfNeeded = async (file: File): Promise<File> => {
+  if (!file.type.startsWith("image/") || file.size <= MAX_IMAGE_SIZE_BYTES) {
+    return file
+  }
+
+  if (typeof window === "undefined") {
+    return file
+  }
+
+  try {
+    const image = await loadImageFromFile(file)
+
+    let width = image.width
+    let height = image.height
+    const maxDimension = 1920
+
+    if (width > maxDimension || height > maxDimension) {
+      const scale = Math.min(maxDimension / width, maxDimension / height)
+      width = Math.round(width * scale)
+      height = Math.round(height * scale)
+    }
+
+    const canvas = document.createElement("canvas")
+    const context = canvas.getContext("2d")
+
+    if (!context) {
+      return file
+    }
+
+    canvas.width = width
+    canvas.height = height
+    context.drawImage(image, 0, 0, width, height)
+
+    const preferredType = file.type === "image/webp" ? "image/webp" : "image/jpeg"
+
+    for (const quality of [0.9, 0.8, 0.7, 0.6, 0.5]) {
+      const blob = await canvasToBlob(canvas, preferredType, quality)
+      if (blob.size <= MAX_IMAGE_SIZE_BYTES) {
+        return new File([blob], file.name, { type: preferredType, lastModified: Date.now() })
+      }
+    }
+
+    const fallbackBlob = await canvasToBlob(canvas, preferredType, 0.5)
+    if (fallbackBlob.size < file.size) {
+      return new File([fallbackBlob], file.name, { type: preferredType, lastModified: Date.now() })
+    }
+
+    return file
+  } catch {
+    return file
+  }
+}
+
 export const uploadPhoto = async (file: File): Promise<UploadResponse> => {
+  const processedFile = await compressImageIfNeeded(file)
   const formData = new FormData()
-  formData.append("file", file)
+  formData.append("file", processedFile)
 
   const headers: HeadersInit = {}
 
@@ -39,8 +130,9 @@ export const uploadPhoto = async (file: File): Promise<UploadResponse> => {
 }
 
 export const uploadFile = async (file: File, onProgress?: (progress: number) => void): Promise<UploadResponse> => {
+  const processedFile = await compressImageIfNeeded(file)
   const formData = new FormData()
-  formData.append("file", file)
+  formData.append("file", processedFile)
 
   const headers: HeadersInit = {}
 

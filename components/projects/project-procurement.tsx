@@ -433,7 +433,7 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
     }
   }
 
-  const renderItemsTable = (items: BOQItem[], title: string) => {
+  const renderItemsTable = (items: BOQItem[], title: string, settings?: { showTags?: boolean }) => {
     if (loading) {
       return (
         <div className="flex items-center justify-center py-12">
@@ -457,6 +457,7 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
             <TableRow>
               <TableHead className="w-12">No</TableHead>
               <TableHead className="min-w-50">Item Name</TableHead>
+              {settings?.showTags && <TableHead>Tags</TableHead>}
               <TableHead>Source</TableHead>
               <TableHead className="text-center">Image</TableHead>
               <TableHead className="text-center">Approval</TableHead>
@@ -473,7 +474,18 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
             {items.map((item, index) => (
               <TableRow key={`${item._source}-${item.name}-${index}`}>
                 <TableCell>{index + 1}</TableCell>
-                <TableCell className="font-medium">{item.name || "-"}</TableCell>
+                <TableCell className="font-medium whitespace-normal wrap-break-word">{item.name || "-"}</TableCell>
+                {settings?.showTags && (
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {item.tags?.map((tag, i) => (
+                        <Badge key={i} variant="outline" className="text-xs">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </TableCell>
+                )}
                 <TableCell>
                   <Badge variant={item._source?.includes("Main") ? "default" : "secondary"} className="whitespace-nowrap">
                     {item._source || "-"}
@@ -755,7 +767,7 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
                 )}
               </div>
               {/* Items Table */}
-              {renderItemsTable(getFilteredOthersItems(), "Others")}
+              {renderItemsTable(getFilteredOthersItems(), "Others", { showTags: true })}
             </CardContent>
           </Card>
         </TabsContent>

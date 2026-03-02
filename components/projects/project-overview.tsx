@@ -10,7 +10,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
-import { RefreshCw, Settings } from "lucide-react"
+import { RefreshCw, Settings, Maximize2 } from "lucide-react"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -47,6 +47,7 @@ import { useToast } from "@/hooks/use-toast"
 import { API_BASE_URL } from "@/lib/api/config"
 import { PostDetailDialog } from "./post-detail-dialog"
 import { uploadApi } from "@/lib/api/upload" // Import uploadApi
+import { FullscreenBoqDialog } from "@/components/projects/boq/fullscreen-boq-dialog"
 
 interface ProjectOverviewProps {
   project: any
@@ -83,6 +84,7 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
     showRotation: true,
   })
   const [showCustomizeDialog, setShowCustomizeDialog] = useState(false)
+  const [fullscreenOpen, setFullscreenOpen] = useState(false)
 
   useEffect(() => {
     loadPosts()
@@ -555,6 +557,9 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
               <Button size="sm" variant="outline" onClick={() => setShowCustomizeDialog(true)}>
                 <Settings className="h-4 w-4" />
               </Button>
+              <Button size="sm" variant="outline" onClick={() => setFullscreenOpen(true)}>
+                <Maximize2 className="h-4 w-4" />
+              </Button>
             </div>
           </CardTitle>
         </CardHeader>
@@ -758,7 +763,7 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
                               src={getAttachmentUrl(post.attachment) || "/placeholder.svg"}
                               alt="Attachment"
                               className="w-full h-24 object-cover rounded"
-                              // onClick={(e) => e.stopPropagation()}
+                            // onClick={(e) => e.stopPropagation()}
                             />
                           ) : (
                             <div className="flex items-center gap-2 text-xs">
@@ -926,6 +931,107 @@ function ProjectOverview({ project }: ProjectOverviewProps) {
           cardStyle={cardStyle}
         />
       )}
+
+      <FullscreenBoqDialog
+        open={fullscreenOpen}
+        title="Discussion Board"
+        onOpenChange={setFullscreenOpen}
+        customButton={
+          <>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                loadPosts()
+                toast({ title: "Posts refreshed" })
+              }}
+              disabled={loading}
+            >
+              <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setShowCustomizeDialog(true)}>
+              <Settings className="h-4 w-4" />
+            </Button>
+          </>
+        }
+        renderContent={() => (
+          <div className="space-y-4">
+            {loading ? (
+              <div className="flex justify-center py-6">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : posts.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <p className="text-sm">No notes yet</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {posts.map((post) => {
+                  const colors = [
+                    { bg: "from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20", border: "border-blue-200 dark:border-blue-700", pin: "bg-blue-400", button: "bg-blue-500 hover:bg-blue-600", ring: "focus-visible:ring-blue-200 dark:focus-visible:ring-blue-700" },
+                    { bg: "from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20", border: "border-green-200 dark:border-green-700", pin: "bg-green-400", button: "bg-green-500 hover:bg-green-600", ring: "focus-visible:ring-green-200 dark:focus-visible:ring-green-700" },
+                    { bg: "from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-800/20", border: "border-pink-200 dark:border-pink-700", pin: "bg-pink-400", button: "bg-pink-500 hover:bg-pink-600", ring: "focus-visible:ring-pink-200 dark:focus-visible:ring-pink-700" },
+                    { bg: "from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20", border: "border-purple-200 dark:border-purple-700", pin: "bg-purple-400", button: "bg-purple-500 hover:bg-purple-600", ring: "focus-visible:ring-purple-200 dark:focus-visible:ring-purple-700" },
+                    { bg: "from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20", border: "border-orange-200 dark:border-orange-700", pin: "bg-orange-400", button: "bg-orange-500 hover:bg-orange-600", ring: "focus-visible:ring-orange-200 dark:focus-visible:ring-orange-700" },
+                  ]
+                  const color = colors[getColorForPost(post._id)]
+                  return (
+                    <div
+                      key={post._id}
+                      className={cn(
+                        "relative cursor-pointer p-3 rounded-lg shadow-md transition-all hover:shadow-lg hover:scale-[1.02]",
+                        cardStyle.showBackground && `border-2 ${color.border} bg-linear-to-br ${color.bg}`,
+                        !cardStyle.showBackground && "bg-background border-2 border-border",
+                      )}
+                      style={{ transform: cardStyle.showRotation ? `rotate(${getRotationForPost(post._id)}deg)` : undefined }}
+                      onClick={() => { setFullscreenOpen(false); setSelectedPostId(post._id) }}
+                    >
+                      {cardStyle.showPin && (
+                        <div className={cn("absolute -top-2 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full shadow", color.pin)} />
+                      )}
+                      <div className="flex gap-2 items-start mb-2">
+                        <Avatar className="h-7 w-7 border-2 border-white dark:border-gray-700">
+                          <AvatarImage src={getUserAvatar(post.createdBy) || "/placeholder.svg"} />
+                          <AvatarFallback className="text-xs">
+                            {getUserName(post.createdBy).split(" ").map((n: string) => n[0]).join("").toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-xs truncate">{getUserName(post.createdBy)}</p>
+                          <p className="text-[10px] text-muted-foreground">{formatRelativeTime(post.createdAt)}</p>
+                        </div>
+                      </div>
+                      <p className="text-xs mb-2 whitespace-pre-wrap line-clamp-6">{post.content}</p>
+                      {post.attachment && (
+                        <div className="mb-2 p-2 bg-white/30 dark:bg-black/20 rounded border border-current/20">
+                          {post.attachment.url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                            <img src={getAttachmentUrl(post.attachment) || "/placeholder.svg"} alt="Attachment" className="w-full h-24 object-cover rounded" />
+                          ) : (
+                            <div className="flex items-center gap-2 text-xs">
+                              {getFileIcon(post.attachment.url)}
+                              <span className="truncate flex-1">{post.attachment.url.split("/").pop()}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {post.comments.length > 0 && (
+                        <p className="text-[10px] text-muted-foreground">{post.comments.length} comment{post.comments.length !== 1 ? "s" : ""}</p>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 pt-4">
+                <Button variant="outline" size="sm" onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1 || loading}>Previous</Button>
+                <span className="text-sm text-muted-foreground">Page {currentPage} of {totalPages}</span>
+                <Button variant="outline" size="sm" onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || loading}>Next</Button>
+              </div>
+            )}
+          </div>
+        )}
+      />
     </div>
   )
 }

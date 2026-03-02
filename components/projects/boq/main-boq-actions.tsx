@@ -37,10 +37,16 @@ export function MainBoqActions({
             <Edit className="h-4 w-4 sm:mr-2" />
             <span className="hidden sm:inline">Edit</span>
           </Button>
-          <Button variant="outline" size="sm" onClick={onSaveTemplate}>
-            <Save className="h-4 w-4 sm:mr-2" />
-            <span className="hidden sm:inline">Save as Template</span>
-          </Button>
+        </>
+      )}
+
+      <Button variant="outline" size="sm" onClick={onSaveTemplate}>
+        <Save className="h-4 w-4 sm:mr-2" />
+        <span className="hidden sm:inline">Save as Template</span>
+      </Button>
+
+      {canDraftActions && (
+        <>
           <Button variant="outline" size="sm" onClick={onReplaceTemplate}>
             <RefreshCw className="h-4 w-4 sm:mr-2" />
             <span className="hidden sm:inline">Replace with Template</span>

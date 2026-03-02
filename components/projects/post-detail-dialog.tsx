@@ -266,7 +266,7 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate, c
       <DialogContent
         className={cn(
           "max-w-2xl h-[90vh] flex flex-col p-0 shadow-2xl",
-          appliedCardStyle.showBackground ? `bg-gradient-to-br ${color.bg} border-4 ${color.border}` : "border-2",
+          appliedCardStyle.showBackground ? `bg-linear-to-br ${color.bg} border-4 ${color.border}` : "border-2",
         )}
       >
         {appliedCardStyle.showPin && (
@@ -292,7 +292,7 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate, c
                     <AvatarFallback className="font-semibold">
                       {getUserName(post.createdBy)
                         .split(" ")
-                        .map((n) => n[0])
+                        .map((n: string) => n[0])
                         .join("")
                         .toUpperCase()}
                     </AvatarFallback>
@@ -407,7 +407,7 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate, c
                             <AvatarFallback className="text-xs font-semibold">
                               {getUserName(comment.createdBy)
                                 .split(" ")
-                                .map((n) => n[0])
+                                .map((n: string) => n[0])
                                 .join("")
                                 .toUpperCase()}
                             </AvatarFallback>
@@ -474,13 +474,13 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate, c
               </div>
             </ScrollArea>
 
-            <div className={`p-4 border-t-2 ${color.border} bg-white/40 dark:bg-black/20 flex-shrink-0`}>
+            <div className={`p-4 border-t-2 ${color.border} bg-white/40 dark:bg-black/20 shrink-0`}>
               <div className="space-y-2">
                 <Textarea
                   placeholder="Add a comment to this note..."
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
-                  className={`min-h-[80px] resize-none bg-white/80 dark:bg-black/40 border-2 ${color.border} focus-visible:ring-offset-0 focus-visible:ring-2 ${
+                  className={`min-h-20 resize-none bg-white/80 dark:bg-black/40 border-2 ${color.border} focus-visible:ring-offset-0 focus-visible:ring-2 ${
                     getColorForPost(postId) === 0
                       ? "focus-visible:ring-blue-200 dark:focus-visible:ring-blue-700"
                       : getColorForPost(postId) === 1
@@ -499,7 +499,7 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate, c
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         {getFileIcon(selectedFile.name)}
-                        <span className="text-xs font-medium truncate max-w-[150px]">{selectedFile.name}</span>
+                        <span className="text-xs font-medium truncate max-w-37.5">{selectedFile.name}</span>
                       </div>
                       <Button
                         variant="ghost"

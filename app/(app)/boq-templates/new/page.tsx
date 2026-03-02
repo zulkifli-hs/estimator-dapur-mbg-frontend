@@ -1,22 +1,19 @@
 "use client"
 
-import React from "react"
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Plus, Trash2, X, ArrowLeft, Loader2, Check, ChevronsUpDown, Upload } from "lucide-react"
+import { Plus, Trash2, X, ArrowLeft, Loader2, Check, ChevronsUpDown } from "lucide-react"
 import { templatesApi } from "@/lib/api/templates"
 import { productsApi } from "@/lib/api/products"
 import { uploadApi } from "@/lib/api/upload" // Import upload API for photo uploads in create product dialog
 import { CreateProductDialog } from "@/components/products/create-product-dialog"
 import { useToast } from "@/hooks/use-toast"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select" // Added Select components
 import { cn } from "@/lib/utils"
 import { formatCurrency } from "@/lib/utils" // Added formatCurrency import
 import { ProductSearchPopover } from "@/components/product-search-popover"
@@ -124,7 +121,7 @@ export default function NewTemplatePage() {
       sku: string
       type: string
       brand?: string
-      qty: number
+      qty?: number
       unit: string
       sellingPrice: number
     }, // Added _id and other fields to product type
@@ -203,7 +200,7 @@ export default function NewTemplatePage() {
       sku: string
       type: string
       brand?: string
-      qty: number
+      qty?: number
       unit: string
       sellingPrice: number
     }, // Added _id and other fields to product type
@@ -282,7 +279,7 @@ export default function NewTemplatePage() {
       sku: string
       type: string
       brand?: string
-      qty: number
+      qty?: number
       unit: string
       sellingPrice: number
     }, // Added _id and other fields to product type
@@ -361,7 +358,7 @@ export default function NewTemplatePage() {
       sku: string
       type: string
       brand?: string
-      qty: number
+      qty?: number
       unit: string
       sellingPrice: number
     },
@@ -500,7 +497,7 @@ export default function NewTemplatePage() {
                 <div key={index} className="p-4 space-y-3">
                   {/* First Row: Number and Item Name */}
                   <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-8 h-10 flex items-center justify-center font-medium text-sm">
+                    <div className="shrink-0 w-8 h-10 flex items-center justify-center font-medium text-sm">
                       {index + 1}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -515,15 +512,15 @@ export default function NewTemplatePage() {
                           <Button
                             variant="outline"
                             role="combobox"
-                            className="w-full justify-between min-h-[40px] h-auto text-left font-normal bg-transparent"
+                            className="w-full justify-between min-h-10 h-auto text-left font-normal bg-transparent"
                           >
-                            <span className="whitespace-normal break-words text-left">
+                            <span className="whitespace-normal wrap-break-word text-left">
                               {item.name || "Select product..."}
                             </span>
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-[500px] p-0" align="start">
+                        <PopoverContent className="w-125 p-0" align="start">
                           <Command shouldFilter={false}>
                             <CommandInput
                               placeholder="Search product..."
@@ -535,7 +532,7 @@ export default function NewTemplatePage() {
                               <CommandEmpty>
                                 {loadingProducts ? "Loading products..." : "No product found."}
                               </CommandEmpty>
-                              <CommandGroup className="max-h-[300px] overflow-auto">
+                              <CommandGroup className="max-h-75 overflow-auto">
                                 {products
                                   .filter((product) => {
                                     const query = (searchQuery[`preliminary-${index}`] || "").toLowerCase()
@@ -610,7 +607,7 @@ export default function NewTemplatePage() {
                       size="icon"
                       onClick={() => removePreliminaryItem(index)}
                       disabled={preliminary.length === 1}
-                      className="flex-shrink-0"
+                      className="shrink-0"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -708,7 +705,7 @@ export default function NewTemplatePage() {
                     <div key={productIndex} className="p-4 space-y-3">
                       {/* First Row: Number and Product Name */}
                       <div className="flex items-start gap-3">
-                        <div className="flex-shrink-0 w-8 h-10 flex items-center justify-center font-medium text-sm">
+                        <div className="shrink-0 w-8 h-10 flex items-center justify-center font-medium text-sm">
                           {productIndex + 1}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -726,15 +723,15 @@ export default function NewTemplatePage() {
                               <Button
                                 variant="outline"
                                 role="combobox"
-                                className="w-full justify-between min-h-[40px] h-auto text-left font-normal bg-transparent"
+                                className="w-full justify-between min-h-10 h-auto text-left font-normal bg-transparent"
                               >
-                                <span className="whitespace-normal break-words text-left">
+                                <span className="whitespace-normal wrap-break-word text-left">
                                   {product.name || "Select product..."}
                                 </span>
                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                               </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-[500px] p-0" align="start">
+                            <PopoverContent className="w-125 p-0" align="start">
                               <Command shouldFilter={false}>
                                 <CommandInput
                                   placeholder="Search product..."
@@ -749,7 +746,7 @@ export default function NewTemplatePage() {
                                   <CommandEmpty>
                                     {loadingProducts ? "Loading products..." : "No product found."}
                                   </CommandEmpty>
-                                  <CommandGroup className="max-h-[300px] overflow-auto">
+                                  <CommandGroup className="max-h-75 overflow-auto">
                                     {products
                                       .filter((prod) => {
                                         const query = (
@@ -832,7 +829,7 @@ export default function NewTemplatePage() {
                           size="icon"
                           onClick={() => removeFittingOutProduct(categoryIndex, productIndex)}
                           disabled={category.products.length === 1}
-                          className="flex-shrink-0"
+                          className="shrink-0"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -949,7 +946,7 @@ export default function NewTemplatePage() {
                     <div key={productIndex} className="p-4 space-y-3">
                       {/* First Row: Number and Product Name */}
                       <div className="flex items-start gap-3">
-                        <div className="flex-shrink-0 w-8 h-10 flex items-center justify-center font-medium text-sm">
+                        <div className="shrink-0 w-8 h-10 flex items-center justify-center font-medium text-sm">
                           {productIndex + 1}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -967,15 +964,15 @@ export default function NewTemplatePage() {
                               <Button
                                 variant="outline"
                                 role="combobox"
-                                className="w-full justify-between min-h-[40px] h-auto text-left font-normal bg-transparent"
+                                className="w-full justify-between min-h-10 h-auto text-left font-normal bg-transparent"
                               >
-                                <span className="whitespace-normal break-words text-left">
+                                <span className="whitespace-normal wrap-break-word text-left">
                                   {product.name || "Select product..."}
                                 </span>
                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                               </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-[500px] p-0" align="start">
+                            <PopoverContent className="w-125 p-0" align="start">
                               <Command shouldFilter={false}>
                                 <CommandInput
                                   placeholder="Search product..."
@@ -990,7 +987,7 @@ export default function NewTemplatePage() {
                                   <CommandEmpty>
                                     {loadingProducts ? "Loading products..." : "No product found."}
                                   </CommandEmpty>
-                                  <CommandGroup className="max-h-[300px] overflow-auto">
+                                  <CommandGroup className="max-h-75 overflow-auto">
                                     {products
                                       .filter((prod) => {
                                         const query = (
@@ -1073,7 +1070,7 @@ export default function NewTemplatePage() {
                           size="icon"
                           onClick={() => removeFurnitureWorkProduct(categoryIndex, productIndex)}
                           disabled={category.products.length === 1}
-                          className="flex-shrink-0"
+                          className="shrink-0"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -1191,7 +1188,7 @@ export default function NewTemplatePage() {
                   {category.products.map((product, productIndex) => (
                     <div key={productIndex} className="p-4 space-y-3">
                       <div className="flex items-start gap-3">
-                        <div className="flex-shrink-0 w-8 h-10 flex items-center justify-center font-medium text-sm">
+                        <div className="shrink-0 w-8 h-10 flex items-center justify-center font-medium text-sm">
                           {productIndex + 1}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -1210,7 +1207,7 @@ export default function NewTemplatePage() {
                           size="icon"
                           onClick={() => removeMechanicalElectricalProduct(categoryIndex, productIndex)}
                           disabled={category.products.length === 1}
-                          className="flex-shrink-0"
+                          className="shrink-0"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

@@ -55,7 +55,7 @@ export const uploadFile = async (projectId: string, file: File, type: string): P
 }
 
 export const deleteFile = async (projectId: string, fileId: string): Promise<void> => {
-  return apiRequest<void>(`/projects/${projectId}/files/${fileId}`, {
+  await apiRequest<void>(`/projects/${projectId}/files/${fileId}`, {
     method: "DELETE",
   })
 }
@@ -150,27 +150,15 @@ export const uploadProjectFile = async (projectId: string, file: File, type: str
 
   const fileType = getMimeType(file)
 
-  console.log("[v0] uploadProjectFile called:", {
-    projectId,
-    fileName: file.name,
-    fileSize: file.size,
-    fileType,
-    browserFileType: file.type,
-    type,
-    endpoint: `${API_BASE_URL}/projects/${projectId}/${type}`,
-  })
-
   const formData = new FormData()
-  formData.append("file", file)
-
   if (!file.type && fileType !== "application/octet-stream") {
     const correctedFile = new File([file], file.name, { type: fileType })
-    formData.set("file", correctedFile)
-    console.log("[v0] Created corrected file with MIME type:", fileType)
+    formData.append("file", correctedFile)
+  } else {
+    formData.append("file", file)
   }
 
   const token = getAuthToken()
-  console.log("[v0] Token available:", !!token)
 
   const response = await fetch(`${API_BASE_URL}/projects/${projectId}/${type}`, {
     method: "POST",
@@ -180,19 +168,13 @@ export const uploadProjectFile = async (projectId: string, file: File, type: str
     body: formData,
   })
 
-  console.log("[v0] Upload response status:", response.status, response.ok)
-
   if (!response.ok) {
     const errorData = await response.json()
-    console.error("[v0] Upload error details:", JSON.stringify(errorData, null, 2))
-
-    // Extract the user-friendly error message
     const errorMessage = errorData.message?.user || errorData.message || "Upload failed"
     throw new Error(errorMessage)
   }
 
   const result = await response.json()
-  console.log("[v0] Upload success:", result)
   return result
 }
 

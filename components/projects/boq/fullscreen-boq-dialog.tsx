@@ -10,9 +10,10 @@ interface FullscreenBoqDialogProps {
   title: string
   onOpenChange: (open: boolean) => void
   renderContent: () => React.ReactNode
+  customButton?: React.ReactNode
 }
 
-export function FullscreenBoqDialog({ open, title, onOpenChange, renderContent }: FullscreenBoqDialogProps) {
+export function FullscreenBoqDialog({ open, title, onOpenChange, renderContent, customButton }: FullscreenBoqDialogProps) {
   if (!open) return null
 
   return (
@@ -27,10 +28,13 @@ export function FullscreenBoqDialog({ open, title, onOpenChange, renderContent }
               <DialogTitle>{title}</DialogTitle>
               <DialogDescription>Viewing BOQ in full-screen mode</DialogDescription>
             </div>
-            <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
-              <X className="h-4 w-4 mr-2" />
-              Close
-            </Button>
+            <div className="flex items-center gap-2">
+              {customButton}
+              <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+                <X className="h-4 w-4 mr-2" />
+                Close
+              </Button>
+            </div>
           </div>
         </DialogHeader>
         <div className="flex-1 min-h-0 overflow-y-auto p-6">{renderContent()}</div>

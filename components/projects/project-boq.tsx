@@ -17,6 +17,7 @@ import {
   Maximize2,
 } from "lucide-react"
 import { boqApi } from "@/lib/api/boq"
+import { getAuthToken } from "@/lib/api/config"
 import { templatesApi, type CreateTemplateInput } from "@/lib/api/templates"
 import { productsApi } from "@/lib/api/products"
 import { projectsApi } from "@/lib/api/projects"
@@ -51,6 +52,7 @@ interface ProductItem {
   productId?: string
   location?: string
   brand?: string
+  note?: string
   tags?: string[]
   startDate?: string
   endDate?: string
@@ -110,6 +112,16 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     progress: 0,
   })
 
+  const [discountTaxState, setDiscountTaxState] = useState<{
+    [boqId: string]: {
+      discount: string
+      discountType: "%" | "0"
+      tax: string
+      taxType: "%" | "0"
+      saving: boolean
+    }
+  }>({})
+
   const [saveAsTemplateOpen, setSaveAsTemplateOpen] = useState(false)
   const [templateName, setTemplateName] = useState("")
   const [replaceTemplateOpen, setReplaceTemplateOpen] = useState(false)
@@ -120,6 +132,9 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   const [fullscreenBoqData, setFullscreenBoqData] = useState<any | null>(null)
   const [fullscreenBoqType, setFullscreenBoqType] = useState<"table" | "recap">("table")
   const [templateEditingBOQ, setTemplateEditingBOQ] = useState<any>(null)
+
+  // Track invalid field keys for highlighting (e.g. "preliminary-0-qty")
+  const [invalidFields, setInvalidFields] = useState<Set<string>>(new Set())
 
   // Approval request states
   const [showApprovalModal, setShowApprovalModal] = useState(false)
@@ -425,6 +440,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     productId?: string
     location?: string
     brand?: string
+    note?: string
     tags?: string[]
     startDate?: string // Added startDate
     endDate?: string // Added endDate
@@ -619,10 +635,104 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       setLoading(true)
 
 
+      // Helper: normalize date to YYYY-MM-DD
+      const normalizeDate = (date?: string) => {
+        if (!date) return undefined
+        try {
+          return new Date(date).toISOString().split("T")[0]
+        } catch {
+          return undefined
+        }
+      }
+
+      // Helper: normalize item dates
+      const normalizeItemDates = (item: any) => ({
+        ...item,
+        startDate: item.startDate ? normalizeDate(item.startDate) : undefined,
+        endDate: item.endDate ? normalizeDate(item.endDate) : undefined,
+      })
+
+      // Determine if this is a main BOQ (number === 1) or additional
+      const isMainBOQ = editingBOQ ? editingBOQ.number === 1 : boqType === "main"
+
+      // Validate all items: qty, unit, price
+      const invalids: Array<{ section: string; subsection?: string; name: string; reasons: string[] }> = []
+      const newInvalidFields = new Set<string>()
+
+      const validateItem = (item: any, section: string, fieldPrefix: string, subsection?: string) => {
+        if (!item.name) return
+        const reasons: string[] = []
+
+        // qty validation
+        if (isMainBOQ) {
+          if (item.qty === 0) {
+            reasons.push("Quantity must be greater than 0")
+            newInvalidFields.add(`${fieldPrefix}-qty`)
+          } else if (item.qty < 0) {
+            reasons.push("Quantity cannot be negative for main BOQ (must be > 0)")
+            newInvalidFields.add(`${fieldPrefix}-qty`)
+          }
+        } else {
+          if (item.qty === 0) {
+            reasons.push("Quantity cannot be zero for additional BOQ (must be > 0 or < 0)")
+            newInvalidFields.add(`${fieldPrefix}-qty`)
+          }
+        }
+
+        // unit validation
+        if (!item.unit || item.unit.trim() === "") {
+          reasons.push("Unit cannot be empty")
+          newInvalidFields.add(`${fieldPrefix}-unit`)
+        }
+
+        // price validation (must be >= 0)
+        if (item.price === undefined || item.price === null || isNaN(item.price) || item.price < 0) {
+          reasons.push("Price must be a positive number or 0")
+          newInvalidFields.add(`${fieldPrefix}-price`)
+        }
+
+        if (reasons.length > 0) {
+          invalids.push({ section, subsection, name: item.name, reasons })
+        }
+      }
+
+      // Validate all sections
+      preliminary.forEach((item, idx) => validateItem(item, "Preliminary", `preliminary-${idx}`))
+      fittingOut.forEach((cat, catIdx) =>
+        cat.products.forEach((product, prodIdx) =>
+          validateItem(product, "Fitting Out", `fittingOut-${catIdx}-${prodIdx}`, cat.name)
+        )
+      )
+      furnitureWork.forEach((cat, catIdx) =>
+        cat.products.forEach((product, prodIdx) =>
+          validateItem(product, "Furniture Work", `furnitureWork-${catIdx}-${prodIdx}`, cat.name)
+        )
+      )
+      mechanicalElectrical.forEach((cat, catIdx) =>
+        cat.products.forEach((product, prodIdx) =>
+          validateItem(product, "Mechanical/Electrical", `mechanicalElectrical-${catIdx}-${prodIdx}`, cat.name)
+        )
+      )
+
+      setInvalidFields(newInvalidFields)
+
+      if (invalids.length > 0) {
+        const errorLines = invalids.map((inv) => {
+          const location = inv.subsection ? `${inv.section} / ${inv.subsection}` : inv.section
+          return `• [${location}] "${inv.name}": ${inv.reasons.join("; ")}`
+        })
+        toast({
+          title: `${invalids.length} Invalid Field${invalids.length > 1 ? "s" : ""} Found`,
+          description: errorLines.join("\n"),
+          variant: "destructive",
+        })
+        return
+      }
+
       // Filter preliminary items
       const filteredPreliminary = preliminary
-        .filter((item) => item.name && item.qty > 0 && item.unit && item.price >= 0)
-        .map((item) => ({
+        .filter((item) => item.name && (isMainBOQ ? item.qty > 0 : item.qty !== 0))
+        .map((item) => normalizeItemDates({
           productId: item.productId,
           qty: item.qty,
           name: item.name,
@@ -630,6 +740,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
           price: item.price,
           location: item.location || undefined,
           brand: item.brand || undefined,
+          note: item.note || undefined,
           tags: item.tags || [],
           startDate: item.startDate || undefined,
           endDate: item.endDate || undefined,
@@ -639,8 +750,8 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         .map((category) => ({
           name: category.name,
           products: category.products
-            .filter((product) => product.name && product.qty > 0 && product.unit && product.price >= 0)
-            .map((product) => ({
+            .filter((product) => product.name && (isMainBOQ ? product.qty > 0 : product.qty !== 0))
+            .map((product) => normalizeItemDates({
               productId: product.productId,
               qty: product.qty,
               name: product.name,
@@ -648,6 +759,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
               price: product.price,
               location: product.location || undefined,
               brand: product.brand || undefined,
+              note: product.note || undefined,
               tags: product.tags || [],
               startDate: product.startDate || undefined,
               endDate: product.endDate || undefined,
@@ -659,8 +771,8 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         .map((category) => ({
           name: category.name,
           products: category.products
-            .filter((product) => product.name && product.qty > 0 && product.unit && product.price >= 0)
-            .map((product) => ({
+            .filter((product) => product.name && (isMainBOQ ? product.qty > 0 : product.qty !== 0))
+            .map((product) => normalizeItemDates({
               productId: product.productId,
               qty: product.qty,
               name: product.name,
@@ -668,6 +780,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
               price: product.price,
               location: product.location || undefined,
               brand: product.brand || undefined,
+              note: product.note || undefined,
               tags: product.tags || [],
               startDate: product.startDate || undefined,
               endDate: product.endDate || undefined,
@@ -679,8 +792,8 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         .map((category) => ({
           name: category.name,
           products: category.products
-            .filter((product) => product.name && product.qty > 0 && product.unit && product.price >= 0)
-            .map((product) => ({
+            .filter((product) => product.name && (isMainBOQ ? product.qty > 0 : product.qty !== 0))
+            .map((product) => normalizeItemDates({
               productId: product.productId,
               qty: product.qty,
               name: product.name,
@@ -688,6 +801,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
               price: product.price,
               location: product.location || undefined,
               brand: product.brand || undefined,
+              note: product.note || undefined,
               tags: product.tags || [],
               startDate: product.startDate || undefined,
               endDate: product.endDate || undefined,
@@ -742,6 +856,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       setFittingOut([])
       setFurnitureWork([])
       setMechanicalElectrical([])
+      setInvalidFields(new Set())
       fetchBOQ() // Use renamed function
     } catch (error: any) {
       toast({
@@ -801,7 +916,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     const formData = new FormData()
     formData.append("file", file)
 
-    const token = localStorage.getItem("auth_token")
+    const token = getAuthToken()
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/upload`, {
       method: "POST",
       headers: {
@@ -857,6 +972,55 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     }
   }
 
+  // Initialize discountTaxState whenever boqItems changes (e.g. after fetchBOQ)
+  useEffect(() => {
+    setDiscountTaxState((prev) => {
+      const next: {
+        [boqId: string]: {
+          discount: string
+          discountType: "%" | "0"
+          tax: string
+          taxType: "%" | "0"
+          saving: boolean
+        }
+      } = {}
+      boqItems.forEach((boq) => {
+        next[boq._id] = {
+          discount: String(boq.discount ?? prev[boq._id]?.discount ?? ""),
+          discountType: ((boq.discountType as "%" | "0") ?? prev[boq._id]?.discountType ?? "%"),
+          tax: String(boq.tax ?? prev[boq._id]?.tax ?? ""),
+          taxType: ((boq.taxType as "%" | "0") ?? prev[boq._id]?.taxType ?? "%"),
+          saving: prev[boq._id]?.saving ?? false,
+        }
+      })
+      return next
+    })
+  }, [boqItems])
+
+  const handleSaveDiscountTax = async (boqId: string) => {
+    const dtState = discountTaxState[boqId]
+    if (!dtState) return
+    setDiscountTaxState((prev) => ({ ...prev, [boqId]: { ...prev[boqId], saving: true } }))
+    try {
+      await boqApi.updateDiscountTax(projectId, boqId, {
+        discount: parseFloat(dtState.discount) || 0,
+        discountType: dtState.discountType,
+        tax: parseFloat(dtState.tax) || 0,
+        taxType: dtState.taxType,
+      })
+      toast({ title: "Saved", description: "Discount & tax updated successfully." })
+      fetchBOQ()
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save discount & tax.",
+        variant: "destructive",
+      })
+    } finally {
+      setDiscountTaxState((prev) => ({ ...prev, [boqId]: { ...prev[boqId], saving: false } }))
+    }
+  }
+
   const handleSaveAsTemplate = async () => {
     if (!templateName.trim() || (!mainBOQ && !templateEditingBOQ)) {
       toast({
@@ -883,7 +1047,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
           brand: item.brand,
           tags: item.tags || [],
         })),
-        fittingOut: mainBOQ.fittingOut.map((category: any) => ({
+        fittingOut: boqToSave.fittingOut.map((category: any) => ({
           name: category.name,
           products: category.products.map((product: any) => ({
             productId: product.productId,
@@ -896,7 +1060,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
             tags: product.tags || [],
           })),
         })),
-        furnitureWork: mainBOQ.furnitureWork.map((category: any) => ({
+        furnitureWork: boqToSave.furnitureWork.map((category: any) => ({
           name: category.name,
           products: category.products.map((product: any) => ({
             productId: product.productId,
@@ -909,7 +1073,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
             tags: product.tags || [],
           })),
         })),
-        mechanicalElectrical: (mainBOQ.mechanicalElectrical || []).map((category: any) => ({
+        mechanicalElectrical: (boqToSave.mechanicalElectrical || []).map((category: any) => ({
           name: category.name,
           products: category.products.map((product: any) => ({
             productId: product.productId,
@@ -1363,10 +1527,12 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         fittingOutQtyRefs={fittingOutQtyRefs}
         furnitureWorkQtyRefs={furnitureWorkQtyRefs}
         mechanicalElectricalQtyRefs={mechanicalElectricalQtyRefs}
+        invalidFields={invalidFields}
         onCancel={() => {
           setCreationMode(null)
           setEditingBOQ(null)
           setBOQType("main")
+          setInvalidFields(new Set())
           if (boqType === "additional") {
             setActiveTab("additional")
           }
@@ -1432,51 +1598,69 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Total Budget</CardTitle>
+        {/* AS PER CONTRACT — Main BOQ */}
+        <Card className="border-blue-200 bg-blue-50/50 dark:bg-blue-950/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-400">AS PER CONTRACT</CardTitle>
+            <CardDescription className="text-xs">Main BOQ Budget</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{formatCurrency(summary.totalBudget)}</p>
-            <div className="mt-3 space-y-2 text-xs">
-              <div className="flex justify-between text-muted-foreground">
-                <span>Main BOQ:</span>
-                <span className="font-medium text-foreground">{formatCurrency(summary.mainBudget)}</span>
-              </div>
-              {summary.additionalBudget > 0 && (
-                <div className="flex justify-between text-muted-foreground">
-                  <span>Additional BOQ(s):</span>
-                  <span className="font-medium text-foreground">{formatCurrency(summary.additionalBudget)}</span>
-                </div>
+            <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{formatCurrency(summary.mainBudget)}</p>
+            <div className="mt-2 flex items-center gap-2">
+              {mainBOQ ? (
+                getStatusBadge(mainBOQ.status)
+              ) : (
+                <Badge variant="outline" className="text-muted-foreground">Not Created</Badge>
               )}
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Total BOQs</CardTitle>
+        {/* ADDITIONAL / DEDUCTION */}
+        <Card className="border-amber-200 bg-amber-50/50 dark:bg-amber-950/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-amber-700 dark:text-amber-400">ADDITIONAL / DEDUCTION</CardTitle>
+            <CardDescription className="text-xs">{additionalBOQs.length} Additional BOQ(s)</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{boqItems.length}</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              {mainBOQ ? "1 Main" : "0 Main"} + {additionalBOQs.length} Additional
+            <p className={`text-2xl font-bold ${
+              summary.additionalBudget >= 0
+                ? "text-amber-700 dark:text-amber-300"
+                : "text-red-600 dark:text-red-400"
+            }`}>
+              {summary.additionalBudget >= 0 ? "+" : ""}{formatCurrency(summary.additionalBudget)}
             </p>
+            {additionalBOQs.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {additionalBOQs.map((boq) => {
+                  const boqTotal = calculateBOQBudget(boq)
+                  return (
+                    <div key={boq._id} className="flex justify-between text-xs text-muted-foreground">
+                      <span>BOQ #{boq.number}</span>
+                      <span className={`font-medium ${
+                        boqTotal < 0 ? "text-red-500" : "text-foreground"
+                      }`}>
+                        {boqTotal >= 0 ? "+" : ""}{formatCurrency(boqTotal)}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Main BOQ Status</CardTitle>
+        {/* NET TOTAL */}
+        <Card className="border-emerald-200 bg-emerald-50/50 dark:bg-emerald-950/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-emerald-700 dark:text-emerald-400">NET TOTAL</CardTitle>
+            <CardDescription className="text-xs">As Per Contract + Additional</CardDescription>
           </CardHeader>
           <CardContent>
-            {mainBOQ ? (
-              getStatusBadge(mainBOQ.status)
-            ) : (
-              <Badge variant="outline" className="text-muted-foreground">
-                Not Created
-              </Badge>
-            )}
+            <p className="text-2xl font-bold text-emerald-900 dark:text-emerald-100">{formatCurrency(summary.totalBudget)}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {mainBOQ ? "1 Main" : "0 Main"} + {additionalBOQs.length} Additional
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -1556,7 +1740,18 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                 </div>
               </CardHeader>
               <CardContent>
-                <BoqTable boq={mainBOQ} formatCurrency={formatCurrency} />
+                <BoqTable
+                  boq={mainBOQ}
+                  formatCurrency={formatCurrency}
+                  discountTaxData={discountTaxState[mainBOQ._id]}
+                  onDiscountTaxChange={(patch) =>
+                    setDiscountTaxState((prev) => ({
+                      ...prev,
+                      [mainBOQ._id]: { ...prev[mainBOQ._id], ...patch },
+                    }))
+                  }
+                  onSaveDiscountTax={() => handleSaveDiscountTax(mainBOQ._id)}
+                />
               </CardContent>
             </Card>
           )}
@@ -1623,6 +1818,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                       onEdit={() => {
                         setEditingBOQ(boq)
                         setCreationMode("blank")
+                        setBOQType("additional")
                         setIsCreatingAdditional(true)
                       }}
                       onSaveTemplate={() => {
@@ -1638,7 +1834,19 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <BoqTable boq={boq} formatCurrency={formatCurrency} />
+                  <BoqTable
+                    boq={boq}
+                    formatCurrency={formatCurrency}
+                    showNote
+                    discountTaxData={discountTaxState[boq._id]}
+                    onDiscountTaxChange={(patch) =>
+                      setDiscountTaxState((prev) => ({
+                        ...prev,
+                        [boq._id]: { ...prev[boq._id], ...patch },
+                      }))
+                    }
+                    onSaveDiscountTax={() => handleSaveDiscountTax(boq._id)}
+                  />
                 </CardContent>
               </Card>
             ))
@@ -1668,7 +1876,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
           fullscreenBoqType === "recap" ? (
             <BoqRecap mainBOQ={mainBOQ} additionalBOQs={additionalBOQs} formatCurrency={formatCurrency} />
           ) : fullscreenBoqData ? (
-            <BoqTable boq={fullscreenBoqData} formatCurrency={formatCurrency} />
+            <BoqTable boq={fullscreenBoqData} formatCurrency={formatCurrency} showNote={fullscreenBoqData?.number > 1} />
           ) : null
         }
       />

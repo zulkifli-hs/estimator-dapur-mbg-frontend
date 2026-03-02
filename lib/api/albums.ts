@@ -60,8 +60,6 @@ export const addPhotoToAlbum = async (
   provider: string,
   note?: string,
 ): Promise<ApiResponse<Album>> => {
-  console.log("[v0] Adding photo to album API call:", { projectId, albumId, url, provider, note })
-
   return apiRequest<Album>(`/projects/${projectId}/album/${albumId}/add`, {
     method: "POST",
     body: JSON.stringify({ url, provider, note }),
@@ -130,7 +128,6 @@ export const albumsApi = {
   },
   addPhoto: async (projectId: string, albumId: string, url: string, provider: string, note?: string) => {
     const response = await addPhotoToAlbum(projectId, albumId, url, provider, note)
-    console.log("[v0] addPhoto response:", response)
     return { success: response.code === 200 || response.code === 201, data: response.data }
   },
   deletePhoto: async (projectId: string, albumId: string, indexes: number[]) => {

@@ -6,17 +6,14 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader } from "@/components/ui/card" // Added CardTitle
-import { Plus, Trash2, X, ArrowLeft, Loader2, Edit, Save, ChevronsUpDown, Check } from "lucide-react"
+import { Plus, Trash2, X, ArrowLeft, Loader2, Edit, Save } from "lucide-react"
 import { templatesApi } from "@/lib/api/templates"
 import { productsApi } from "@/lib/api/products"
 import { uploadApi } from "@/lib/api/upload"
 import { useToast } from "@/hooks/use-toast"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import React from "react"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { cn, formatCurrency } from "@/lib/utils" // Added formatCurrency to import
+import { formatCurrency } from "@/lib/utils" // Added formatCurrency to import
 import { ProductSearchPopover } from "@/components/product-search-popover"
 import { CreateProductDialog } from "@/components/products/create-product-dialog"
 
@@ -55,7 +52,8 @@ interface Category {
 // }
 
 export default function TemplateDetailPage() {
-  const params = useParams() //
+  const params = useParams()
+  const templateId = Array.isArray(params.id) ? params.id[0] : (params.id as string)
   const router = useRouter()
   const { toast } = useToast()
   const [loading, setLoading] = useState(true)
@@ -66,11 +64,11 @@ export default function TemplateDetailPage() {
   const [fittingOut, setFittingOut] = useState<Category[]>([])
   const [furnitureWork, setFurnitureWork] = useState<Category[]>([])
   const [mechanicalElectrical, setMechanicalElectrical] = useState<Category[]>([])
-  const [products, setProducts] = useState<any[]>([])
-  const [loadingProducts, setLoadingProducts] = useState(false)
+  const [, setProducts] = useState<any[]>([])
+  const [, setLoadingProducts] = useState(false)
 
   // Product dropdown functionality states
-  const [searchQuery, setSearchQuery] = useState<Record<string, string>>({})
+  const [] = useState<Record<string, string>>({})
   const [openPopovers, setOpenPopovers] = useState<Record<string, boolean>>({})
   const [createProductDialogOpen, setCreateProductDialogOpen] = useState(false)
 
@@ -81,19 +79,14 @@ export default function TemplateDetailPage() {
   const mechanicalElectricalQtyRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
   const fetchTemplate = async () => {
-    if (!params.id) return
+    if (!templateId) return
 
     setLoading(true)
     try {
-      const response = await templatesApi.getById(params.id as string)
-      console.log("[v0] Template response:", response)
+      const response = await templatesApi.getById(templateId)
 
       if (response.success && response.data) {
         const template = response.data
-        console.log("[v0] Template name:", template.name)
-        console.log("[v0] Preliminary items:", template.preliminary?.length)
-        console.log("[v0] Fitting Out categories:", template.fittingOut?.length)
-        console.log("[v0] Furniture Work categories:", template.furnitureWork?.length)
 
         setTemplateName(template.name || "")
         setPreliminary(template.preliminary || [])
@@ -109,7 +102,7 @@ export default function TemplateDetailPage() {
         router.push("/boq-templates")
       }
     } catch (error) {
-      console.error("[v0] Failed to fetch template:", error) // Added [v0] prefix
+      console.error("Failed to fetch template:", error)
       toast({
         title: "Error",
         description: "Failed to load template",
@@ -121,29 +114,12 @@ export default function TemplateDetailPage() {
   }
 
   useEffect(() => {
-    if (params.id) {
+    if (templateId) {
       fetchTemplate()
     }
-  }, [params.id])
+  }, [templateId])
 
   // Highlight text function
-  const highlightText = (text: string, query: string) => {
-    if (!query) return text
-    const parts = text.split(new RegExp(`(${query})`, "gi"))
-    return (
-      <>
-        {parts.map((part, i) =>
-          part.toLowerCase() === query.toLowerCase() ? (
-            <span key={i} className="bg-primary/30 font-semibold">
-              {part}
-            </span>
-          ) : (
-            part
-          ),
-        )}
-      </>
-    )
-  }
 
   // Preliminary functions
   const addPreliminaryItem = () => {
@@ -392,8 +368,7 @@ export default function TemplateDetailPage() {
 
     try {
       setSaving(true)
-      await templatesApi.update(params.id, {
-        // Use params.id here
+      await templatesApi.update(templateId, {
         name: templateName,
         preliminary: preliminary.map((item) => ({
           name: item.name,
@@ -469,14 +444,14 @@ export default function TemplateDetailPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[60px] px-4">No</TableHead>
-              <TableHead className="min-w-[250px] max-w-[400px] px-4">Item Name</TableHead>
-              <TableHead className="w-[120px] px-4">Brand/Equal</TableHead>
-              <TableHead className="w-[120px] px-4">Location</TableHead>
-              <TableHead className="text-right w-[80px] px-4">Qty</TableHead>
-              <TableHead className="w-[80px] px-4">Unit</TableHead>
-              <TableHead className="text-right w-[150px] px-4">Unit Price</TableHead>
-              <TableHead className="text-right w-[150px] px-4">Total Price</TableHead>
+              <TableHead className="w-15 px-4">No</TableHead>
+              <TableHead className="min-w-62.5 max-w-100 px-4">Item Name</TableHead>
+              <TableHead className="w-30 px-4">Brand/Equal</TableHead>
+              <TableHead className="w-30 px-4">Location</TableHead>
+              <TableHead className="text-right w-20 px-4">Qty</TableHead>
+              <TableHead className="w-20 px-4">Unit</TableHead>
+              <TableHead className="text-right w-37.5 px-4">Unit Price</TableHead>
+              <TableHead className="text-right w-37.5 px-4">Total Price</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -494,7 +469,7 @@ export default function TemplateDetailPage() {
                   return (
                     <TableRow key={item._id || `prelim-${idx}`}>
                       <TableCell className="font-medium pl-8 pr-4">{itemNumber++}</TableCell>
-                      <TableCell className="whitespace-normal break-words px-4">{item.name}</TableCell>
+                      <TableCell className="whitespace-normal wrap-break-word px-4">{item.name}</TableCell>
                       <TableCell className="px-4">{item.brand || "-"}</TableCell>
                       <TableCell className="px-4">{item.location || "-"}</TableCell>
                       <TableCell className="text-right px-4">{item.qty}</TableCell>
@@ -547,7 +522,7 @@ export default function TemplateDetailPage() {
                           return (
                             <TableRow key={product._id || `fitout-prod-${catIdx}-${prodIdx}`}>
                               <TableCell className="font-medium pl-12 pr-4">{itemNumber++}</TableCell>
-                              <TableCell className="whitespace-normal break-words px-4">{product.name}</TableCell>
+                              <TableCell className="whitespace-normal wrap-break-word px-4">{product.name}</TableCell>
                               <TableCell className="px-4">{product.brand || "-"}</TableCell>
                               <TableCell className="px-4">{product.location || "-"}</TableCell>
                               <TableCell className="text-right px-4">{product.qty}</TableCell>
@@ -615,7 +590,7 @@ export default function TemplateDetailPage() {
                           return (
                             <TableRow key={product._id || `furniture-prod-${catIdx}-${prodIdx}`}>
                               <TableCell className="font-medium pl-12 pr-4">{itemNumber++}</TableCell>
-                              <TableCell className="whitespace-normal break-words px-4">{product.name}</TableCell>
+                              <TableCell className="whitespace-normal wrap-break-word px-4">{product.name}</TableCell>
                               <TableCell className="px-4">{product.brand || "-"}</TableCell>
                               <TableCell className="px-4">{product.location || "-"}</TableCell>
                               <TableCell className="text-right px-4">{product.qty}</TableCell>
@@ -683,7 +658,7 @@ export default function TemplateDetailPage() {
                           return (
                             <TableRow key={product._id || `mep-prod-${catIdx}-${prodIdx}`}>
                               <TableCell className="font-medium pl-12 pr-4">{itemNumber++}</TableCell>
-                              <TableCell className="whitespace-normal break-words px-4">{product.name}</TableCell>
+                              <TableCell className="whitespace-normal wrap-break-word px-4">{product.name}</TableCell>
                               <TableCell className="px-4">{product.brand || "-"}</TableCell>
                               <TableCell className="px-4">{product.location || "-"}</TableCell>
                               <TableCell className="text-right px-4">{product.qty}</TableCell>
@@ -813,18 +788,16 @@ export default function TemplateDetailPage() {
                   <div key={index} className="p-4 space-y-3">
                     {/* First Row: Number and Item Name */}
                     <div className="flex items-start gap-3">
-                      <div className="flex-shrink-0 w-8 h-10 flex items-center justify-center font-medium text-sm">
+                      <div className="shrink-0 w-8 h-10 flex items-center justify-center font-medium text-sm">
                         {index + 1}
                       </div>
                       <div className="flex-1 min-w-0">
                         <Label className="text-xs text-muted-foreground mb-1.5 block">Item Name</Label>
                         <ProductSearchPopover
-                          products={products}
                           selectedProductName={item.name}
                           onSelect={(product) => selectPreliminaryProduct(index, product)}
                           onCreateNew={() => setCreateProductDialogOpen(true)}
-                          loadingProducts={loadingProducts}
-                          className="w-full min-h-[40px] h-auto text-left font-normal"
+                          className="w-full min-h-10 h-auto text-left font-normal"
                           formatCurrency={formatCurrency}
                         />
                       </div>
@@ -833,7 +806,7 @@ export default function TemplateDetailPage() {
                         size="icon"
                         onClick={() => removePreliminaryItem(index)}
                         disabled={preliminary.length === 1}
-                        className="flex-shrink-0"
+                        className="shrink-0"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -931,18 +904,16 @@ export default function TemplateDetailPage() {
                       <div key={productIndex} className="p-4 space-y-3">
                         {/* First Row: Number and Product Name */}
                         <div className="flex items-start gap-3">
-                          <div className="flex-shrink-0 w-8 h-10 flex items-center justify-center font-medium text-sm">
+                          <div className="shrink-0 w-8 h-10 flex items-center justify-center font-medium text-sm">
                             {productIndex + 1}
                           </div>
                           <div className="flex-1 min-w-0">
                             <Label className="text-xs text-muted-foreground mb-1.5 block">Product Name</Label>
                             <ProductSearchPopover
-                              products={products}
                               selectedProductName={product.name}
                               onSelect={(prod) => selectFittingOutProduct(categoryIndex, productIndex, prod)}
                               onCreateNew={() => setCreateProductDialogOpen(true)}
-                              loadingProducts={loadingProducts}
-                              className="w-full min-h-[40px] h-auto text-left font-normal"
+                              className="w-full min-h-10 h-auto text-left font-normal"
                               formatCurrency={formatCurrency}
                             />
                           </div>
@@ -951,7 +922,7 @@ export default function TemplateDetailPage() {
                             size="icon"
                             onClick={() => removeFittingOutProduct(categoryIndex, productIndex)}
                             disabled={category.products.length === 1}
-                            className="flex-shrink-0"
+                            className="shrink-0"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -1068,18 +1039,16 @@ export default function TemplateDetailPage() {
                       <div key={productIndex} className="p-4 space-y-3">
                         {/* First Row: Number and Product Name */}
                         <div className="flex items-start gap-3">
-                          <div className="flex-shrink-0 w-8 h-10 flex items-center justify-center font-medium text-sm">
+                          <div className="shrink-0 w-8 h-10 flex items-center justify-center font-medium text-sm">
                             {productIndex + 1}
                           </div>
                           <div className="flex-1 min-w-0">
                             <Label className="text-xs text-muted-foreground mb-1.5 block">Product Name</Label>
                             <ProductSearchPopover
-                              products={products}
                               selectedProductName={product.name}
                               onSelect={(prod) => selectFurnitureWorkProduct(categoryIndex, productIndex, prod)}
                               onCreateNew={() => setCreateProductDialogOpen(true)}
-                              loadingProducts={loadingProducts}
-                              className="w-full min-h-[40px] h-auto text-left font-normal"
+                              className="w-full min-h-10 h-auto text-left font-normal"
                               formatCurrency={formatCurrency}
                             />
                           </div>
@@ -1088,7 +1057,7 @@ export default function TemplateDetailPage() {
                             size="icon"
                             onClick={() => removeFurnitureWorkProduct(categoryIndex, productIndex)}
                             disabled={category.products.length === 1}
-                            className="flex-shrink-0"
+                            className="shrink-0"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -1211,7 +1180,7 @@ export default function TemplateDetailPage() {
                     {category.products.map((product, productIndex) => (
                       <div key={productIndex} className="p-4 space-y-3">
                         <div className="flex items-start gap-3">
-                          <div className="flex-shrink-0 w-8 h-10 flex items-center justify-center font-medium text-sm">
+                          <div className="shrink-0 w-8 h-10 flex items-center justify-center font-medium text-sm">
                             {productIndex + 1}
                           </div>
                           <div className="flex-1 min-w-0">
@@ -1228,7 +1197,7 @@ export default function TemplateDetailPage() {
                             size="icon"
                             onClick={() => removeMechanicalElectricalProduct(categoryIndex, productIndex)}
                             disabled={category.products.length === 1}
-                            className="flex-shrink-0"
+                            className="shrink-0"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>

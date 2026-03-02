@@ -28,7 +28,7 @@ export interface CreateTemplateInput {
   preliminary: TemplateItem[]
   fittingOut: TemplateCategory[]
   furnitureWork: TemplateCategory[]
-  mechanicalElectrical: TemplateCategory[]
+  mechanicalElectrical?: TemplateCategory[]
 }
 
 export interface TemplateListResponse {
@@ -47,7 +47,7 @@ export interface TemplateListResponse {
 
 // Get all templates
 export const getTemplates = async (): Promise<BOQTemplate[]> => {
-  const response = await apiRequest<TemplateListResponse>("/template", {
+  const response = await apiRequest<{ page: number; totalData: number; totalPage: number; list: BOQTemplate[] }>("/template", {
     method: "GET",
   })
   return response.data?.list || []
@@ -55,7 +55,7 @@ export const getTemplates = async (): Promise<BOQTemplate[]> => {
 
 // Get single template
 export const getTemplate = async (id: string): Promise<BOQTemplate> => {
-  const response = await apiRequest<{ code: number; message: any; data: BOQTemplate }>(`/template/${id}`, {
+  const response = await apiRequest<BOQTemplate>(`/template/${id}`, {
     method: "GET",
   })
   return response.data
@@ -63,30 +63,32 @@ export const getTemplate = async (id: string): Promise<BOQTemplate> => {
 
 // Create template
 export const createTemplate = async (data: CreateTemplateInput): Promise<BOQTemplate> => {
-  return apiRequest<BOQTemplate>("/template", {
+  const response = await apiRequest<BOQTemplate>("/template", {
     method: "POST",
     body: JSON.stringify(data),
   })
+  return response.data
 }
 
 // Update template
 export const updateTemplate = async (id: string, data: CreateTemplateInput): Promise<BOQTemplate> => {
-  return apiRequest<BOQTemplate>(`/template/${id}`, {
+  const response = await apiRequest<BOQTemplate>(`/template/${id}`, {
     method: "PUT",
     body: JSON.stringify(data),
   })
+  return response.data
 }
 
 // Delete template
 export const deleteTemplate = async (id: string): Promise<void> => {
-  return apiRequest<void>(`/template/${id}`, {
+  await apiRequest<void>(`/template/${id}`, {
     method: "DELETE",
   })
 }
 
 // Bulk delete templates
 export const bulkDeleteTemplates = async (ids: string[]): Promise<void> => {
-  return apiRequest<void>("/template/delete", {
+  await apiRequest<void>("/template/delete", {
     method: "POST",
     body: JSON.stringify({ _ids: ids }),
   })

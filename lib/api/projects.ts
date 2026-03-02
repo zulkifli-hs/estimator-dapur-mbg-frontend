@@ -257,8 +257,6 @@ const inviteMember = async (projectId: string, data: string[], role: string): Pr
 }
 
 const removeMember = async (projectId: string, data: string[], role: string): Promise<ApiResponse<any>> => {
-  console.log("[v0] API removeMember request:", { projectId, data, role })
-
   return apiRequest<any>(`/projects/${projectId}/remove`, {
     method: "POST",
     body: JSON.stringify({ data, role }),

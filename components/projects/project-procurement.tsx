@@ -14,7 +14,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
-import { Package, Wrench, Hammer, Building2, MoreHorizontal, Image, FileCheck, StickyNote, ExternalLink, Pencil, Upload, Loader2 } from "lucide-react"
+import { Package, Wrench, Hammer, Building2, MoreHorizontal, Image, FileCheck, StickyNote, ExternalLink, Pencil, Upload, Loader2, Maximize2 } from "lucide-react"
+import { FullscreenBoqDialog } from "@/components/projects/boq/fullscreen-boq-dialog"
 import { boqApi } from "@/lib/api/boq"
 import { uploadApi } from "@/lib/api/upload"
 import { API_BASE_URL } from "@/lib/api/config"
@@ -123,6 +124,17 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
   const [uploadingApproval, setUploadingApproval] = useState(false)
   const [uploadingNoteImage, setUploadingNoteImage] = useState(false)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
+  const [fullscreenOpen, setFullscreenOpen] = useState(false)
+  const [fullscreenTitle, setFullscreenTitle] = useState("")
+  const [fullscreenItems, setFullscreenItems] = useState<BOQItem[]>([])
+  const [fullscreenShowTags, setFullscreenShowTags] = useState(false)
+
+  const openFullscreen = (title: string, items: BOQItem[], showTags = false) => {
+    setFullscreenTitle(title)
+    setFullscreenItems(items)
+    setFullscreenShowTags(showTags)
+    setFullscreenOpen(true)
+  }
 
   useEffect(() => {
     if (projectId) {
@@ -134,7 +146,7 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
     try {
       setLoading(true)
       const response = await boqApi.getByProject(projectId)
-      
+
       if (response.success && response.data) {
         const boqItems = response.data
         setAllBOQs(boqItems) // Store complete BOQ data
@@ -223,13 +235,13 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
 
           // Map tags to categories
           const tags = item.tags.map(tag => tag.toLowerCase())
-          
+
           if (tags.some(tag => tag.includes('vendor') || tag.includes('supplier'))) {
             grouped.vendor.push(item)
-          } else if (tags.some(tag => 
-            tag.includes('mep') || 
-            tag.includes('mechanical') || 
-            tag.includes('electrical') || 
+          } else if (tags.some(tag =>
+            tag.includes('mep') ||
+            tag.includes('mechanical') ||
+            tag.includes('electrical') ||
             tag.includes('plumbing')
           )) {
             grouped.mep.push(item)
@@ -689,8 +701,16 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
         <TabsContent value="vendor">
           <Card>
             <CardHeader>
-              <CardTitle>Vendor Procurement</CardTitle>
-              <CardDescription>Manage vendor procurement and orders</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Vendor Procurement</CardTitle>
+                  <CardDescription>Manage vendor procurement and orders</CardDescription>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => openFullscreen("Vendor Procurement", groupedItems.vendor)}>
+                  <Maximize2 className="h-4 w-4 mr-1" />
+                  Full Screen
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {renderItemsTable(groupedItems.vendor, "Vendor")}
@@ -701,8 +721,16 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
         <TabsContent value="mep">
           <Card>
             <CardHeader>
-              <CardTitle>MEP Procurement</CardTitle>
-              <CardDescription>Manage Mechanical, Electrical, and Plumbing procurement</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>MEP Procurement</CardTitle>
+                  <CardDescription>Manage Mechanical, Electrical, and Plumbing procurement</CardDescription>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => openFullscreen("MEP Procurement", groupedItems.mep)}>
+                  <Maximize2 className="h-4 w-4 mr-1" />
+                  Full Screen
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {renderItemsTable(groupedItems.mep, "MEP")}
@@ -713,8 +741,16 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
         <TabsContent value="workshop">
           <Card>
             <CardHeader>
-              <CardTitle>Workshop Procurement</CardTitle>
-              <CardDescription>Manage workshop materials and equipment</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Workshop Procurement</CardTitle>
+                  <CardDescription>Manage workshop materials and equipment</CardDescription>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => openFullscreen("Workshop Procurement", groupedItems.workshop)}>
+                  <Maximize2 className="h-4 w-4 mr-1" />
+                  Full Screen
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {renderItemsTable(groupedItems.workshop, "Workshop")}
@@ -725,8 +761,16 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
         <TabsContent value="internal">
           <Card>
             <CardHeader>
-              <CardTitle>Internal Procurement</CardTitle>
-              <CardDescription>Manage internal procurement and resources</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Internal Procurement</CardTitle>
+                  <CardDescription>Manage internal procurement and resources</CardDescription>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => openFullscreen("Internal Procurement", groupedItems.internal)}>
+                  <Maximize2 className="h-4 w-4 mr-1" />
+                  Full Screen
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {renderItemsTable(groupedItems.internal, "Internal")}
@@ -737,8 +781,16 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
         <TabsContent value="others">
           <Card>
             <CardHeader>
-              <CardTitle>Others Procurement</CardTitle>
-              <CardDescription>Manage other procurement items</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Others Procurement</CardTitle>
+                  <CardDescription>Manage other procurement items</CardDescription>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => openFullscreen("Others Procurement", getFilteredOthersItems(), true)}>
+                  <Maximize2 className="h-4 w-4 mr-1" />
+                  Full Screen
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Tag Filter */}
@@ -760,8 +812,8 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
                 </Select>
                 {selectedOthersTag !== "all" && (
                   <Badge variant="secondary">
-                    {selectedOthersTag === "no-tag" 
-                      ? `No Tag (${getFilteredOthersItems().length})` 
+                    {selectedOthersTag === "no-tag"
+                      ? `No Tag (${getFilteredOthersItems().length})`
                       : `${selectedOthersTag} (${getFilteredOthersItems().length})`}
                   </Badge>
                 )}
@@ -772,6 +824,13 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <FullscreenBoqDialog
+        open={fullscreenOpen}
+        title={fullscreenTitle}
+        onOpenChange={setFullscreenOpen}
+        renderContent={() => renderItemsTable(fullscreenItems, fullscreenTitle, { showTags: fullscreenShowTags })}
+      />
 
       {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
@@ -919,41 +978,37 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
                         disabled={uploadingImage}
                       />
                     </div>
-                    {editingItem.image?.url && (
-                      <div className="flex-1">
-                        <a
-                          href={`${API_BASE_URL}/public/${editingItem.image.provider}/${editingItem.image.url}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                        >
-                          <Image className="h-4 w-4" />
-                          View Current Image
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="imageNote">Note</Label>
-                    <Input
-                      id="imageNote"
-                      value={editingItem.image?.note || ""}
-                      onChange={(e) => setEditingItem({ 
-                        ...editingItem, 
-                        image: { ...editingItem.image, note: e.target.value, url: editingItem.image?.url || "", provider: editingItem.image?.provider || "local" } as any
-                      })}
-                      placeholder="Optional note for image"
-                    />
                   </div>
                   {editingItem.image?.url && (
                     <div className="space-y-2">
                       <Label>Preview</Label>
                       <div className="border rounded-lg p-2 bg-muted/50">
-                        <img
-                          src={`${API_BASE_URL}/public/${editingItem.image.provider}/${editingItem.image.url}`}
-                          alt="Image preview"
-                          className="max-w-full max-h-64 object-contain rounded mx-auto"
+                        <div className="flex flex-col items-center gap-2 p-4">
+                          <img
+                            src={`${API_BASE_URL}/public/${editingItem.image.provider}/${editingItem.image.url}`}
+                            alt="Image preview"
+                            className="max-w-full max-h-64 object-contain rounded mx-auto"
+                          />
+                          <a
+                            href={`${API_BASE_URL}/public/${editingItem.image.provider}/${editingItem.image.url}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-blue-600 hover:underline"
+                          >
+                            Open in new tab
+                          </a>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="imageNote">Note</Label>
+                        <Input
+                          id="imageNote"
+                          value={editingItem.image?.note || ""}
+                          onChange={(e) => setEditingItem({
+                            ...editingItem,
+                            image: { ...editingItem.image, note: e.target.value, url: editingItem.image?.url || "", provider: editingItem.image?.provider || "local" } as any
+                          })}
+                          placeholder="Optional note for image"
                         />
                       </div>
                     </div>
@@ -993,32 +1048,6 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
                         disabled={uploadingApproval}
                       />
                     </div>
-                    {editingItem.approval?.url && (
-                      <div className="flex-1">
-                        <a
-                          href={`${API_BASE_URL}/public/${editingItem.approval.provider}/${editingItem.approval.url}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-green-600 hover:text-green-800 flex items-center gap-1"
-                        >
-                          <FileCheck className="h-4 w-4" />
-                          View Current Approval
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="approvalNote">Note</Label>
-                    <Input
-                      id="approvalNote"
-                      value={editingItem.approval?.note || ""}
-                      onChange={(e) => setEditingItem({ 
-                        ...editingItem, 
-                        approval: { ...editingItem.approval, note: e.target.value, url: editingItem.approval?.url || "", provider: editingItem.approval?.provider || "local" } as any
-                      })}
-                      placeholder="Optional note for approval"
-                    />
                   </div>
                   {editingItem.approval?.url && (
                     <div className="space-y-2">
@@ -1038,12 +1067,34 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
                             </a>
                           </div>
                         ) : (
-                          <img
-                            src={`${API_BASE_URL}/public/${editingItem.approval.provider}/${editingItem.approval.url}`}
-                            alt="Approval preview"
-                            className="max-w-full max-h-64 object-contain rounded mx-auto"
-                          />
+                          <div className="flex flex-col items-center gap-2 p-4">
+                            <img
+                              src={`${API_BASE_URL}/public/${editingItem.approval.provider}/${editingItem.approval.url}`}
+                              alt="Approval preview"
+                              className="max-w-full max-h-64 object-contain rounded mx-auto"
+                            />
+                            <a
+                              href={`${API_BASE_URL}/public/${editingItem.approval.provider}/${editingItem.approval.url}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-blue-600 hover:underline"
+                            >
+                              Open in new tab
+                            </a>
+                          </div>
                         )}
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="approvalNote">Note</Label>
+                        <Input
+                          id="approvalNote"
+                          value={editingItem.approval?.note || ""}
+                          onChange={(e) => setEditingItem({
+                            ...editingItem,
+                            approval: { ...editingItem.approval, note: e.target.value, url: editingItem.approval?.url || "", provider: editingItem.approval?.provider || "local" } as any
+                          })}
+                          placeholder="Optional note for approval"
+                        />
                       </div>
                     </div>
                   )}
@@ -1082,41 +1133,37 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
                         disabled={uploadingNoteImage}
                       />
                     </div>
-                    {editingItem.noteImage?.url && (
-                      <div className="flex-1">
-                        <a
-                          href={`${API_BASE_URL}/public/${editingItem.noteImage.provider}/${editingItem.noteImage.url}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-orange-600 hover:text-orange-800 flex items-center gap-1"
-                        >
-                          <StickyNote className="h-4 w-4" />
-                          View Current Note Image
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="noteImageNote">Note</Label>
-                    <Input
-                      id="noteImageNote"
-                      value={editingItem.noteImage?.note || ""}
-                      onChange={(e) => setEditingItem({ 
-                        ...editingItem, 
-                        noteImage: { ...editingItem.noteImage, note: e.target.value, url: editingItem.noteImage?.url || "", provider: editingItem.noteImage?.provider || "local" } as any
-                      })}
-                      placeholder="Optional note for note image"
-                    />
                   </div>
                   {editingItem.noteImage?.url && (
                     <div className="space-y-2">
                       <Label>Preview</Label>
                       <div className="border rounded-lg p-2 bg-muted/50">
-                        <img
-                          src={`${API_BASE_URL}/public/${editingItem.noteImage.provider}/${editingItem.noteImage.url}`}
-                          alt="Note image preview"
-                          className="max-w-full max-h-64 object-contain rounded mx-auto"
+                        <div className="flex flex-col items-center gap-2 p-4">
+                          <img
+                            src={`${API_BASE_URL}/public/${editingItem.noteImage.provider}/${editingItem.noteImage.url}`}
+                            alt="Note image preview"
+                            className="max-w-full max-h-64 object-contain rounded mx-auto"
+                          />
+                          <a
+                            href={`${API_BASE_URL}/public/${editingItem.noteImage.provider}/${editingItem.noteImage.url}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-blue-600 hover:underline"
+                          >
+                            Open in new tab
+                          </a>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="noteImageNote">Note</Label>
+                        <Input
+                          id="noteImageNote"
+                          value={editingItem.noteImage?.note || ""}
+                          onChange={(e) => setEditingItem({
+                            ...editingItem,
+                            noteImage: { ...editingItem.noteImage, note: e.target.value, url: editingItem.noteImage?.url || "", provider: editingItem.noteImage?.provider || "local" } as any
+                          })}
+                          placeholder="Optional note for note image"
                         />
                       </div>
                     </div>

@@ -60,7 +60,6 @@ export default function SignupPage() {
       // Store token
       if (response.data.accessToken) {
         setAuthToken(response.data.accessToken)
-        localStorage.setItem("auth_token", response.data.accessToken)
       }
 
       // Redirect to dashboard
@@ -75,7 +74,7 @@ export default function SignupPage() {
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
       {/* Left side - Decorative Background */}
-      <div className="hidden lg:flex flex-col justify-between p-8 bg-gradient-to-br from-primary/10 via-background to-primary/5 relative overflow-hidden">
+      <div className="hidden lg:flex flex-col justify-between p-8 bg-linear-to-br from-primary/10 via-background to-primary/5 relative overflow-hidden">
         <div
           className="absolute inset-0 opacity-[0.03]"
           style={{

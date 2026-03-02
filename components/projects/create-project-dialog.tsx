@@ -38,7 +38,7 @@ function TeamMemberInput({ label, emails, onAdd, onRemove, disabled }: TeamMembe
   const [error, setError] = useState("")
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(false)
-  const searchTimeoutRef = useRef<NodeJS.Timeout>()
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -142,7 +142,7 @@ function TeamMemberInput({ label, emails, onAdd, onRemove, disabled }: TeamMembe
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
 
           {showDropdown && (
-            <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-md max-h-[300px] overflow-auto">
+            <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-md max-h-75 overflow-auto">
               {loading ? (
                 <div className="p-4 text-sm text-muted-foreground text-center">Searching...</div>
               ) : users.length > 0 ? (
@@ -155,13 +155,13 @@ function TeamMemberInput({ label, emails, onAdd, onRemove, disabled }: TeamMembe
                     >
                       <Avatar className="h-8 w-8">
                         <AvatarImage
-                          src={getImageUrl(user.profile.photo.url) || "/placeholder.svg"}
-                          alt={user.profile.name}
+                          src={getImageUrl(user.profile?.photo?.url ?? "") || "/placeholder.svg"}
+                          alt={user.profile?.name ?? ""}
                         />
-                        <AvatarFallback>{user.profile.name.charAt(0).toUpperCase()}</AvatarFallback>
+                        <AvatarFallback>{(user.profile?.name ?? "?").charAt(0).toUpperCase()}</AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">{user.profile.name}</p>
+                        <p className="font-medium text-sm truncate">{user.profile?.name ?? user.email}</p>
                         <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                       </div>
                       {emails.includes(user.email) && <Check className="h-4 w-4 text-primary" />}
@@ -485,7 +485,7 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess, editProject
         onSuccess()
         onOpenChange(false)
       } else {
-        setError(response.message || `Failed to ${editProject ? "update" : "create"} project`)
+        setError(`Failed to ${editProject ? "update" : "create"} project`)
       }
     } catch (err: any) {
       setError(err?.message || "An error occurred. Please try again.")

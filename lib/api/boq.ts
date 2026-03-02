@@ -1,14 +1,4 @@
-import { API_BASE_URL, BASIC_AUTH_PASSWORD, BASIC_AUTH_USERNAME, apiRequest } from "./config"
-
-const getBasicAuthHeaders = (): HeadersInit => {
-  if (!BASIC_AUTH_USERNAME || !BASIC_AUTH_PASSWORD) {
-    return {}
-  }
-
-  return {
-    Authorization: `Basic ${btoa(`${BASIC_AUTH_USERNAME}:${BASIC_AUTH_PASSWORD}`)}`,
-  }
-}
+import { API_BASE_URL, getAuthToken, apiRequest } from "./config"
 
 export interface BOQItem {
   id: string
@@ -63,8 +53,8 @@ export const createBOQFromExcel = async (projectId: string, file: File): Promise
   const formData = new FormData()
   formData.append("file", file)
 
-  const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null
-  const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/projects/${projectId}/boq/excel-based`, {
+  const token = getAuthToken()
+  const response = await fetch(`${API_BASE_URL}/projects/${projectId}/boq/excel-based`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -224,6 +214,23 @@ export const updateGanttChart = async (
   })
 }
 
+// Update discount and tax for a BOQ
+export const updateDiscountTax = async (
+  projectId: string,
+  boqId: string,
+  data: {
+    discount: number
+    discountType: "%" | "0"
+    tax: number
+    taxType: "%" | "0"
+  },
+): Promise<any> => {
+  return apiRequest<any>(`/projects/${projectId}/boq/${boqId}/discount-tax`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  })
+}
+
 // Request BOQ approval
 export const requestBOQApproval = async (projectId: string, boqId: string, data?: { email: string }): Promise<void> => {
   await apiRequest<void>(`/projects/${projectId}/boq/${boqId}/request`, {
@@ -232,14 +239,11 @@ export const requestBOQApproval = async (projectId: string, boqId: string, data?
   })
 }
 
-// Client accept BOQ
+// Client accept BOQ — proxied server-side so Basic auth stays out of the browser
 export const acceptBOQ = async (projectId: string, boqId: string, email: string, code: string): Promise<void> => {
   const response = await fetch(
-    `${API_BASE_URL}/projects/${projectId}/boq/${boqId}/accept?email=${encodeURIComponent(email)}&code=${encodeURIComponent(code)}`,
-    {
-      method: "GET",
-      headers: getBasicAuthHeaders(),
-    },
+    `/api/boq-approval/action?action=accept&projectId=${projectId}&boqId=${boqId}&email=${encodeURIComponent(email)}&code=${encodeURIComponent(code)}`,
+    { method: "GET" },
   )
 
   if (!response.ok) {
@@ -248,14 +252,11 @@ export const acceptBOQ = async (projectId: string, boqId: string, email: string,
   }
 }
 
-// Client reject BOQ
+// Client reject BOQ — proxied server-side so Basic auth stays out of the browser
 export const rejectBOQ = async (projectId: string, boqId: string, email: string, code: string): Promise<void> => {
   const response = await fetch(
-    `${API_BASE_URL}/projects/${projectId}/boq/${boqId}/reject?email=${encodeURIComponent(email)}&code=${encodeURIComponent(code)}`,
-    {
-      method: "GET",
-      headers: getBasicAuthHeaders(),
-    },
+    `/api/boq-approval/action?action=reject&projectId=${projectId}&boqId=${boqId}&email=${encodeURIComponent(email)}&code=${encodeURIComponent(code)}`,
+    { method: "GET" },
   )
 
   if (!response.ok) {
@@ -430,5 +431,13 @@ export const boqApi = {
       console.error("Token verification error:", error)
       return { success: false, data: null }
     }
+  },
+  updateDiscountTax: async (
+    projectId: string,
+    boqId: string,
+    data: { discount: number; discountType: "%" | "0"; tax: number; taxType: "%" | "0" },
+  ) => {
+    const result = await updateDiscountTax(projectId, boqId, data)
+    return { success: true, data: result }
   },
 }

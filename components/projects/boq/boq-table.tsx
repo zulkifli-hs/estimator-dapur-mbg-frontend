@@ -2,6 +2,7 @@
 
 import React from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 
 interface BoqTableProps {
@@ -26,10 +27,46 @@ const subtotalColor = (value: number) => {
 
 export function BoqTable({ boq, formatCurrency }: BoqTableProps) {
   let itemNumber = 1
-  let grandTotal = 0
+
+  const preliminarySubtotal = Array.isArray(boq.preliminary)
+    ? boq.preliminary.reduce((sum: number, item: any) => sum + (item.qty || 0) * (item.price || 0), 0)
+    : 0
+
+  const fittingOutSubtotal = Array.isArray(boq.fittingOut)
+    ? boq.fittingOut.reduce(
+        (sum: number, cat: any) =>
+          sum + (Array.isArray(cat.products) ? cat.products.reduce((s: number, p: any) => s + (p.qty || 0) * (p.price || 0), 0) : 0),
+        0,
+      )
+    : 0
+
+  const furnitureWorkSubtotal = Array.isArray(boq.furnitureWork)
+    ? boq.furnitureWork.reduce(
+        (sum: number, cat: any) =>
+          sum + (Array.isArray(cat.products) ? cat.products.reduce((s: number, p: any) => s + (p.qty || 0) * (p.price || 0), 0) : 0),
+        0,
+      )
+    : 0
+
+  const mepSubtotal = Array.isArray(boq.mechanicalElectrical)
+    ? boq.mechanicalElectrical.reduce(
+        (sum: number, cat: any) =>
+          sum + (Array.isArray(cat.products) ? cat.products.reduce((s: number, p: any) => s + (p.qty || 0) * (p.price || 0), 0) : 0),
+        0,
+      )
+    : 0
+
+  const grandTotal = preliminarySubtotal + fittingOutSubtotal + furnitureWorkSubtotal + mepSubtotal
+
+  const hasData =
+    (Array.isArray(boq.preliminary) && boq.preliminary.length > 0) ||
+    (Array.isArray(boq.fittingOut) && boq.fittingOut.length > 0) ||
+    (Array.isArray(boq.furnitureWork) && boq.furnitureWork.length > 0) ||
+    (Array.isArray(boq.mechanicalElectrical) && boq.mechanicalElectrical.length > 0)
 
   return (
-    <div className="border rounded-lg overflow-x-auto">
+    <div className="space-y-4">
+      <div className="border rounded-lg overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow>
@@ -54,7 +91,6 @@ export function BoqTable({ boq, formatCurrency }: BoqTableProps) {
               {sortByQty(boq.preliminary).map((item: any) => {
                 const isNegative = (item.qty ?? 0) < 0
                 const total = (item.qty || 0) * (item.price || 0)
-                grandTotal += total
                 return (
                   <TableRow key={item._id} className={cn(isNegative && "bg-red-50 dark:bg-red-950/20")}>
                     <TableCell className="font-medium pl-8 pr-4">{itemNumber++}</TableCell>
@@ -95,7 +131,6 @@ export function BoqTable({ boq, formatCurrency }: BoqTableProps) {
                 const categoryTotal =
                   Array.isArray(category.products) &&
                   category.products.reduce((sum: number, p: any) => sum + (p.qty || 0) * (p.price || 0), 0)
-                grandTotal += categoryTotal || 0
 
                 return (
                   <React.Fragment key={category._id}>
@@ -165,7 +200,6 @@ export function BoqTable({ boq, formatCurrency }: BoqTableProps) {
                 const categoryTotal =
                   Array.isArray(category.products) &&
                   category.products.reduce((sum: number, p: any) => sum + (p.qty || 0) * (p.price || 0), 0)
-                grandTotal += categoryTotal || 0
 
                 return (
                   <React.Fragment key={category._id}>
@@ -235,7 +269,6 @@ export function BoqTable({ boq, formatCurrency }: BoqTableProps) {
                 const categoryTotal =
                   Array.isArray(category.products) &&
                   category.products.reduce((sum: number, p: any) => sum + (p.qty || 0) * (p.price || 0), 0)
-                grandTotal += categoryTotal || 0
 
                 return (
                   <React.Fragment key={category._id}>
@@ -294,19 +327,56 @@ export function BoqTable({ boq, formatCurrency }: BoqTableProps) {
             </>
           )}
 
-          {((Array.isArray(boq.preliminary) && boq.preliminary.length > 0) ||
-            (Array.isArray(boq.fittingOut) && boq.fittingOut.length > 0) ||
-            (Array.isArray(boq.furnitureWork) && boq.furnitureWork.length > 0) ||
-            (Array.isArray(boq.mechanicalElectrical) && boq.mechanicalElectrical.length > 0)) && (
-            <TableRow className="bg-primary/20 font-bold">
-              <TableCell colSpan={7} className="text-right text-lg px-4 py-4">
-                GRAND TOTAL
-              </TableCell>
-              <TableCell className={cn("text-right text-lg px-4 py-4")}>{formatCurrency(grandTotal)}</TableCell>
-            </TableRow>
-          )}
         </TableBody>
       </Table>
+    </div>
+
+    {hasData && (
+      <Card className="border-2 border-primary bg-primary/5">
+        <CardContent>
+          <div className="flex justify-between items-center">
+            <span className="text-xl font-bold">GRAND TOTAL</span>
+            <span className={cn("text-3xl font-bold text-primary", subtotalColor(grandTotal))}>
+              {formatCurrency(grandTotal)}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t">
+            {Array.isArray(boq.preliminary) && boq.preliminary.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Preliminary</p>
+                <p className={cn("font-semibold", subtotalColor(preliminarySubtotal))}>
+                  {formatCurrency(preliminarySubtotal)}
+                </p>
+              </div>
+            )}
+            {Array.isArray(boq.fittingOut) && boq.fittingOut.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Fitting Out</p>
+                <p className={cn("font-semibold", subtotalColor(fittingOutSubtotal))}>
+                  {formatCurrency(fittingOutSubtotal)}
+                </p>
+              </div>
+            )}
+            {Array.isArray(boq.furnitureWork) && boq.furnitureWork.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Furniture Work</p>
+                <p className={cn("font-semibold", subtotalColor(furnitureWorkSubtotal))}>
+                  {formatCurrency(furnitureWorkSubtotal)}
+                </p>
+              </div>
+            )}
+            {Array.isArray(boq.mechanicalElectrical) && boq.mechanicalElectrical.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">MEP</p>
+                <p className={cn("font-semibold", subtotalColor(mepSubtotal))}>
+                  {formatCurrency(mepSubtotal)}
+                </p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    )}
     </div>
   )
 }

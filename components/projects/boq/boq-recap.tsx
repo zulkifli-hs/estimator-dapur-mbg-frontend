@@ -344,7 +344,7 @@ export function BoqRecap({ mainBOQ, additionalBOQs, formatCurrency }: BoqRecapPr
       )}
 
       <Card className="border-2 border-primary bg-primary/5">
-        <CardContent className="pt-6">
+        <CardContent>
           <div className="flex justify-between items-center">
             <span className="text-xl font-bold">GRAND TOTAL</span>
             <span className="text-3xl font-bold text-primary">{formatCurrency(grandTotal)}</span>

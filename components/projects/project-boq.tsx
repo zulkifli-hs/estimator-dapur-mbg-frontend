@@ -620,10 +620,27 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       setLoading(true)
 
 
+      // Helper: normalize date to YYYY-MM-DD
+      const normalizeDate = (date?: string) => {
+        if (!date) return undefined
+        try {
+          return new Date(date).toISOString().split("T")[0]
+        } catch {
+          return undefined
+        }
+      }
+
+      // Helper: normalize item dates
+      const normalizeItemDates = (item: any) => ({
+        ...item,
+        startDate: item.startDate ? normalizeDate(item.startDate) : undefined,
+        endDate: item.endDate ? normalizeDate(item.endDate) : undefined,
+      })
+
       // Filter preliminary items
       const filteredPreliminary = preliminary
         .filter((item) => item.name && item.qty > 0 && item.unit && item.price >= 0)
-        .map((item) => ({
+        .map((item) => normalizeItemDates({
           productId: item.productId,
           qty: item.qty,
           name: item.name,
@@ -641,7 +658,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
           name: category.name,
           products: category.products
             .filter((product) => product.name && product.qty > 0 && product.unit && product.price >= 0)
-            .map((product) => ({
+            .map((product) => normalizeItemDates({
               productId: product.productId,
               qty: product.qty,
               name: product.name,
@@ -661,7 +678,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
           name: category.name,
           products: category.products
             .filter((product) => product.name && product.qty > 0 && product.unit && product.price >= 0)
-            .map((product) => ({
+            .map((product) => normalizeItemDates({
               productId: product.productId,
               qty: product.qty,
               name: product.name,
@@ -681,7 +698,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
           name: category.name,
           products: category.products
             .filter((product) => product.name && product.qty > 0 && product.unit && product.price >= 0)
-            .map((product) => ({
+            .map((product) => normalizeItemDates({
               productId: product.productId,
               qty: product.qty,
               name: product.name,

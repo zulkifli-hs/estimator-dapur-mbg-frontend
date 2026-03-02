@@ -1,4 +1,4 @@
-import { API_BASE_URL, BASIC_AUTH_USERNAME, BASIC_AUTH_PASSWORD } from "./config"
+// Upload requests are proxied through /api/upload so Basic auth never reaches the browser
 
 export interface UploadResponse {
   url: string
@@ -100,18 +100,8 @@ export const uploadPhoto = async (file: File): Promise<UploadResponse> => {
   const formData = new FormData()
   formData.append("file", processedFile)
 
-  const headers: HeadersInit = {}
-
-  if (BASIC_AUTH_USERNAME && BASIC_AUTH_PASSWORD) {
-    const basicAuthCredentials = btoa(`${BASIC_AUTH_USERNAME}:${BASIC_AUTH_PASSWORD}`)
-    headers["Authorization"] = `Basic ${basicAuthCredentials}`
-  } else {
-    throw new Error("Basic Auth credentials not configured")
-  }
-
-  const response = await fetch(`${API_BASE_URL}/upload`, {
+  const response = await fetch("/api/upload", {
     method: "POST",
-    headers,
     body: formData,
   })
 
@@ -133,15 +123,6 @@ export const uploadFile = async (file: File, onProgress?: (progress: number) => 
   const processedFile = await compressImageIfNeeded(file)
   const formData = new FormData()
   formData.append("file", processedFile)
-
-  const headers: HeadersInit = {}
-
-  if (BASIC_AUTH_USERNAME && BASIC_AUTH_PASSWORD) {
-    const basicAuthCredentials = btoa(`${BASIC_AUTH_USERNAME}:${BASIC_AUTH_PASSWORD}`)
-    headers["Authorization"] = `Basic ${basicAuthCredentials}`
-  } else {
-    throw new Error("Basic Auth credentials not configured")
-  }
 
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest()
@@ -182,12 +163,7 @@ export const uploadFile = async (file: File, onProgress?: (progress: number) => 
       reject(new Error("Upload cancelled"))
     })
 
-    xhr.open("POST", `${API_BASE_URL}/upload`)
-
-    // Set auth header
-    if (headers["Authorization"]) {
-      xhr.setRequestHeader("Authorization", headers["Authorization"])
-    }
+    xhr.open("POST", "/api/upload")
 
     xhr.send(formData)
   })

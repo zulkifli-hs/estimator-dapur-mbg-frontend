@@ -292,7 +292,7 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate, c
                     <AvatarFallback className="font-semibold">
                       {getUserName(post.createdBy)
                         .split(" ")
-                        .map((n) => n[0])
+                        .map((n: string) => n[0])
                         .join("")
                         .toUpperCase()}
                     </AvatarFallback>
@@ -407,7 +407,7 @@ export function PostDetailDialog({ open, onClose, projectId, postId, onUpdate, c
                             <AvatarFallback className="text-xs font-semibold">
                               {getUserName(comment.createdBy)
                                 .split(" ")
-                                .map((n) => n[0])
+                                .map((n: string) => n[0])
                                 .join("")
                                 .toUpperCase()}
                             </AvatarFallback>

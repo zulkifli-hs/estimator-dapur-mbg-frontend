@@ -33,23 +33,22 @@ export interface ApiResponse<T> {
   data: T
 }
 
-export const BASIC_AUTH_USERNAME = process.env.NEXT_PUBLIC_BASIC_AUTH_USERNAME || ""
-export const BASIC_AUTH_PASSWORD = process.env.NEXT_PUBLIC_BASIC_AUTH_PASSWORD || ""
-
 // API request helper with auth
 export async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
   const token = getAuthToken()
 
-  const headers: HeadersInit = {
-    ...options.headers,
+  const headers: Record<string, string> = {
+    ...(options.headers as Record<string, string>),
   }
 
-  if (BASIC_AUTH_USERNAME && BASIC_AUTH_PASSWORD) {
-    const basicAuthCredentials = btoa(`${BASIC_AUTH_USERNAME}:${BASIC_AUTH_PASSWORD}`)
-    headers["Authorization"] = `Basic ${basicAuthCredentials}`
+  // Basic Auth — required by the API gateway for every request
+  const basicUser = process.env.NEXT_PUBLIC_BASIC_AUTH_USERNAME
+  const basicPass = process.env.NEXT_PUBLIC_BASIC_AUTH_PASSWORD
+  if (basicUser && basicPass) {
+    headers["Authorization"] = `Basic ${btoa(`${basicUser}:${basicPass}`)}`
   }
 
-  // Add Bearer token if available (overrides Basic Auth)
+  // JWT Bearer token overrides Basic Auth once the user is logged in
   if (token) {
     headers["Authorization"] = `Bearer ${token}`
   }
@@ -58,11 +57,6 @@ export async function apiRequest<T>(endpoint: string, options: RequestInit = {})
   if (options.body && typeof options.body === "string") {
     headers["Content-Type"] = "application/json"
   }
-
-  console.log("[v0] API Request:", {
-    endpoint,
-    method: options.method,
-  })
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
@@ -75,35 +69,30 @@ export async function apiRequest<T>(endpoint: string, options: RequestInit = {})
     data: null,
   }))
 
-  console.log("[v0] API Response:", {
-    status: response.status,
-    ok: response.ok,
-    jsonResponse,
-  })
-
   if (response.status === 401 || jsonResponse.code === 401) {
-    console.log("[v0] 401 Unauthorized - clearing auth and redirecting to login")
-    removeAuthToken()
-    if (typeof window !== "undefined") {
-      window.location.href = "/login"
+    // Only treat as session expiry if the user had an active token.
+    // During login/register there is no token, so 401 means wrong credentials.
+    if (token) {
+      removeAuthToken()
+      if (typeof window !== "undefined") {
+        window.location.href = "/login"
+      }
+      throw new Error("Session expired. Please login again.")
     }
-    throw new Error("Session expired. Please login again.")
+    // No token — fall through to the generic error handler below so the
+    // login page can display a proper "Invalid credentials" message.
   }
 
-  // Accept both 200 (OK) and 201 (Created) as successful responses
-  if (!response.ok || (jsonResponse.code !== 200 && jsonResponse.code !== 201)) {
-    const errorDetails = {
-      endpoint,
-      method: options.method,
-      status: response.status,
-      responseOk: response.ok,
-      code: jsonResponse.code,
-      message: jsonResponse.message,
-      devProblems: jsonResponse.message?.dev?.problems || [],
-    }
-    console.error("[v0] API Error Details:", JSON.stringify(errorDetails, null, 2))
+  // Primary check: HTTP status. If the server says OK (2xx), trust it.
+  // Secondary check: if HTTP says OK but the body explicitly carries an error code (>= 400), treat it as an error too.
+  const bodyCodeIsError =
+    response.ok &&
+    jsonResponse.code !== undefined &&
+    jsonResponse.code !== null &&
+    jsonResponse.code >= 400
 
-    // Build a more descriptive error message
+  if (!response.ok || bodyCodeIsError) {
+    // Build a descriptive error message
     let errorMessage = jsonResponse.message?.user || `HTTP ${response.status}`
     if (response.status === 404) {
       errorMessage = `Endpoint tidak ditemukan (404): ${endpoint}. Pastikan endpoint API sudah tersedia di backend.`
@@ -117,6 +106,13 @@ export async function apiRequest<T>(endpoint: string, options: RequestInit = {})
 
 export const apiClient = {
   request: apiRequest,
+  get: <T>(endpoint: string, _options?: { params?: Record<string, any> }) =>
+    apiRequest<T>(endpoint, { method: "GET" }),
+  post: <T>(endpoint: string, data?: unknown) =>
+    apiRequest<T>(endpoint, { method: "POST", body: data !== undefined ? JSON.stringify(data) : undefined }),
+  put: <T>(endpoint: string, data?: unknown) =>
+    apiRequest<T>(endpoint, { method: "PUT", body: data !== undefined ? JSON.stringify(data) : undefined }),
+  delete: <T>(endpoint: string) => apiRequest<T>(endpoint, { method: "DELETE" }),
   getAuthToken,
   setAuthToken,
   removeAuthToken,

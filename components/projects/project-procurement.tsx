@@ -134,7 +134,7 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
     try {
       setLoading(true)
       const response = await boqApi.getByProject(projectId)
-      
+
       if (response.success && response.data) {
         const boqItems = response.data
         setAllBOQs(boqItems) // Store complete BOQ data
@@ -223,13 +223,13 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
 
           // Map tags to categories
           const tags = item.tags.map(tag => tag.toLowerCase())
-          
+
           if (tags.some(tag => tag.includes('vendor') || tag.includes('supplier'))) {
             grouped.vendor.push(item)
-          } else if (tags.some(tag => 
-            tag.includes('mep') || 
-            tag.includes('mechanical') || 
-            tag.includes('electrical') || 
+          } else if (tags.some(tag =>
+            tag.includes('mep') ||
+            tag.includes('mechanical') ||
+            tag.includes('electrical') ||
             tag.includes('plumbing')
           )) {
             grouped.mep.push(item)
@@ -760,8 +760,8 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
                 </Select>
                 {selectedOthersTag !== "all" && (
                   <Badge variant="secondary">
-                    {selectedOthersTag === "no-tag" 
-                      ? `No Tag (${getFilteredOthersItems().length})` 
+                    {selectedOthersTag === "no-tag"
+                      ? `No Tag (${getFilteredOthersItems().length})`
                       : `${selectedOthersTag} (${getFilteredOthersItems().length})`}
                   </Badge>
                 )}
@@ -919,41 +919,37 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
                         disabled={uploadingImage}
                       />
                     </div>
-                    {editingItem.image?.url && (
-                      <div className="flex-1">
-                        <a
-                          href={`${API_BASE_URL}/public/${editingItem.image.provider}/${editingItem.image.url}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                        >
-                          <Image className="h-4 w-4" />
-                          View Current Image
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="imageNote">Note</Label>
-                    <Input
-                      id="imageNote"
-                      value={editingItem.image?.note || ""}
-                      onChange={(e) => setEditingItem({ 
-                        ...editingItem, 
-                        image: { ...editingItem.image, note: e.target.value, url: editingItem.image?.url || "", provider: editingItem.image?.provider || "local" } as any
-                      })}
-                      placeholder="Optional note for image"
-                    />
                   </div>
                   {editingItem.image?.url && (
                     <div className="space-y-2">
                       <Label>Preview</Label>
                       <div className="border rounded-lg p-2 bg-muted/50">
-                        <img
-                          src={`${API_BASE_URL}/public/${editingItem.image.provider}/${editingItem.image.url}`}
-                          alt="Image preview"
-                          className="max-w-full max-h-64 object-contain rounded mx-auto"
+                        <div className="flex flex-col items-center gap-2 p-4">
+                          <img
+                            src={`${API_BASE_URL}/public/${editingItem.image.provider}/${editingItem.image.url}`}
+                            alt="Image preview"
+                            className="max-w-full max-h-64 object-contain rounded mx-auto"
+                          />
+                          <a
+                            href={`${API_BASE_URL}/public/${editingItem.image.provider}/${editingItem.image.url}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-blue-600 hover:underline"
+                          >
+                            Open in new tab
+                          </a>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="imageNote">Note</Label>
+                        <Input
+                          id="imageNote"
+                          value={editingItem.image?.note || ""}
+                          onChange={(e) => setEditingItem({
+                            ...editingItem,
+                            image: { ...editingItem.image, note: e.target.value, url: editingItem.image?.url || "", provider: editingItem.image?.provider || "local" } as any
+                          })}
+                          placeholder="Optional note for image"
                         />
                       </div>
                     </div>
@@ -993,32 +989,6 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
                         disabled={uploadingApproval}
                       />
                     </div>
-                    {editingItem.approval?.url && (
-                      <div className="flex-1">
-                        <a
-                          href={`${API_BASE_URL}/public/${editingItem.approval.provider}/${editingItem.approval.url}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-green-600 hover:text-green-800 flex items-center gap-1"
-                        >
-                          <FileCheck className="h-4 w-4" />
-                          View Current Approval
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="approvalNote">Note</Label>
-                    <Input
-                      id="approvalNote"
-                      value={editingItem.approval?.note || ""}
-                      onChange={(e) => setEditingItem({ 
-                        ...editingItem, 
-                        approval: { ...editingItem.approval, note: e.target.value, url: editingItem.approval?.url || "", provider: editingItem.approval?.provider || "local" } as any
-                      })}
-                      placeholder="Optional note for approval"
-                    />
                   </div>
                   {editingItem.approval?.url && (
                     <div className="space-y-2">
@@ -1038,12 +1008,34 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
                             </a>
                           </div>
                         ) : (
-                          <img
-                            src={`${API_BASE_URL}/public/${editingItem.approval.provider}/${editingItem.approval.url}`}
-                            alt="Approval preview"
-                            className="max-w-full max-h-64 object-contain rounded mx-auto"
-                          />
+                          <div className="flex flex-col items-center gap-2 p-4">
+                            <img
+                              src={`${API_BASE_URL}/public/${editingItem.approval.provider}/${editingItem.approval.url}`}
+                              alt="Approval preview"
+                              className="max-w-full max-h-64 object-contain rounded mx-auto"
+                            />
+                            <a
+                              href={`${API_BASE_URL}/public/${editingItem.approval.provider}/${editingItem.approval.url}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-blue-600 hover:underline"
+                            >
+                              Open in new tab
+                            </a>
+                          </div>
                         )}
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="approvalNote">Note</Label>
+                        <Input
+                          id="approvalNote"
+                          value={editingItem.approval?.note || ""}
+                          onChange={(e) => setEditingItem({
+                            ...editingItem,
+                            approval: { ...editingItem.approval, note: e.target.value, url: editingItem.approval?.url || "", provider: editingItem.approval?.provider || "local" } as any
+                          })}
+                          placeholder="Optional note for approval"
+                        />
                       </div>
                     </div>
                   )}
@@ -1082,41 +1074,37 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
                         disabled={uploadingNoteImage}
                       />
                     </div>
-                    {editingItem.noteImage?.url && (
-                      <div className="flex-1">
-                        <a
-                          href={`${API_BASE_URL}/public/${editingItem.noteImage.provider}/${editingItem.noteImage.url}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-orange-600 hover:text-orange-800 flex items-center gap-1"
-                        >
-                          <StickyNote className="h-4 w-4" />
-                          View Current Note Image
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="noteImageNote">Note</Label>
-                    <Input
-                      id="noteImageNote"
-                      value={editingItem.noteImage?.note || ""}
-                      onChange={(e) => setEditingItem({ 
-                        ...editingItem, 
-                        noteImage: { ...editingItem.noteImage, note: e.target.value, url: editingItem.noteImage?.url || "", provider: editingItem.noteImage?.provider || "local" } as any
-                      })}
-                      placeholder="Optional note for note image"
-                    />
                   </div>
                   {editingItem.noteImage?.url && (
                     <div className="space-y-2">
                       <Label>Preview</Label>
                       <div className="border rounded-lg p-2 bg-muted/50">
-                        <img
-                          src={`${API_BASE_URL}/public/${editingItem.noteImage.provider}/${editingItem.noteImage.url}`}
-                          alt="Note image preview"
-                          className="max-w-full max-h-64 object-contain rounded mx-auto"
+                        <div className="flex flex-col items-center gap-2 p-4">
+                          <img
+                            src={`${API_BASE_URL}/public/${editingItem.noteImage.provider}/${editingItem.noteImage.url}`}
+                            alt="Note image preview"
+                            className="max-w-full max-h-64 object-contain rounded mx-auto"
+                          />
+                          <a
+                            href={`${API_BASE_URL}/public/${editingItem.noteImage.provider}/${editingItem.noteImage.url}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-blue-600 hover:underline"
+                          >
+                            Open in new tab
+                          </a>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="noteImageNote">Note</Label>
+                        <Input
+                          id="noteImageNote"
+                          value={editingItem.noteImage?.note || ""}
+                          onChange={(e) => setEditingItem({
+                            ...editingItem,
+                            noteImage: { ...editingItem.noteImage, note: e.target.value, url: editingItem.noteImage?.url || "", provider: editingItem.noteImage?.provider || "local" } as any
+                          })}
+                          placeholder="Optional note for note image"
                         />
                       </div>
                     </div>

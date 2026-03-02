@@ -32,7 +32,6 @@ export default function LoginPage() {
 
       if (response.data?.accessToken) {
         setAuthToken(response.data.accessToken)
-        localStorage.setItem("auth_token", response.data.accessToken)
         localStorage.setItem("user", JSON.stringify(response.data))
         router.push("/dashboard")
       } else {

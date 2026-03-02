@@ -1,8 +1,40 @@
 "use client"
 
-import { Badge } from "@/components/ui/badge"
+import React from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { cn } from "@/lib/utils"
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface RecapRow {
+  _rowKey: string
+  name: string
+  unit: string
+  // AS PER CONTRACT (Main BOQ)
+  mainQty: number
+  mainPrice: number
+  mainTotal: number
+  // ADDITIONAL / DEDUCTION (accumulated across all additional BOQs)
+  addQty: number
+  addPrice: number // effective = addTotal / addQty
+  addTotal: number
+  // NET RESULT
+  netQty: number
+  netPrice: number // effective = netTotal / netQty
+  netTotal: number
+}
+
+interface RecapCategory {
+  name: string
+  rows: RecapRow[]
+}
+
+interface SectionTotals {
+  main: number
+  add: number
+  net: number
+}
 
 interface BoqRecapProps {
   mainBOQ: any
@@ -10,101 +42,360 @@ interface BoqRecapProps {
   formatCurrency: (value: number) => string
 }
 
-export function BoqRecap({ mainBOQ, additionalBOQs, formatCurrency }: BoqRecapProps) {
-  const merged = {
-    preliminary: [] as any[],
-    fittingOut: {} as { [key: string]: any },
-    furnitureWork: {} as { [key: string]: any },
-    mechanicalElectrical: {} as { [key: string]: any },
-  }
+// ─── Identity helpers ─────────────────────────────────────────────────────────
 
-  const addItemsWithSource = (items: any[], source: string, section: "preliminary") => {
-    items.forEach((item: any) => {
-      merged[section].push({
-        ...item,
-        _source: source,
-      })
+/**
+ * Build canonical merge key for an item.
+ * Rule: name + _id must BOTH match for same item.
+ * Fallback: if _id is absent, use normalised name only.
+ */
+function itemKey(item: any): string {
+  const id = (item?._id ?? "").trim()
+  const name = (item?.name ?? "").trim().toLowerCase()
+  if (!name) return ""
+  return id ? `${name}:::${id}` : name
+}
+
+// ─── Merge helpers ────────────────────────────────────────────────────────────
+
+function finalizeRow(row: RecapRow): RecapRow {
+  row.netQty = row.mainQty + row.addQty
+  row.netTotal = row.mainTotal + row.addTotal
+  row.addPrice = row.addQty !== 0 ? row.addTotal / row.addQty : 0
+  row.netPrice = row.netQty !== 0 ? row.netTotal / row.netQty : 0
+  return row
+}
+
+function mergePreliminary(mainItems: any[], additionalBOQs: any[]): RecapRow[] {
+  const map = new Map<string, RecapRow>()
+
+  for (const item of mainItems) {
+    const key = itemKey(item)
+    if (!key) continue
+    const qty = item.qty ?? 0
+    const price = item.price ?? 0
+    map.set(key, {
+      _rowKey: key,
+      name: item.name ?? "",
+      unit: item.unit ?? "",
+      mainQty: qty,
+      mainPrice: price,
+      mainTotal: qty * price,
+      addQty: 0,
+      addPrice: 0,
+      addTotal: 0,
+      netQty: 0,
+      netPrice: 0,
+      netTotal: 0,
     })
   }
 
-  const addCategoryItemsWithSource = (
-    categories: any[],
-    source: string,
-    section: "fittingOut" | "furnitureWork" | "mechanicalElectrical",
-  ) => {
-    categories.forEach((category: any) => {
-      const categoryKey = category.name || "Uncategorized"
-      if (!merged[section][categoryKey]) {
-        merged[section][categoryKey] = {
-          name: categoryKey,
-          products: [],
+  for (const boq of additionalBOQs) {
+    for (const item of (boq.preliminary ?? [])) {
+      const key = itemKey(item)
+      if (!key) continue
+      const qty = item.qty ?? 0
+      const price = item.price ?? 0
+      if (map.has(key)) {
+        const r = map.get(key)!
+        r.addQty += qty
+        r.addTotal += qty * price
+      } else {
+        map.set(key, {
+          _rowKey: key,
+          name: item.name ?? "",
+          unit: item.unit ?? "",
+          mainQty: 0,
+          mainPrice: 0,
+          mainTotal: 0,
+          addQty: qty,
+          addPrice: 0,
+          addTotal: qty * price,
+          netQty: 0,
+          netPrice: 0,
+          netTotal: 0,
+        })
+      }
+    }
+  }
+
+  return Array.from(map.values()).map(finalizeRow)
+}
+
+function mergeCategorized(
+  mainCategories: any[],
+  additionalBOQs: any[],
+  section: "fittingOut" | "furnitureWork" | "mechanicalElectrical",
+): RecapCategory[] {
+  // catName → (itemKey → RecapRow)
+  const catMap = new Map<string, Map<string, RecapRow>>()
+
+  const ensureCat = (catName: string) => {
+    if (!catMap.has(catName)) catMap.set(catName, new Map())
+    return catMap.get(catName)!
+  }
+
+  for (const cat of mainCategories) {
+    const catName = cat.name || "Uncategorized"
+    const imap = ensureCat(catName)
+    for (const product of (cat.products ?? [])) {
+      const key = itemKey(product)
+      if (!key) continue
+      const qty = product.qty ?? 0
+      const price = product.price ?? 0
+      imap.set(key, {
+        _rowKey: `${catName}:::${key}`,
+        name: product.name ?? "",
+        unit: product.unit ?? "",
+        mainQty: qty,
+        mainPrice: price,
+        mainTotal: qty * price,
+        addQty: 0,
+        addPrice: 0,
+        addTotal: 0,
+        netQty: 0,
+        netPrice: 0,
+        netTotal: 0,
+      })
+    }
+  }
+
+  for (const boq of additionalBOQs) {
+    for (const cat of (boq[section] ?? [])) {
+      const catName = cat.name || "Uncategorized"
+      const imap = ensureCat(catName)
+      for (const product of (cat.products ?? [])) {
+        const key = itemKey(product)
+        if (!key) continue
+        const qty = product.qty ?? 0
+        const price = product.price ?? 0
+        if (imap.has(key)) {
+          const r = imap.get(key)!
+          r.addQty += qty
+          r.addTotal += qty * price
+        } else {
+          imap.set(key, {
+            _rowKey: `${catName}:::${key}`,
+            name: product.name ?? "",
+            unit: product.unit ?? "",
+            mainQty: 0,
+            mainPrice: 0,
+            mainTotal: 0,
+            addQty: qty,
+            addPrice: 0,
+            addTotal: qty * price,
+            netQty: 0,
+            netPrice: 0,
+            netTotal: 0,
+          })
         }
       }
-      category.products?.forEach((product: any) => {
-        merged[section][categoryKey].products.push({
-          ...product,
-          _source: source,
-        })
-      })
-    })
+    }
   }
 
-  if (mainBOQ) {
-    addItemsWithSource(mainBOQ.preliminary || [], "Main BOQ", "preliminary")
-    addCategoryItemsWithSource(mainBOQ.fittingOut || [], "Main BOQ", "fittingOut")
-    addCategoryItemsWithSource(mainBOQ.furnitureWork || [], "Main BOQ", "furnitureWork")
-    addCategoryItemsWithSource(mainBOQ.mechanicalElectrical || [], "Main BOQ", "mechanicalElectrical")
+  return Array.from(catMap.entries()).map(([name, imap]) => ({
+    name,
+    rows: Array.from(imap.values()).map(finalizeRow),
+  }))
+}
+
+// ─── Total aggregates ─────────────────────────────────────────────────────────
+
+function rowsTotals(rows: RecapRow[]): SectionTotals {
+  return rows.reduce(
+    (acc, r) => ({ main: acc.main + r.mainTotal, add: acc.add + r.addTotal, net: acc.net + r.netTotal }),
+    { main: 0, add: 0, net: 0 },
+  )
+}
+
+function categoriesTotals(cats: RecapCategory[]): SectionTotals {
+  return cats.reduce(
+    (acc, cat) => {
+      const t = rowsTotals(cat.rows)
+      return { main: acc.main + t.main, add: acc.add + t.add, net: acc.net + t.net }
+    },
+    { main: 0, add: 0, net: 0 },
+  )
+}
+
+// ─── Shared UI sub-components ─────────────────────────────────────────────────
+
+function RecapTableHeader() {
+  return (
+    <TableHeader>
+      <TableRow className="border-b-0">
+        <TableHead rowSpan={2} className="px-3 w-12 align-middle border-r text-center">No</TableHead>
+        <TableHead rowSpan={2} className="px-3 min-w-52 align-middle border-r">Item Name</TableHead>
+        <TableHead rowSpan={2} className="px-3 w-16 align-middle border-r text-center">Unit</TableHead>
+        <TableHead
+          colSpan={3}
+          className="px-3 text-center bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-r text-xs font-bold uppercase tracking-wide"
+        >
+          As Per Contract
+        </TableHead>
+        <TableHead
+          colSpan={3}
+          className="px-3 text-center bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-r text-xs font-bold uppercase tracking-wide"
+        >
+          Additional / Deduction
+        </TableHead>
+        <TableHead
+          colSpan={3}
+          className="px-3 text-center bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-xs font-bold uppercase tracking-wide"
+        >
+          Net Result
+        </TableHead>
+      </TableRow>
+      <TableRow>
+        {/* AS PER CONTRACT */}
+        <TableHead className="px-3 text-right w-20 text-xs bg-blue-50/60 dark:bg-blue-950/20">Qty</TableHead>
+        <TableHead className="px-3 text-right w-36 text-xs bg-blue-50/60 dark:bg-blue-950/20">Unit Price</TableHead>
+        <TableHead className="px-3 text-right w-40 text-xs bg-blue-50/60 dark:bg-blue-950/20 border-r">Total</TableHead>
+        {/* ADDITIONAL / DEDUCTION */}
+        <TableHead className="px-3 text-right w-20 text-xs bg-amber-50/60 dark:bg-amber-950/20">Qty</TableHead>
+        <TableHead className="px-3 text-right w-36 text-xs bg-amber-50/60 dark:bg-amber-950/20">Unit Price</TableHead>
+        <TableHead className="px-3 text-right w-40 text-xs bg-amber-50/60 dark:bg-amber-950/20 border-r">Total</TableHead>
+        {/* NET RESULT */}
+        <TableHead className="px-3 text-right w-20 text-xs bg-emerald-50/60 dark:bg-emerald-950/20">Qty</TableHead>
+        <TableHead className="px-3 text-right w-36 text-xs bg-emerald-50/60 dark:bg-emerald-950/20">Unit Price</TableHead>
+        <TableHead className="px-3 text-right w-40 text-xs bg-emerald-50/60 dark:bg-emerald-950/20">Total</TableHead>
+      </TableRow>
+    </TableHeader>
+  )
+}
+
+function RecapItemRow({ row, no, formatCurrency }: { row: RecapRow; no: number; formatCurrency: (v: number) => string }) {
+  // Appearance flags
+  const isNewItem = row.mainQty === 0 && row.mainTotal === 0
+  const hasAdd = row.addQty !== 0 || row.addTotal !== 0
+  const isDeduction = row.addTotal < 0 || row.addQty < 0
+  const isAddition = !isDeduction && hasAdd
+
+  return (
+    <TableRow className={cn(hasAdd && !isNewItem && "bg-muted/20")}>
+      <TableCell className="px-3 border-r text-sm text-center">{no}</TableCell>
+      <TableCell className="px-3 whitespace-normal border-r text-sm">
+        {row.name || "-"}
+        {isNewItem && hasAdd && (
+          <span className="ml-2 inline-block text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 px-1.5 py-0.5 rounded font-semibold">
+            NEW
+          </span>
+        )}
+      </TableCell>
+      <TableCell className="px-3 border-r text-sm text-center">{row.unit || "-"}</TableCell>
+
+      {/* AS PER CONTRACT */}
+      <TableCell className="px-3 text-right text-sm bg-blue-50/30 dark:bg-blue-950/10">{row.mainQty}</TableCell>
+      <TableCell className="px-3 text-right text-sm bg-blue-50/30 dark:bg-blue-950/10">{formatCurrency(row.mainPrice)}</TableCell>
+      <TableCell className="px-3 text-right font-medium text-sm bg-blue-50/30 dark:bg-blue-950/10 border-r">{formatCurrency(row.mainTotal)}</TableCell>
+
+      {/* ADDITIONAL / DEDUCTION */}
+      <TableCell
+        className={cn(
+          "px-3 text-right text-sm bg-amber-50/30 dark:bg-amber-950/10",
+          isDeduction && "text-red-600 dark:text-red-400 font-semibold",
+          isAddition && "text-emerald-600 dark:text-emerald-400 font-semibold",
+        )}
+      >
+        {hasAdd ? row.addQty : "-"}
+      </TableCell>
+      <TableCell
+        className={cn(
+          "px-3 text-right text-sm bg-amber-50/30 dark:bg-amber-950/10",
+          isDeduction && "text-red-600 dark:text-red-400",
+          isAddition && "text-emerald-600 dark:text-emerald-400",
+        )}
+      >
+        {hasAdd ? formatCurrency(Math.abs(row.addPrice)) : "-"}
+      </TableCell>
+      <TableCell
+        className={cn(
+          "px-3 text-right font-medium text-sm bg-amber-50/30 dark:bg-amber-950/10 border-r",
+          isDeduction && "text-red-600 dark:text-red-400",
+          isAddition && "text-emerald-600 dark:text-emerald-400",
+        )}
+      >
+        {hasAdd ? formatCurrency(row.addTotal) : "-"}
+      </TableCell>
+
+      {/* NET RESULT */}
+      <TableCell className={cn("px-3 text-right text-sm bg-emerald-50/30 dark:bg-emerald-950/10", row.netQty < 0 && "text-red-600 dark:text-red-400")}>
+        {row.netQty}
+      </TableCell>
+      <TableCell className={cn("px-3 text-right text-sm bg-emerald-50/30 dark:bg-emerald-950/10", row.netTotal < 0 && "text-red-600 dark:text-red-400")}>
+        {formatCurrency(row.netPrice)}
+      </TableCell>
+      <TableCell className={cn("px-3 text-right font-medium text-sm bg-emerald-50/30 dark:bg-emerald-950/10", row.netTotal < 0 && "text-red-600 dark:text-red-400")}>
+        {formatCurrency(row.netTotal)}
+      </TableCell>
+    </TableRow>
+  )
+}
+
+function SubtotalRow({
+  label,
+  totals,
+  formatCurrency,
+  variant = "section",
+}: {
+  label: string
+  totals: SectionTotals
+  formatCurrency: (v: number) => string
+  variant?: "section" | "category"
+}) {
+  const rowCls = variant === "section"
+    ? "bg-muted font-semibold border-t-2 border-t-foreground/20"
+    : "bg-muted/50 font-medium border-t text-xs"
+
+  return (
+    <TableRow className={rowCls}>
+      <TableCell colSpan={3} className="px-3 text-right border-r">{label}:</TableCell>
+      <TableCell colSpan={3} className={cn("px-3 text-right border-r bg-blue-50/50 dark:bg-blue-950/20", totals.main < 0 && "text-red-600 dark:text-red-400")}>
+        {formatCurrency(totals.main)}
+      </TableCell>
+      <TableCell
+        colSpan={3}
+        className={cn(
+          "px-3 text-right border-r bg-amber-50/50 dark:bg-amber-950/20",
+          totals.add < 0 && "text-red-600 dark:text-red-400",
+          totals.add > 0 && "text-emerald-600 dark:text-emerald-400",
+        )}
+      >
+        {totals.add > 0 ? "+" : ""}{formatCurrency(totals.add)}
+      </TableCell>
+      <TableCell colSpan={3} className={cn("px-3 text-right bg-emerald-50/50 dark:bg-emerald-950/20", totals.net < 0 && "text-red-600 dark:text-red-400")}>
+        {formatCurrency(totals.net)}
+      </TableCell>
+    </TableRow>
+  )
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
+export function BoqRecap({ mainBOQ, additionalBOQs, formatCurrency }: BoqRecapProps) {
+  const preliminary = mergePreliminary(mainBOQ?.preliminary ?? [], additionalBOQs)
+  const fittingOut = mergeCategorized(mainBOQ?.fittingOut ?? [], additionalBOQs, "fittingOut")
+  const furnitureWork = mergeCategorized(mainBOQ?.furnitureWork ?? [], additionalBOQs, "furnitureWork")
+  const mep = mergeCategorized(mainBOQ?.mechanicalElectrical ?? [], additionalBOQs, "mechanicalElectrical")
+
+  const prelTotals = rowsTotals(preliminary)
+  const foTotals = categoriesTotals(fittingOut)
+  const fwTotals = categoriesTotals(furnitureWork)
+  const mepTotals = categoriesTotals(mep)
+
+  const grandTotals: SectionTotals = {
+    main: prelTotals.main + foTotals.main + fwTotals.main + mepTotals.main,
+    add: prelTotals.add + foTotals.add + fwTotals.add + mepTotals.add,
+    net: prelTotals.net + foTotals.net + fwTotals.net + mepTotals.net,
   }
 
-  additionalBOQs.forEach((boq: any) => {
-    const source = `Additional BOQ #${boq.number}`
-    addItemsWithSource(boq.preliminary || [], source, "preliminary")
-    addCategoryItemsWithSource(boq.fittingOut || [], source, "fittingOut")
-    addCategoryItemsWithSource(boq.furnitureWork || [], source, "furnitureWork")
-    addCategoryItemsWithSource(boq.mechanicalElectrical || [], source, "mechanicalElectrical")
-  })
-
-  let itemNumber = 1
-  let grandTotal = 0
-
-  const preliminarySubtotal = merged.preliminary.reduce((sum, item) => {
-    return sum + (item.qty || 0) * (item.price || 0)
-  }, 0)
-  grandTotal += preliminarySubtotal
-
-  const fittingOutSubtotal = Object.values(merged.fittingOut).reduce((sum: number, category: any) => {
-    return (
-      sum +
-      category.products.reduce((catSum: number, product: any) => {
-        return catSum + (product.qty || 0) * (product.price || 0)
-      }, 0)
-    )
-  }, 0)
-  grandTotal += fittingOutSubtotal
-
-  const furnitureWorkSubtotal = Object.values(merged.furnitureWork).reduce((sum: number, category: any) => {
-    return (
-      sum +
-      category.products.reduce((catSum: number, product: any) => {
-        return catSum + (product.qty || 0) * (product.price || 0)
-      }, 0)
-    )
-  }, 0)
-  grandTotal += furnitureWorkSubtotal
-
-  const mepSubtotal = Object.values(merged.mechanicalElectrical).reduce((sum: number, category: any) => {
-    return (
-      sum +
-      category.products.reduce((catSum: number, product: any) => {
-        return catSum + (product.qty || 0) * (product.price || 0)
-      }, 0)
-    )
-  }, 0)
-  grandTotal += mepSubtotal
+  // Sequential item numbering across all sections
+  let itemNo = 1
 
   return (
     <div className="space-y-6">
-      {merged.preliminary.length > 0 && (
+      {/* ── PRELIMINARY ── */}
+      {preliminary.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">I. PRELIMINARY</CardTitle>
@@ -112,41 +403,12 @@ export function BoqRecap({ mainBOQ, additionalBOQs, formatCurrency }: BoqRecapPr
           <CardContent>
             <div className="border rounded-lg overflow-x-auto">
               <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-15 px-4">No</TableHead>
-                    <TableHead className="min-w-50 max-w-100 px-4">Item Name</TableHead>
-                    <TableHead className="w-25 px-4">Source</TableHead>
-                    <TableHead className="text-right w-20 px-4">Qty</TableHead>
-                    <TableHead className="w-20 px-4">Unit</TableHead>
-                    <TableHead className="text-right w-37.5 px-4">Unit Price</TableHead>
-                    <TableHead className="text-right w-37.5 px-4">Total Price</TableHead>
-                  </TableRow>
-                </TableHeader>
+                <RecapTableHeader />
                 <TableBody>
-                  {merged.preliminary.map((item: any) => (
-                    <TableRow key={`${item._source}-${item.name}-${itemNumber}`}>
-                      <TableCell className="px-4">{itemNumber++}</TableCell>
-                      <TableCell className="px-4">{item.name || "-"}</TableCell>
-                      <TableCell className="px-4">
-                        <Badge variant={item._source === "Main BOQ" ? "default" : "secondary"} className="whitespace-nowrap">
-                          {item._source}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right px-4">{item.qty || 0}</TableCell>
-                      <TableCell className="px-4">{item.unit || "-"}</TableCell>
-                      <TableCell className="text-right px-4">{formatCurrency(item.price || 0)}</TableCell>
-                      <TableCell className="text-right px-4 font-semibold">
-                        {formatCurrency((item.qty || 0) * (item.price || 0))}
-                      </TableCell>
-                    </TableRow>
+                  {preliminary.map((row) => (
+                    <RecapItemRow key={row._rowKey} row={row} no={itemNo++} formatCurrency={formatCurrency} />
                   ))}
-                  <TableRow className="bg-muted font-semibold border-t-2 border-t-foreground">
-                    <TableCell colSpan={6} className="px-4 text-right">
-                      SUBTOTAL PRELIMINARY:
-                    </TableCell>
-                    <TableCell className="text-right px-4">{formatCurrency(preliminarySubtotal)}</TableCell>
-                  </TableRow>
+                  <SubtotalRow label="SUBTOTAL PRELIMINARY" totals={prelTotals} formatCurrency={formatCurrency} />
                 </TableBody>
               </Table>
             </div>
@@ -154,224 +416,147 @@ export function BoqRecap({ mainBOQ, additionalBOQs, formatCurrency }: BoqRecapPr
         </Card>
       )}
 
-      {Object.keys(merged.fittingOut).length > 0 && (
+      {/* ── FITTING OUT ── */}
+      {fittingOut.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">II. FITTING OUT</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {Object.entries(merged.fittingOut).map(([categoryName, categoryData]: [string, any]) => (
-              <div key={categoryName} className="border rounded-lg overflow-hidden">
-                <div className="bg-muted px-4 py-2 font-semibold">{categoryName}</div>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-15 px-4">No</TableHead>
-                        <TableHead className="min-w-50 max-w-100 px-4">Item Name</TableHead>
-                        <TableHead className="w-25 px-4">Source</TableHead>
-                        <TableHead className="text-right w-20 px-4">Qty</TableHead>
-                        <TableHead className="w-20 px-4">Unit</TableHead>
-                        <TableHead className="text-right w-37.5 px-4">Unit Price</TableHead>
-                        <TableHead className="text-right w-37.5 px-4">Total Price</TableHead>
+          <CardContent>
+            <div className="border rounded-lg overflow-x-auto">
+              <Table>
+                <RecapTableHeader />
+                <TableBody>
+                  {fittingOut.map((cat) => (
+                    <React.Fragment key={cat.name}>
+                      <TableRow className="bg-primary/10">
+                        <TableCell colSpan={12} className="px-4 py-2 font-semibold text-sm">{cat.name}</TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {categoryData.products.map((product: any) => {
-                        const itemTotal = (product.qty || 0) * (product.price || 0)
-                        return (
-                          <TableRow key={`${categoryName}-${product._source}-${product.name}-${itemNumber}`}>
-                            <TableCell className="px-4">{itemNumber++}</TableCell>
-                            <TableCell className="px-4">{product.name || "-"}</TableCell>
-                            <TableCell className="px-4">
-                              <Badge
-                                variant={product._source === "Main BOQ" ? "default" : "secondary"}
-                                className="whitespace-nowrap"
-                              >
-                                {product._source}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-right px-4">{product.qty || 0}</TableCell>
-                            <TableCell className="px-4">{product.unit || "-"}</TableCell>
-                            <TableCell className="text-right px-4">{formatCurrency(product.price || 0)}</TableCell>
-                            <TableCell className="text-right px-4 font-semibold">{formatCurrency(itemTotal)}</TableCell>
-                          </TableRow>
-                        )
-                      })}
-                      <TableRow className="bg-muted/50 font-semibold border-t">
-                        <TableCell colSpan={6} className="px-4 text-right">
-                          Subtotal {categoryName}:
-                        </TableCell>
-                        <TableCell className="text-right px-4">
-                          {formatCurrency(
-                            categoryData.products.reduce((sum: number, p: any) => sum + (p.qty || 0) * (p.price || 0), 0),
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            ))}
+                      {cat.rows.map((row) => (
+                        <RecapItemRow key={row._rowKey} row={row} no={itemNo++} formatCurrency={formatCurrency} />
+                      ))}
+                      <SubtotalRow label={`Subtotal ${cat.name}`} totals={rowsTotals(cat.rows)} formatCurrency={formatCurrency} variant="category" />
+                    </React.Fragment>
+                  ))}
+                  <SubtotalRow label="SUBTOTAL FITTING OUT" totals={foTotals} formatCurrency={formatCurrency} />
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       )}
 
-      {Object.keys(merged.furnitureWork).length > 0 && (
+      {/* ── FURNITURE WORK ── */}
+      {furnitureWork.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">III. FURNITURE WORK</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {Object.entries(merged.furnitureWork).map(([categoryName, categoryData]: [string, any]) => (
-              <div key={categoryName} className="border rounded-lg overflow-hidden">
-                <div className="bg-muted px-4 py-2 font-semibold">{categoryName}</div>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-15 px-4">No</TableHead>
-                        <TableHead className="min-w-50 max-w-100 px-4">Item Name</TableHead>
-                        <TableHead className="w-25 px-4">Source</TableHead>
-                        <TableHead className="text-right w-20 px-4">Qty</TableHead>
-                        <TableHead className="w-20 px-4">Unit</TableHead>
-                        <TableHead className="text-right w-37.5 px-4">Unit Price</TableHead>
-                        <TableHead className="text-right w-37.5 px-4">Total Price</TableHead>
+          <CardContent>
+            <div className="border rounded-lg overflow-x-auto">
+              <Table>
+                <RecapTableHeader />
+                <TableBody>
+                  {furnitureWork.map((cat) => (
+                    <React.Fragment key={cat.name}>
+                      <TableRow className="bg-primary/10">
+                        <TableCell colSpan={12} className="px-4 py-2 font-semibold text-sm">{cat.name}</TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {categoryData.products.map((product: any) => {
-                        const itemTotal = (product.qty || 0) * (product.price || 0)
-                        return (
-                          <TableRow key={`${categoryName}-${product._source}-${product.name}-${itemNumber}`}>
-                            <TableCell className="px-4">{itemNumber++}</TableCell>
-                            <TableCell className="px-4">{product.name || "-"}</TableCell>
-                            <TableCell className="px-4">
-                              <Badge
-                                variant={product._source === "Main BOQ" ? "default" : "secondary"}
-                                className="whitespace-nowrap"
-                              >
-                                {product._source}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-right px-4">{product.qty || 0}</TableCell>
-                            <TableCell className="px-4">{product.unit || "-"}</TableCell>
-                            <TableCell className="text-right px-4">{formatCurrency(product.price || 0)}</TableCell>
-                            <TableCell className="text-right px-4 font-semibold">{formatCurrency(itemTotal)}</TableCell>
-                          </TableRow>
-                        )
-                      })}
-                      <TableRow className="bg-muted/50 font-semibold border-t">
-                        <TableCell colSpan={6} className="px-4 text-right">
-                          Subtotal {categoryName}:
-                        </TableCell>
-                        <TableCell className="text-right px-4">
-                          {formatCurrency(
-                            categoryData.products.reduce((sum: number, p: any) => sum + (p.qty || 0) * (p.price || 0), 0),
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            ))}
+                      {cat.rows.map((row) => (
+                        <RecapItemRow key={row._rowKey} row={row} no={itemNo++} formatCurrency={formatCurrency} />
+                      ))}
+                      <SubtotalRow label={`Subtotal ${cat.name}`} totals={rowsTotals(cat.rows)} formatCurrency={formatCurrency} variant="category" />
+                    </React.Fragment>
+                  ))}
+                  <SubtotalRow label="SUBTOTAL FURNITURE WORK" totals={fwTotals} formatCurrency={formatCurrency} />
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       )}
 
-      {Object.keys(merged.mechanicalElectrical).length > 0 && (
+      {/* ── MEP ── */}
+      {mep.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">IV. MECHANICAL / ELECTRICAL / PLUMBING</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {Object.entries(merged.mechanicalElectrical).map(([categoryName, categoryData]: [string, any]) => (
-              <div key={categoryName} className="border rounded-lg overflow-hidden">
-                <div className="bg-muted px-4 py-2 font-semibold">{categoryName}</div>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-15 px-4">No</TableHead>
-                        <TableHead className="min-w-50 max-w-100 px-4">Item Name</TableHead>
-                        <TableHead className="w-25 px-4">Source</TableHead>
-                        <TableHead className="text-right w-20 px-4">Qty</TableHead>
-                        <TableHead className="w-20 px-4">Unit</TableHead>
-                        <TableHead className="text-right w-37.5 px-4">Unit Price</TableHead>
-                        <TableHead className="text-right w-37.5 px-4">Total Price</TableHead>
+          <CardContent>
+            <div className="border rounded-lg overflow-x-auto">
+              <Table>
+                <RecapTableHeader />
+                <TableBody>
+                  {mep.map((cat) => (
+                    <React.Fragment key={cat.name}>
+                      <TableRow className="bg-primary/10">
+                        <TableCell colSpan={12} className="px-4 py-2 font-semibold text-sm">{cat.name}</TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {categoryData.products.map((product: any) => {
-                        const itemTotal = (product.qty || 0) * (product.price || 0)
-                        return (
-                          <TableRow key={`${categoryName}-${product._source}-${product.name}-${itemNumber}`}>
-                            <TableCell className="px-4">{itemNumber++}</TableCell>
-                            <TableCell className="px-4">{product.name || "-"}</TableCell>
-                            <TableCell className="px-4">
-                              <Badge
-                                variant={product._source === "Main BOQ" ? "default" : "secondary"}
-                                className="whitespace-nowrap"
-                              >
-                                {product._source}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-right px-4">{product.qty || 0}</TableCell>
-                            <TableCell className="px-4">{product.unit || "-"}</TableCell>
-                            <TableCell className="text-right px-4">{formatCurrency(product.price || 0)}</TableCell>
-                            <TableCell className="text-right px-4 font-semibold">{formatCurrency(itemTotal)}</TableCell>
-                          </TableRow>
-                        )
-                      })}
-                      <TableRow className="bg-muted/50 font-semibold border-t">
-                        <TableCell colSpan={6} className="px-4 text-right">
-                          Subtotal {categoryName}:
-                        </TableCell>
-                        <TableCell className="text-right px-4">
-                          {formatCurrency(
-                            categoryData.products.reduce((sum: number, p: any) => sum + (p.qty || 0) * (p.price || 0), 0),
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            ))}
+                      {cat.rows.map((row) => (
+                        <RecapItemRow key={row._rowKey} row={row} no={itemNo++} formatCurrency={formatCurrency} />
+                      ))}
+                      <SubtotalRow label={`Subtotal ${cat.name}`} totals={rowsTotals(cat.rows)} formatCurrency={formatCurrency} variant="category" />
+                    </React.Fragment>
+                  ))}
+                  <SubtotalRow label="SUBTOTAL MEP" totals={mepTotals} formatCurrency={formatCurrency} />
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       )}
 
+      {/* ── GRAND TOTAL SUMMARY ── */}
       <Card className="border-2 border-primary bg-primary/5">
-        <CardContent>
-          <div className="flex justify-between items-center">
-            <span className="text-xl font-bold">GRAND TOTAL</span>
-            <span className="text-3xl font-bold text-primary">{formatCurrency(grandTotal)}</span>
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-3 gap-6 text-center">
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">As Per Contract</p>
+              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{formatCurrency(grandTotals.main)}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">Additional / Deduction</p>
+              <p
+                className={cn(
+                  "text-2xl font-bold",
+                  grandTotals.add < 0 && "text-red-600 dark:text-red-400",
+                  grandTotals.add > 0 && "text-emerald-600 dark:text-emerald-400",
+                  grandTotals.add === 0 && "text-muted-foreground",
+                )}
+              >
+                {grandTotals.add > 0 ? "+" : ""}{formatCurrency(grandTotals.add)}
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">Net Total</p>
+              <p className={cn("text-2xl font-bold", grandTotals.net < 0 ? "text-red-600 dark:text-red-400" : "text-primary")}>{formatCurrency(grandTotals.net)}</p>
+            </div>
           </div>
+
+          {/* Per-section breakdown */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t">
-            {merged.preliminary.length > 0 && (
+            {preliminary.length > 0 && (
               <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Preliminary</p>
-                <p className="font-semibold">{formatCurrency(preliminarySubtotal)}</p>
+                <p className="text-xs text-muted-foreground">Preliminary (Net)</p>
+                <p className={cn("font-semibold text-sm", prelTotals.net < 0 && "text-red-600 dark:text-red-400")}>{formatCurrency(prelTotals.net)}</p>
               </div>
             )}
-            {Object.keys(merged.fittingOut).length > 0 && (
+            {fittingOut.length > 0 && (
               <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Fitting Out</p>
-                <p className="font-semibold">{formatCurrency(fittingOutSubtotal)}</p>
+                <p className="text-xs text-muted-foreground">Fitting Out (Net)</p>
+                <p className={cn("font-semibold text-sm", foTotals.net < 0 && "text-red-600 dark:text-red-400")}>{formatCurrency(foTotals.net)}</p>
               </div>
             )}
-            {Object.keys(merged.furnitureWork).length > 0 && (
+            {furnitureWork.length > 0 && (
               <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Furniture Work</p>
-                <p className="font-semibold">{formatCurrency(furnitureWorkSubtotal)}</p>
+                <p className="text-xs text-muted-foreground">Furniture Work (Net)</p>
+                <p className={cn("font-semibold text-sm", fwTotals.net < 0 && "text-red-600 dark:text-red-400")}>{formatCurrency(fwTotals.net)}</p>
               </div>
             )}
-            {Object.keys(merged.mechanicalElectrical).length > 0 && (
+            {mep.length > 0 && (
               <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">MEP</p>
-                <p className="font-semibold">{formatCurrency(mepSubtotal)}</p>
+                <p className="text-xs text-muted-foreground">MEP (Net)</p>
+                <p className={cn("font-semibold text-sm", mepTotals.net < 0 && "text-red-600 dark:text-red-400")}>{formatCurrency(mepTotals.net)}</p>
               </div>
             )}
           </div>
@@ -380,3 +565,5 @@ export function BoqRecap({ mainBOQ, additionalBOQs, formatCurrency }: BoqRecapPr
     </div>
   )
 }
+
+

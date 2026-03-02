@@ -538,7 +538,7 @@ export function BoqRecap({ mainBOQ, additionalBOQs, formatCurrency }: BoqRecapPr
 
       {/* ── GRAND TOTAL SUMMARY ── */}
       <Card className="border-2 border-primary bg-primary/5">
-        <CardContent className="pt-6">
+        <CardContent>
           {/* Raw subtotals */}
           <div className="grid grid-cols-3 gap-6 text-center">
             <div className="space-y-1">

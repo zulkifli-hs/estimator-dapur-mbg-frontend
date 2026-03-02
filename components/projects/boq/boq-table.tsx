@@ -392,7 +392,7 @@ export function BoqTable({
 
       return (
         <Card className="border-2 border-primary bg-primary/5">
-          <CardContent className="pt-6">
+          <CardContent>
             {/* ── Section subtotals ── */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-4 border-b">
               {Array.isArray(boq.preliminary) && boq.preliminary.length > 0 && (

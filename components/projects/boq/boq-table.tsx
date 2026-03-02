@@ -2,10 +2,26 @@
 
 import React from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { cn } from "@/lib/utils"
 
 interface BoqTableProps {
   boq: any
   formatCurrency: (value: number) => string
+}
+
+// Sort: positive/zero qty first, negative qty last
+const sortByQty = (items: any[]) =>
+  [...items].sort((a, b) => {
+    const aNeg = (a.qty ?? 0) < 0 ? 1 : 0
+    const bNeg = (b.qty ?? 0) < 0 ? 1 : 0
+    return aNeg - bNeg
+  })
+
+// Returns text color class based on subtotal sign
+const subtotalColor = (value: number) => {
+  if (value < 0) return "text-red-600 dark:text-red-400"
+  if (value > 0) return "text-green-600 dark:text-green-400"
+  return ""
 }
 
 export function BoqTable({ boq, formatCurrency }: BoqTableProps) {
@@ -35,32 +51,36 @@ export function BoqTable({ boq, formatCurrency }: BoqTableProps) {
                   PRELIMINARY
                 </TableCell>
               </TableRow>
-              {boq.preliminary.map((item: any) => {
+              {sortByQty(boq.preliminary).map((item: any) => {
+                const isNegative = (item.qty ?? 0) < 0
                 const total = (item.qty || 0) * (item.price || 0)
                 grandTotal += total
                 return (
-                  <TableRow key={item._id}>
+                  <TableRow key={item._id} className={cn(isNegative && "bg-red-50 dark:bg-red-950/20")}>
                     <TableCell className="font-medium pl-8 pr-4">{itemNumber++}</TableCell>
                     <TableCell className="whitespace-normal wrap-break-word px-4">{item.name}</TableCell>
                     <TableCell className="whitespace-normal wrap-break-word px-4">{item.brand || "-"}</TableCell>
                     <TableCell className="whitespace-normal wrap-break-word px-4">{item.location || "-"}</TableCell>
-                    <TableCell className="text-right px-4">{item.qty}</TableCell>
+                    <TableCell className={cn("text-right px-4", isNegative && "text-red-600 dark:text-red-400 font-semibold")}>{item.qty}</TableCell>
                     <TableCell className="px-4">{item.unit}</TableCell>
                     <TableCell className="text-right px-4">{formatCurrency(item.price)}</TableCell>
-                    <TableCell className="text-right font-medium px-4">{formatCurrency(total)}</TableCell>
+                    <TableCell className={cn("text-right font-medium px-4", isNegative && "text-red-600 dark:text-red-400")}>{formatCurrency(total)}</TableCell>
                   </TableRow>
                 )
               })}
-              <TableRow className="bg-muted/30">
-                <TableCell colSpan={7} className="text-right font-semibold px-4 py-3">
-                  Subtotal Preliminary
-                </TableCell>
-                <TableCell className="text-right font-semibold px-4 py-3">
-                  {formatCurrency(
-                    boq.preliminary.reduce((sum: number, item: any) => sum + (item.qty || 0) * (item.price || 0), 0),
-                  )}
-                </TableCell>
-              </TableRow>
+              {(() => {
+                const prelTotal = boq.preliminary.reduce((sum: number, item: any) => sum + (item.qty || 0) * (item.price || 0), 0)
+                return (
+                  <TableRow className="bg-muted/30">
+                    <TableCell colSpan={7} className={cn("text-right font-semibold px-4 py-3", subtotalColor(prelTotal))}>
+                      Subtotal Preliminary
+                    </TableCell>
+                    <TableCell className={cn("text-right font-semibold px-4 py-3", subtotalColor(prelTotal))}>
+                      {formatCurrency(prelTotal)}
+                    </TableCell>
+                  </TableRow>
+                )
+              })()}
             </>
           )}
 
@@ -85,49 +105,52 @@ export function BoqTable({ boq, formatCurrency }: BoqTableProps) {
                       </TableCell>
                     </TableRow>
                     {Array.isArray(category.products) &&
-                      category.products.map((product: any) => {
+                      sortByQty(category.products).map((product: any) => {
+                        const isNegative = (product.qty ?? 0) < 0
                         const total = (product.qty || 0) * (product.price || 0)
                         return (
-                          <TableRow key={product._id}>
+                          <TableRow key={product._id} className={cn(isNegative && "bg-red-50 dark:bg-red-950/20")}>
                             <TableCell className="font-medium pl-12 pr-4">{itemNumber++}</TableCell>
                             <TableCell className="whitespace-normal wrap-break-word px-4">{product.name}</TableCell>
                             <TableCell className="whitespace-normal wrap-break-word px-4">{product.brand || "-"}</TableCell>
                             <TableCell className="whitespace-normal wrap-break-word px-4">{product.location || "-"}</TableCell>
-                            <TableCell className="text-right px-4">{product.qty}</TableCell>
+                            <TableCell className={cn("text-right px-4", isNegative && "text-red-600 dark:text-red-400 font-semibold")}>{product.qty}</TableCell>
                             <TableCell className="px-4">{product.unit}</TableCell>
                             <TableCell className="text-right px-4">{formatCurrency(product.price)}</TableCell>
-                            <TableCell className="text-right font-medium px-4">{formatCurrency(total)}</TableCell>
+                            <TableCell className={cn("text-right font-medium px-4", isNegative && "text-red-600 dark:text-red-400")}>{formatCurrency(total)}</TableCell>
                           </TableRow>
                         )
                       })}
                     <TableRow className="bg-muted/20">
-                      <TableCell colSpan={7} className="text-right text-sm font-medium pl-12 pr-4 py-2">
+                      <TableCell colSpan={7} className={cn("text-right text-sm font-medium px-4 py-2", subtotalColor(categoryTotal || 0))}>
                         Subtotal {category.name}
                       </TableCell>
-                      <TableCell className="text-right text-sm font-medium px-4 py-2">
+                      <TableCell className={cn("text-right text-sm font-medium px-4 py-2", subtotalColor(categoryTotal || 0))}>
                         {formatCurrency(categoryTotal || 0)}
                       </TableCell>
                     </TableRow>
                   </React.Fragment>
                 )
               })}
-              <TableRow className="bg-muted/30">
-                <TableCell colSpan={7} className="text-right font-semibold px-4 py-3">
-                  Subtotal Fitting Out
-                </TableCell>
-                <TableCell className="text-right font-semibold px-4 py-3">
-                  {formatCurrency(
-                    boq.fittingOut.reduce(
-                      (sum: number, cat: any) =>
-                        sum +
-                        (Array.isArray(cat.products)
-                          ? cat.products.reduce((s: number, p: any) => s + (p.qty || 0) * (p.price || 0), 0)
-                          : 0),
-                      0,
-                    ),
-                  )}
-                </TableCell>
-              </TableRow>
+              {(() => {
+                const foTotal = boq.fittingOut.reduce(
+                  (sum: number, cat: any) =>
+                    sum + (Array.isArray(cat.products)
+                      ? cat.products.reduce((s: number, p: any) => s + (p.qty || 0) * (p.price || 0), 0)
+                      : 0),
+                  0,
+                )
+                return (
+                  <TableRow className="bg-muted/30">
+                    <TableCell colSpan={7} className={cn("text-right font-semibold px-4 py-3", subtotalColor(foTotal))}>
+                      Subtotal Fitting Out
+                    </TableCell>
+                    <TableCell className={cn("text-right font-semibold px-4 py-3", subtotalColor(foTotal))}>
+                      {formatCurrency(foTotal)}
+                    </TableCell>
+                  </TableRow>
+                )
+              })()}
             </>
           )}
 
@@ -152,49 +175,52 @@ export function BoqTable({ boq, formatCurrency }: BoqTableProps) {
                       </TableCell>
                     </TableRow>
                     {Array.isArray(category.products) &&
-                      category.products.map((product: any) => {
+                      sortByQty(category.products).map((product: any) => {
+                        const isNegative = (product.qty ?? 0) < 0
                         const total = (product.qty || 0) * (product.price || 0)
                         return (
-                          <TableRow key={product._id}>
+                          <TableRow key={product._id} className={cn(isNegative && "bg-red-50 dark:bg-red-950/20")}>
                             <TableCell className="font-medium pl-12 pr-4">{itemNumber++}</TableCell>
                             <TableCell className="whitespace-normal wrap-break-word px-4">{product.name}</TableCell>
                             <TableCell className="whitespace-normal wrap-break-word px-4">{product.brand || "-"}</TableCell>
                             <TableCell className="whitespace-normal wrap-break-word px-4">{product.location || "-"}</TableCell>
-                            <TableCell className="text-right px-4">{product.qty}</TableCell>
+                            <TableCell className={cn("text-right px-4", isNegative && "text-red-600 dark:text-red-400 font-semibold")}>{product.qty}</TableCell>
                             <TableCell className="px-4">{product.unit}</TableCell>
                             <TableCell className="text-right px-4">{formatCurrency(product.price)}</TableCell>
-                            <TableCell className="text-right font-medium px-4">{formatCurrency(total)}</TableCell>
+                            <TableCell className={cn("text-right font-medium px-4", isNegative && "text-red-600 dark:text-red-400")}>{formatCurrency(total)}</TableCell>
                           </TableRow>
                         )
                       })}
                     <TableRow className="bg-muted/20">
-                      <TableCell colSpan={7} className="text-right text-sm font-medium pl-12 pr-4 py-2">
+                      <TableCell colSpan={7} className={cn("text-right text-sm font-medium px-4 py-2", subtotalColor(categoryTotal || 0))}>
                         Subtotal {category.name}
                       </TableCell>
-                      <TableCell className="text-right text-sm font-medium px-4 py-2">
+                      <TableCell className={cn("text-right text-sm font-medium px-4 py-2", subtotalColor(categoryTotal || 0))}>
                         {formatCurrency(categoryTotal || 0)}
                       </TableCell>
                     </TableRow>
                   </React.Fragment>
                 )
               })}
-              <TableRow className="bg-muted/30">
-                <TableCell colSpan={7} className="text-right font-semibold px-4 py-3">
-                  Subtotal Furniture Work
-                </TableCell>
-                <TableCell className="text-right font-semibold px-4 py-3">
-                  {formatCurrency(
-                    boq.furnitureWork.reduce(
-                      (sum: number, cat: any) =>
-                        sum +
-                        (Array.isArray(cat.products)
-                          ? cat.products.reduce((s: number, p: any) => s + (p.qty || 0) * (p.price || 0), 0)
-                          : 0),
-                      0,
-                    ),
-                  )}
-                </TableCell>
-              </TableRow>
+              {(() => {
+                const fwTotal = boq.furnitureWork.reduce(
+                  (sum: number, cat: any) =>
+                    sum + (Array.isArray(cat.products)
+                      ? cat.products.reduce((s: number, p: any) => s + (p.qty || 0) * (p.price || 0), 0)
+                      : 0),
+                  0,
+                )
+                return (
+                  <TableRow className="bg-muted/30">
+                    <TableCell colSpan={7} className={cn("text-right font-semibold px-4 py-3", subtotalColor(fwTotal))}>
+                      Subtotal Furniture Work
+                    </TableCell>
+                    <TableCell className={cn("text-right font-semibold px-4 py-3", subtotalColor(fwTotal))}>
+                      {formatCurrency(fwTotal)}
+                    </TableCell>
+                  </TableRow>
+                )
+              })()}
             </>
           )}
 
@@ -219,49 +245,52 @@ export function BoqTable({ boq, formatCurrency }: BoqTableProps) {
                       </TableCell>
                     </TableRow>
                     {Array.isArray(category.products) &&
-                      category.products.map((product: any) => {
+                      sortByQty(category.products).map((product: any) => {
+                        const isNegative = (product.qty ?? 0) < 0
                         const total = (product.qty || 0) * (product.price || 0)
                         return (
-                          <TableRow key={product._id}>
+                          <TableRow key={product._id} className={cn(isNegative && "bg-red-50 dark:bg-red-950/20")}>
                             <TableCell className="font-medium pl-12 pr-4">{itemNumber++}</TableCell>
                             <TableCell className="whitespace-normal wrap-break-word px-4">{product.name}</TableCell>
                             <TableCell className="whitespace-normal wrap-break-word px-4">{product.brand || "-"}</TableCell>
                             <TableCell className="whitespace-normal wrap-break-word px-4">{product.location || "-"}</TableCell>
-                            <TableCell className="text-right px-4">{product.qty}</TableCell>
+                            <TableCell className={cn("text-right px-4", isNegative && "text-red-600 dark:text-red-400 font-semibold")}>{product.qty}</TableCell>
                             <TableCell className="px-4">{product.unit}</TableCell>
                             <TableCell className="text-right px-4">{formatCurrency(product.price)}</TableCell>
-                            <TableCell className="text-right font-medium px-4">{formatCurrency(total)}</TableCell>
+                            <TableCell className={cn("text-right font-medium px-4", isNegative && "text-red-600 dark:text-red-400")}>{formatCurrency(total)}</TableCell>
                           </TableRow>
                         )
                       })}
                     <TableRow className="bg-muted/20">
-                      <TableCell colSpan={7} className="text-right text-sm font-medium pl-12 pr-4 py-2">
+                      <TableCell colSpan={7} className={cn("text-right text-sm font-medium px-4 py-2", subtotalColor(categoryTotal || 0))}>
                         Subtotal {category.name}
                       </TableCell>
-                      <TableCell className="text-right text-sm font-medium px-4 py-2">
+                      <TableCell className={cn("text-right text-sm font-medium px-4 py-2", subtotalColor(categoryTotal || 0))}>
                         {formatCurrency(categoryTotal || 0)}
                       </TableCell>
                     </TableRow>
                   </React.Fragment>
                 )
               })}
-              <TableRow className="bg-muted/30">
-                <TableCell colSpan={7} className="text-right font-semibold px-4 py-3">
-                  Subtotal Mechanical / Electrical / Plumbing
-                </TableCell>
-                <TableCell className="text-right font-semibold px-4 py-3">
-                  {formatCurrency(
-                    boq.mechanicalElectrical.reduce(
-                      (sum: number, cat: any) =>
-                        sum +
-                        (Array.isArray(cat.products)
-                          ? cat.products.reduce((s: number, p: any) => s + (p.qty || 0) * (p.price || 0), 0)
-                          : 0),
-                      0,
-                    ),
-                  )}
-                </TableCell>
-              </TableRow>
+              {(() => {
+                const mepTotal = boq.mechanicalElectrical.reduce(
+                  (sum: number, cat: any) =>
+                    sum + (Array.isArray(cat.products)
+                      ? cat.products.reduce((s: number, p: any) => s + (p.qty || 0) * (p.price || 0), 0)
+                      : 0),
+                  0,
+                )
+                return (
+                  <TableRow className="bg-muted/30">
+                    <TableCell colSpan={7} className={cn("text-right font-semibold px-4 py-3", subtotalColor(mepTotal))}>
+                      Subtotal Mechanical / Electrical / Plumbing
+                    </TableCell>
+                    <TableCell className={cn("text-right font-semibold px-4 py-3", subtotalColor(mepTotal))}>
+                      {formatCurrency(mepTotal)}
+                    </TableCell>
+                  </TableRow>
+                )
+              })()}
             </>
           )}
 
@@ -273,7 +302,7 @@ export function BoqTable({ boq, formatCurrency }: BoqTableProps) {
               <TableCell colSpan={7} className="text-right text-lg px-4 py-4">
                 GRAND TOTAL
               </TableCell>
-              <TableCell className="text-right text-lg px-4 py-4">{formatCurrency(grandTotal)}</TableCell>
+              <TableCell className={cn("text-right text-lg px-4 py-4")}>{formatCurrency(grandTotal)}</TableCell>
             </TableRow>
           )}
         </TableBody>

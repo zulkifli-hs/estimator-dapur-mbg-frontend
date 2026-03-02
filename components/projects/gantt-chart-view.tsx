@@ -5,22 +5,25 @@ import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { Pencil, Plus } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Link2, Pencil, Plus, Trash2 } from 'lucide-react'
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 
 interface GanttTask {
   id: string
+  mongoId?: string
   name: string
   category: string
-  startDate: Date | null  // Allow null for tasks without dates
-  endDate: Date | null    // Allow null for tasks without dates
+  startDate: Date | null
+  endDate: Date | null
   duration: number
+  dependOn?: string | null  // Gantt task ID (e.g. "preliminary-0")
 }
 
 interface GanttChartViewProps {
   tasks: GanttTask[]
-  onUpdateTask?: (taskId: string, startDate: Date | null, endDate: Date | null) => Promise<void>
+  onUpdateTask?: (taskId: string, startDate: Date | null, endDate: Date | null, dependOn?: string | null) => Promise<void>
 }
 
 interface CategoryStyle {
@@ -46,8 +49,9 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
   const [editStartDate, setEditStartDate] = useState<string>("")
   const [editEndDate, setEditEndDate] = useState<string>("")
+  const [editDependOn, setEditDependOn] = useState<string>("none")
   const [saving, setSaving] = useState(false)
-  const DAY_WIDTH = 50 // pixels per day
+  const DAY_WIDTH = 36 // pixels per day
 
   const { startDate, endDate, totalDays, monthHeaders } = useMemo(() => {
     const tasksWithDates = tasks.filter(t => t.startDate && t.endDate)
@@ -205,6 +209,7 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
     setEditingTaskId(task.id)
     setEditStartDate(task.startDate ? task.startDate.toISOString().split('T')[0] : "")
     setEditEndDate(task.endDate ? task.endDate.toISOString().split('T')[0] : "")
+    setEditDependOn(task.dependOn || "none")
   }
 
   const handleStartDateChange = (value: string) => {
@@ -220,11 +225,11 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
 
     setSaving(true)
     try {
-      // Send empty dates or null to backend to remove them
-      await onUpdateTask(editingTaskId, null as any, null as any)
+      await onUpdateTask(editingTaskId, null, null, null)
       setEditingTaskId(null)
       setEditStartDate("")
       setEditEndDate("")
+      setEditDependOn("none")
     } catch (error) {
       console.error("Failed to delete dates:", error)
     } finally {
@@ -258,8 +263,9 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
 
     setSaving(true)
     try {
-      await onUpdateTask(editingTaskId, start, end)
+      await onUpdateTask(editingTaskId, start, end, editDependOn === "none" ? null : editDependOn || null)
       setEditingTaskId(null)
+      setEditDependOn("none")
     } catch (error) {
       console.error("Failed to update task:", error)
     } finally {
@@ -267,63 +273,275 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
     }
   }
 
+  // Build row position map for SVG dependency arrows
+  const taskRowMap = useMemo(() => {
+    const ROW_H = 64, CAT_H = 24, SUB_H = 20
+    const map = new Map<string, { centerY: number; left: number; right: number }>()
+    let y = 0
+    groupedTasks.forEach(({ subcategories }) => {
+      y += CAT_H
+      subcategories.forEach(({ tasks: subTasks }) => {
+        y += SUB_H
+        subTasks.forEach((task) => {
+          let left = -1, right = -1
+          if (task.startDate && task.endDate) {
+            const offset = Math.floor((task.startDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+            const dur = task.duration + 1
+            left = offset * DAY_WIDTH
+            right = left + dur * DAY_WIDTH
+          }
+          map.set(task.id, { centerY: y + ROW_H / 2, left, right })
+          y += ROW_H
+        })
+      })
+    })
+    return map
+  }, [groupedTasks, startDate])
+
+  const totalTasksHeight = useMemo(() =>
+    groupedTasks.reduce((acc, { subcategories }) =>
+      acc + 24 + subcategories.reduce((s, { tasks: t }) => s + 20 + t.length * 64, 0), 0)
+  , [groupedTasks])
+
+  const dependencyArrows = useMemo(() =>
+    tasks
+      .filter(t => t.dependOn && taskRowMap.has(t.id) && taskRowMap.has(t.dependOn!))
+      .map(t => {
+        const from = taskRowMap.get(t.dependOn!)!
+        const to = taskRowMap.get(t.id)!
+        if (from.right < 0 || to.left < 0) return null
+        return { id: t.id, from, to }
+      })
+      .filter(Boolean) as { id: string; from: { centerY: number; left: number; right: number }; to: { centerY: number; left: number; right: number } }[]
+  , [tasks, taskRowMap])
+
   return (
     <div className="space-y-4">
       <div className="border rounded-lg overflow-hidden">
         <div className="flex">
-          {/* Sticky Task Names Column */}
-          <div className="w-80 flex-shrink-0 border-r bg-background z-10">
-            {/* Header */}
-            <div className="h-[53px] flex items-center px-4 font-semibold border-b bg-muted/50">Task Name</div>
+          {/* Sticky Left Panel - Task Name + Action */}
+          <div className="flex shrink-0 border-r bg-background z-10">
+            {/* Task Name Column */}
+            <div className="w-72 border-r">
+              {/* Header */}
+              <div className="h-11 flex items-center px-3 font-semibold text-sm border-b bg-muted/50">Task Name</div>
 
-            {/* Task Rows */}
-            <div>
-              {groupedTasks.map(({ category, subcategories }) => (
-                <div key={category} className="border-b last:border-b-0">
-                  {/* Category Header - Fixed height to match timeline */}
-                  <div
-                    className={cn(
-                      "h-[33px] flex items-center px-2 font-semibold text-sm border-b",
-                      getCategoryStyle(category).categoryHeader,
-                    )}
-                  >
-                    {category}
-                  </div>
-
-                  {subcategories.map(({ subcategory, tasks: subcategoryTasks }) => (
-                    <div key={`${category}-${subcategory}`} className="border-b last:border-b-0">
-                      <div
-                        className={cn(
-                          "h-7 flex items-center px-3 text-xs font-medium border-b",
-                          getCategoryStyle(category).subcategoryHeader,
-                        )}
-                      >
-                        {subcategory}
-                      </div>
-
-                      {subcategoryTasks.map((task) => (
-                        <div
-                          key={task.id}
-                          className="h-[73px] flex flex-col justify-center px-3 border-b last:border-b-0 transition-colors"
-                          style={{
-                            backgroundColor:
-                              hoveredTaskId === task.id ? getCategoryStyle(category).hoverColor : "transparent",
-                          }}
-                          onMouseEnter={() => setHoveredTaskId(task.id)}
-                          onMouseLeave={() => setHoveredTaskId(null)}
-                        >
-                          <p className="text-sm font-medium truncate">{task.name}</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {task.startDate && task.endDate
-                              ? `${formatDate(task.startDate)} - ${formatDate(task.endDate)}`
-                              : "No dates set"}
-                          </p>
-                        </div>
-                      ))}
+              {/* Task Rows */}
+              <div>
+                {groupedTasks.map(({ category, subcategories }) => (
+                  <div key={category} className="border-b last:border-b-0">
+                    {/* Category Header */}
+                    <div
+                      className={cn(
+                        "h-6 flex items-center px-2 font-semibold text-xs border-b",
+                        getCategoryStyle(category).categoryHeader,
+                      )}
+                    >
+                      {category}
                     </div>
-                  ))}
-                </div>
-              ))}
+
+                    {subcategories.map(({ subcategory, tasks: subcategoryTasks }) => (
+                      <div key={`${category}-${subcategory}`} className="border-b last:border-b-0">
+                        <div
+                          className={cn(
+                            "h-5 flex items-center px-3 text-[11px] font-medium border-b",
+                            getCategoryStyle(category).subcategoryHeader,
+                          )}
+                        >
+                          {subcategory}
+                        </div>
+
+                        {subcategoryTasks.map((task) => (
+                          <div
+                            key={task.id}
+                            className="h-16 flex flex-col justify-center px-3 border-b last:border-b-0 transition-colors"
+                            style={{
+                              backgroundColor:
+                                hoveredTaskId === task.id ? getCategoryStyle(category).hoverColor : "transparent",
+                            }}
+                            onMouseEnter={() => setHoveredTaskId(task.id)}
+                            onMouseLeave={() => setHoveredTaskId(null)}
+                          >
+                            <p className="text-xs font-medium leading-tight line-clamp-2">{task.name}</p>
+                            {task.startDate && task.endDate ? (
+                              <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">
+                                {formatDate(task.startDate)} – {formatDate(task.endDate)}{" "}
+                                <span className="font-medium text-primary">
+                                  ({task.duration + 1}d)
+                                </span>
+                              </p>
+                            ) : (
+                              <p className="text-[10px] text-muted-foreground mt-0.5">No dates set</p>
+                            )}
+                            {task.dependOn && (() => {
+                              const dep = tasks.find(t => t.id === task.dependOn)
+                              return dep ? (
+                                <p className="text-[10px] text-amber-600 mt-0.5 leading-tight flex items-center gap-0.5">
+                                  <Link2 className="h-2.5 w-2.5 shrink-0" />
+                                  <span className="truncate">{dep.name}</span>
+                                </p>
+                              ) : null
+                            })()}
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Action Column */}
+            <div className="w-14">
+              {/* Header */}
+              <div className="h-11 flex items-center justify-center px-1 font-semibold border-b bg-muted/50 text-xs">
+                Action
+              </div>
+
+              {/* Action Rows */}
+              <div>
+                {groupedTasks.map(({ category, subcategories }) => (
+                  <div key={category} className="border-b last:border-b-0">
+                    {/* Category Header Spacer */}
+                    <div className={cn("h-6 border-b", getCategoryStyle(category).categoryHeader)} />
+
+                    {subcategories.map(({ subcategory, tasks: subcategoryTasks }) => (
+                      <div key={`${category}-${subcategory}`} className="border-b last:border-b-0">
+                        <div className={cn("h-5 border-b", getCategoryStyle(category).subcategoryHeader)} />
+
+                        {subcategoryTasks.map((task) => (
+                          <div
+                            key={task.id}
+                            className="h-16 flex items-center justify-center border-b last:border-b-0 transition-colors"
+                            style={{
+                              backgroundColor:
+                                hoveredTaskId === task.id ? getCategoryStyle(category).hoverColor : "transparent",
+                            }}
+                            onMouseEnter={() => setHoveredTaskId(task.id)}
+                            onMouseLeave={() => setHoveredTaskId(null)}
+                          >
+                            {onUpdateTask && (
+                              <Popover
+                                open={editingTaskId === task.id}
+                                onOpenChange={(open) => {
+                                  if (open) {
+                                    handleEditTask(task)
+                                  } else {
+                                    setEditingTaskId(null)
+                                  }
+                                }}
+                              >
+                                <PopoverTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant={task.startDate && task.endDate ? "ghost" : "outline"}
+                                    className="h-7 w-7 p-0"
+                                    title={task.startDate && task.endDate ? "Edit timeline" : "Add timeline"}
+                                    onClick={() => handleEditTask(task)}
+                                  >
+                                    {task.startDate && task.endDate ? (
+                                      <Pencil className="h-3.5 w-3.5" />
+                                    ) : (
+                                      <Plus className="h-3.5 w-3.5" />
+                                    )}
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-80" align="start" side="right">
+                                  <div className="space-y-4">
+                                    <div className="space-y-2">
+                                      <h4 className="font-semibold text-sm">{task.name}</h4>
+                                      <p className="text-xs text-muted-foreground">{category}</p>
+                                    </div>
+                                    <div className="space-y-3">
+                                      <div className="space-y-2">
+                                        <Label>Start Date</Label>
+                                        <Input
+                                          type="date"
+                                          value={editStartDate}
+                                          onChange={(e) => handleStartDateChange(e.target.value)}
+                                        />
+                                      </div>
+                                      <div className="space-y-2">
+                                        <Label>End Date</Label>
+                                        <Input
+                                          type="date"
+                                          value={editEndDate}
+                                          onChange={(e) => handleEndDateChange(e.target.value)}
+                                        />
+                                      </div>
+                                      <div className="space-y-2">
+                                        <Label>Depends On</Label>
+                                        <div className="flex gap-1 items-center">
+                                          <Select value={editDependOn} onValueChange={setEditDependOn}>
+                                            <SelectTrigger className="h-8 text-xs flex-1 min-w-0">
+                                              <SelectValue placeholder="No dependency" />
+                                            </SelectTrigger>
+                                            <SelectContent className="max-h-48">
+                                              <SelectItem value="none">— No dependency —</SelectItem>
+                                              {tasks
+                                                .filter(t => t.id !== editingTaskId)
+                                                .map(t => (
+                                                  <SelectItem key={t.id} value={t.id}>
+                                                    <span className="text-xs line-clamp-1">{t.name}</span>
+                                                  </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                          </Select>
+                                          <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="ghost"
+                                            className={cn(
+                                              "h-8 w-8 shrink-0 p-0 text-destructive hover:text-destructive hover:bg-destructive/10",
+                                              editDependOn === "none" && "invisible pointer-events-none"
+                                            )}
+                                            onClick={() => setEditDependOn("none")}
+                                            title="Remove dependency"
+                                          >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                      <Button
+                                        size="sm"
+                                        onClick={handleSaveEdit}
+                                        disabled={!editStartDate || !editEndDate || saving}
+                                        className="flex-1"
+                                      >
+                                        {saving ? "Saving..." : task.startDate && task.endDate ? "Save" : "Add Timeline"}
+                                      </Button>
+                                      {task.startDate && task.endDate && (
+                                        <Button
+                                          size="sm"
+                                          variant="destructive"
+                                          onClick={handleDeleteDates}
+                                          disabled={saving}
+                                        >
+                                          Delete
+                                        </Button>
+                                      )}
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => setEditingTaskId(null)}
+                                        disabled={saving}
+                                      >
+                                        Cancel
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -332,11 +550,11 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
             <div style={{ width: `${totalDays * DAY_WIDTH}px` }}>
               {/* Timeline Header - Fixed height to match task names header */}
               <div className="border-b bg-muted/50">
-                <div className="flex border-b h-[37px]">
+                <div className="flex border-b h-7">
                   {monthHeaders.map((header, index) => (
                     <div
                       key={index}
-                      className="border-r last:border-r-0 flex items-center justify-center font-semibold text-sm bg-muted"
+                      className="border-r last:border-r-0 flex items-center justify-center font-semibold text-xs bg-muted"
                       style={{ width: `${header.days * DAY_WIDTH}px` }}
                     >
                       {header.month}
@@ -361,15 +579,15 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
               </div>
 
               {/* Timeline Task Bars */}
-              <div>
+              <div className="relative">
                 {groupedTasks.map(({ category, subcategories }) => (
                   <div key={category} className="border-b last:border-b-0">
                     {/* Category Header Spacer */}
-                    <div className={cn("h-[33px] border-b", getCategoryStyle(category).categoryHeader)}></div>
+                    <div className={cn("h-6 border-b", getCategoryStyle(category).categoryHeader)}></div>
 
                     {subcategories.map(({ subcategory, tasks: subcategoryTasks }) => (
                       <div key={`${category}-${subcategory}`} className="border-b last:border-b-0">
-                        <div className={cn("h-7 border-b", getCategoryStyle(category).subcategoryHeader)}></div>
+                        <div className={cn("h-5 border-b", getCategoryStyle(category).subcategoryHeader)}></div>
 
                         {/* Task Bars */}
                         {subcategoryTasks.map((task) => {
@@ -380,7 +598,7 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
                           return (
                             <div
                               key={task.id}
-                              className="relative h-[73px] border-b last:border-b-0 transition-colors"
+                              className="relative h-16 border-b last:border-b-0 transition-colors"
                               style={{
                                 backgroundColor:
                                   hoveredTaskId === task.id ? getCategoryStyle(category).hoverColor : "transparent",
@@ -403,7 +621,7 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
                                 <div className="absolute inset-0 flex items-center">
                                   <div
                                     className={cn(
-                                      "h-10 rounded transition-all group relative",
+                                      "h-7 rounded transition-all group relative",
                                       getCategoryStyle(category).bar,
                                       hoveredTaskId === task.id ? "opacity-100 shadow-lg" : "opacity-80",
                                     )}
@@ -432,159 +650,11 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
                                           })}
                                         </span>
                                       )}
-                                      {onUpdateTask && (
-                                        <Popover
-                                          open={editingTaskId === task.id}
-                                          onOpenChange={(open) => {
-                                            if (open) {
-                                              handleEditTask(task)
-                                            } else {
-                                              setEditingTaskId(null)
-                                            }
-                                          }}
-                                        >
-                                          <PopoverTrigger asChild>
-                                            <Button
-                                              size="icon"
-                                              variant="ghost"
-                                              className="h-6 w-6 ml-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 hover:bg-white shrink-0"
-                                              onClick={(e) => {
-                                                e.stopPropagation()
-                                                handleEditTask(task)
-                                              }}
-                                            >
-                                              <Pencil className="h-3 w-3 text-gray-700" />
-                                            </Button>
-                                          </PopoverTrigger>
-                                          <PopoverContent className="w-80" align="start">
-                                            <div className="space-y-4">
-                                              <div className="space-y-2">
-                                                <h4 className="font-semibold text-sm">{task.name}</h4>
-                                                <p className="text-xs text-muted-foreground">{category}</p>
-                                              </div>
-                                              <div className="space-y-3">
-                                                <div className="space-y-2">
-                                                  <Label>Start Date</Label>
-                                                  <Input
-                                                    type="date"
-                                                    value={editStartDate}
-                                                    onChange={(e) => handleStartDateChange(e.target.value)}
-                                                  />
-                                                </div>
-                                                <div className="space-y-2">
-                                                  <Label>End Date</Label>
-                                                  <Input
-                                                    type="date"
-                                                    value={editEndDate}
-                                                    onChange={(e) => handleEndDateChange(e.target.value)}
-                                                  />
-                                                </div>
-                                              </div>
-                                              <div className="flex gap-2">
-                                                <Button
-                                                  size="sm"
-                                                  onClick={handleSaveEdit}
-                                                  disabled={!editStartDate || !editEndDate || saving}
-                                                  className="flex-1"
-                                                >
-                                                  {saving ? "Saving..." : "Save"}
-                                                </Button>
-                                                <Button
-                                                  size="sm"
-                                                  variant="destructive"
-                                                  onClick={handleDeleteDates}
-                                                  disabled={saving}
-                                                >
-                                                  Delete
-                                                </Button>
-                                                <Button
-                                                  size="sm"
-                                                  variant="outline"
-                                                  onClick={() => setEditingTaskId(null)}
-                                                  disabled={saving}
-                                                >
-                                                  Cancel
-                                                </Button>
-                                              </div>
-                                            </div>
-                                          </PopoverContent>
-                                        </Popover>
-                                      )}
+                                      {/* Edit button on bar (secondary, hover only) */}
                                     </div>
                                   </div>
                                 </div>
-                              ) : (
-                                onUpdateTask && (
-                                  <div className="absolute inset-0 flex items-center justify-center">
-                                    <Popover
-                                      open={editingTaskId === task.id}
-                                      onOpenChange={(open) => {
-                                        if (open) {
-                                          handleEditTask(task)
-                                        } else {
-                                          setEditingTaskId(null)
-                                        }
-                                      }}
-                                    >
-                                      <PopoverTrigger asChild>
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          className="opacity-50 hover:opacity-100 transition-opacity"
-                                          onClick={() => handleEditTask(task)}
-                                        >
-                                          <Plus className="h-4 w-4 mr-2" />
-                                          Add Timeline
-                                        </Button>
-                                      </PopoverTrigger>
-                                      <PopoverContent className="w-80" align="center">
-                                        <div className="space-y-4">
-                                          <div className="space-y-2">
-                                            <h4 className="font-semibold text-sm">{task.name}</h4>
-                                            <p className="text-xs text-muted-foreground">{category}</p>
-                                          </div>
-                                          <div className="space-y-3">
-                                            <div className="space-y-2">
-                                              <Label>Start Date</Label>
-                                              <Input
-                                                type="date"
-                                                value={editStartDate}
-                                                onChange={(e) => handleStartDateChange(e.target.value)}
-                                              />
-                                            </div>
-                                            <div className="space-y-2">
-                                              <Label>End Date</Label>
-                                              <Input
-                                                type="date"
-                                                value={editEndDate}
-                                                onChange={(e) => handleEndDateChange(e.target.value)}
-                                              />
-                                            </div>
-                                          </div>
-                                          <div className="flex gap-2">
-                                            <Button
-                                              size="sm"
-                                              onClick={handleSaveEdit}
-                                              disabled={!editStartDate || !editEndDate || saving}
-                                              className="flex-1"
-                                            >
-                                              {saving ? "Saving..." : "Add Timeline"}
-                                            </Button>
-                                            <Button
-                                              size="sm"
-                                              variant="outline"
-                                              onClick={() => setEditingTaskId(null)}
-                                              disabled={saving}
-                                            >
-                                              Cancel
-                                            </Button>
-                                          </div>
-                                        </div>
-                                      </PopoverContent>
-                                    </Popover>
-                                  </div>
-                                )
-                              )}
+                              ) : null}
                             </div>
                           )
                         })}
@@ -592,6 +662,49 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
                     ))}
                   </div>
                 ))}
+
+                {/* SVG dependency arrows overlay */}
+                {dependencyArrows.length > 0 && (
+                  <svg
+                    className="absolute top-0 left-0 pointer-events-none z-20"
+                    width={totalDays * DAY_WIDTH}
+                    height={totalTasksHeight}
+                    style={{ overflow: "visible" }}
+                  >
+                    <defs>
+                      <marker id="dep-arrow" markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto">
+                        <path d="M0,0 L7,3 L0,6 Z" fill="#64748b" />
+                      </marker>
+                    </defs>
+                    {dependencyArrows.map(({ id, from, to }) => {
+                      const x1 = from.right
+                      const y1 = from.centerY
+                      const x2 = to.left
+                      const y2 = to.centerY
+                      let d: string
+                      if (x2 > x1 + 5) {
+                        // Forward: simple L-elbow
+                        const mid = x1 + (x2 - x1) / 2
+                        d = `M ${x1},${y1} H ${mid} V ${y2} H ${x2}`
+                      } else {
+                        // Backward / same column: route around
+                        const bypass = Math.max(x1, x2) + 20
+                        d = `M ${x1},${y1} H ${bypass} V ${y2} H ${x2}`
+                      }
+                      return (
+                        <path
+                          key={id}
+                          d={d}
+                          fill="none"
+                          stroke="#64748b"
+                          strokeWidth="1.5"
+                          strokeDasharray="5 3"
+                          markerEnd="url(#dep-arrow)"
+                        />
+                      )
+                    })}
+                  </svg>
+                )}
               </div>
             </div>
           </div>

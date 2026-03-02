@@ -40,9 +40,22 @@ export const createTerminFormat = async (
 }
 
 // Update termin format
+export interface UpdateTerminEntry {
+  _id?: string
+  id?: string
+  name: string
+  percentage?: number
+  value?: number
+  valueType?: string
+  note?: string
+  isNew?: boolean
+  isDeleteTermin?: boolean
+  isDeleteAlbum?: boolean
+}
+
 export const updateTerminFormat = async (
   projectId: string,
-  termins: Array<{ id: string; name: string; percentage?: number; value?: number; valueType?: string; note?: string }>,
+  termins: UpdateTerminEntry[],
 ): Promise<Termin[]> => {
   const response = await apiRequest<Termin[]>(`/projects/${projectId}/termin`, {
     method: "PUT",
@@ -290,7 +303,7 @@ export const terminApi = {
     const data = await createTerminFormat(projectId, transformedTermins)
     return { success: true, data }
   },
-  updateFormat: async (projectId: string, termins: Array<{ id: string; name: string; percentage?: number; value?: number; valueType?: string; note?: string }>) => {
+  updateFormat: async (projectId: string, termins: UpdateTerminEntry[]) => {
     const data = await updateTerminFormat(projectId, termins)
     return { success: true, data }
   },

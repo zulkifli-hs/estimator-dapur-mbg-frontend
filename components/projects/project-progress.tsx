@@ -1,18 +1,14 @@
 "use client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { DialogTitle } from "@/components/ui/dialog"
-
 import { DialogHeader } from "@/components/ui/dialog"
-
 import { DialogContent } from "@/components/ui/dialog"
-
 import { Dialog } from "@/components/ui/dialog"
-
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Upload, Calendar, ImageIcon, TrendingUp, FileCheck, Edit, Plus, X, Download, Eye, MoreVertical } from 'lucide-react'
+import { ImageIcon, TrendingUp, Edit, Plus, X, Download, Eye, MoreVertical } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -199,9 +195,6 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
     return diffDays
   }
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })
-  }
 
   const loadAlbums = async () => {
     setAlbumsLoading(true)
@@ -225,7 +218,6 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
     }
   }
 
-  const hasGanttDates = ganttTasks.some(task => task.startDate && task.endDate)
 
   const handleDeleteAlbum = async () => {
     if (!deleteAlbumConfirm) return
@@ -599,12 +591,6 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
                   <CardTitle>Gantt Chart</CardTitle>
                   <CardDescription>Project timeline from Main BOQ</CardDescription>
                 </div>
-                {/* {mainBOQ && (
-                  <Button onClick={() => setShowGanttEditor(true)}>
-                    <Edit className="h-4 w-4 mr-2" />
-                    {hasGanttDates ? "Edit Timeline" : "Add Timeline"}
-                  </Button>
-                )} */}
               </div>
             </CardHeader>
             <CardContent>

@@ -31,7 +31,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const checkAuth = async () => {
     try {
-      const token = localStorage.getItem("auth_token")
+      const token = localStorage.getItem("auth_token") // getAuthToken requires client env; use raw access here for layout guard
 
       if (!token) {
         router.push("/login")

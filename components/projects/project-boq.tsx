@@ -17,6 +17,7 @@ import {
   Maximize2,
 } from "lucide-react"
 import { boqApi } from "@/lib/api/boq"
+import { getAuthToken } from "@/lib/api/config"
 import { templatesApi, type CreateTemplateInput } from "@/lib/api/templates"
 import { productsApi } from "@/lib/api/products"
 import { projectsApi } from "@/lib/api/projects"
@@ -801,7 +802,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     const formData = new FormData()
     formData.append("file", file)
 
-    const token = localStorage.getItem("auth_token")
+    const token = getAuthToken()
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/upload`, {
       method: "POST",
       headers: {
@@ -883,7 +884,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
           brand: item.brand,
           tags: item.tags || [],
         })),
-        fittingOut: mainBOQ.fittingOut.map((category: any) => ({
+        fittingOut: boqToSave.fittingOut.map((category: any) => ({
           name: category.name,
           products: category.products.map((product: any) => ({
             productId: product.productId,
@@ -896,7 +897,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
             tags: product.tags || [],
           })),
         })),
-        furnitureWork: mainBOQ.furnitureWork.map((category: any) => ({
+        furnitureWork: boqToSave.furnitureWork.map((category: any) => ({
           name: category.name,
           products: category.products.map((product: any) => ({
             productId: product.productId,
@@ -909,7 +910,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
             tags: product.tags || [],
           })),
         })),
-        mechanicalElectrical: (mainBOQ.mechanicalElectrical || []).map((category: any) => ({
+        mechanicalElectrical: (boqToSave.mechanicalElectrical || []).map((category: any) => ({
           name: category.name,
           products: category.products.map((product: any) => ({
             productId: product.productId,

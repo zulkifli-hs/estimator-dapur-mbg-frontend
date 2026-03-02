@@ -82,7 +82,7 @@ export const productsApi = {
       params.append("search", search)
     }
 
-    const response = await apiRequest(`/products?${params.toString()}`, {
+    const response = await apiRequest<{ list: Product[]; totalData: number; totalPage: number; page: number }>(`/products?${params.toString()}`, {
       method: "GET",
     })
 
@@ -90,7 +90,7 @@ export const productsApi = {
   },
 
   getById: async (id: string): Promise<Product> => {
-    const response = await apiRequest(`/products/${id}`, {
+    const response = await apiRequest<Product>(`/products/${id}`, {
       method: "GET",
     })
 
@@ -98,7 +98,7 @@ export const productsApi = {
   },
 
   create: async (data: CreateProductInput): Promise<Product> => {
-    const response = await apiRequest("/products", {
+    const response = await apiRequest<Product>("/products", {
       method: "POST",
       body: JSON.stringify(data),
     })
@@ -107,7 +107,7 @@ export const productsApi = {
   },
 
   update: async (id: string, data: UpdateProductInput): Promise<Product> => {
-    const response = await apiRequest(`/products/${id}`, {
+    const response = await apiRequest<Product>(`/products/${id}`, {
       method: "PUT",
       body: JSON.stringify(data),
     })

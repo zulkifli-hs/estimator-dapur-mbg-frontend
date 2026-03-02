@@ -60,7 +60,6 @@ export default function SignupPage() {
       // Store token
       if (response.data.accessToken) {
         setAuthToken(response.data.accessToken)
-        localStorage.setItem("auth_token", response.data.accessToken)
       }
 
       // Redirect to dashboard

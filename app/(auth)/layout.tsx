@@ -13,7 +13,7 @@ export default function AuthLayout({
   const router = useRouter()
 
   useEffect(() => {
-    const token = localStorage.getItem("auth_token")
+    const token = localStorage.getItem("auth_token") // getAuthToken requires client env; use raw access here for auth guard
 
     if (token) {
       // User is already logged in, redirect to dashboard

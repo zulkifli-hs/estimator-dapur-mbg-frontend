@@ -433,7 +433,7 @@ function InviteMemberDialog({ open, onOpenChange, projectId, role, onSuccess }: 
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const searchTimeoutRef = useRef<NodeJS.Timeout>()
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
 
@@ -602,13 +602,13 @@ function InviteMemberDialog({ open, onOpenChange, projectId, role, onSuccess }: 
                           >
                             <Avatar className="h-8 w-8">
                               <AvatarImage
-                                src={getImageUrl(user.profile.photo.url) || "/placeholder.svg"}
-                                alt={user.profile.name}
+                                src={getImageUrl(user.profile?.photo?.url ?? "") || "/placeholder.svg"}
+                                alt={user.profile?.name ?? ""}
                               />
-                              <AvatarFallback>{user.profile.name.charAt(0).toUpperCase()}</AvatarFallback>
+                              <AvatarFallback>{(user.profile?.name ?? "?").charAt(0).toUpperCase()}</AvatarFallback>
                             </Avatar>
                             <div className="flex flex-col flex-1 min-w-0">
-                              <p className="font-medium text-sm truncate">{user.profile.name}</p>
+                              <p className="font-medium text-sm truncate">{user.profile?.name ?? user.email}</p>
                               <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                             </div>
                             {emails.includes(user.email) && <Check className="h-4 w-4 text-primary" />}

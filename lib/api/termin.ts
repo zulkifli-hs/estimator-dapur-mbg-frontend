@@ -1,4 +1,4 @@
-import { apiRequest } from "./config"
+import { apiRequest, getAuthToken, API_BASE_URL } from "./config"
 
 export interface Termin {
   _id: string
@@ -42,7 +42,7 @@ export const createTerminFormat = async (
 // Update termin format
 export const updateTerminFormat = async (
   projectId: string,
-  termins: Array<{ id: string; name: string; percentage: number }>,
+  termins: Array<{ id: string; name: string; percentage?: number; value?: number; valueType?: string; note?: string }>,
 ): Promise<Termin[]> => {
   const response = await apiRequest<Termin[]>(`/projects/${projectId}/termin`, {
     method: "PUT",
@@ -89,9 +89,9 @@ export const addTerminPhoto = async (projectId: string, terminId: string, file: 
   const formData = new FormData()
   formData.append("photo", file)
 
-  const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null
+  const token = getAuthToken()
   const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_BASE_URL}/projects/${projectId}/termin/${terminId}/photos`,
+    `${API_BASE_URL}/projects/${projectId}/termin/${terminId}/photos`,
     {
       method: "PUT",
       headers: {
@@ -119,9 +119,9 @@ export const addTerminTaxFile = async (projectId: string, terminId: string, file
   const formData = new FormData()
   formData.append("tax_file", file)
 
-  const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null
+  const token = getAuthToken()
   const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_BASE_URL}/projects/${projectId}/termin/${terminId}/taxes`,
+    `${API_BASE_URL}/projects/${projectId}/termin/${terminId}/taxes`,
     {
       method: "PUT",
       headers: {
@@ -160,9 +160,9 @@ export const uploadTerminInvoicePdf = async (projectId: string, terminId: string
   const formData = new FormData()
   formData.append("file", file)
 
-  const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null
+  const token = getAuthToken()
   const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_BASE_URL}/projects/${projectId}/termin/${terminId}/invoice`,
+    `${API_BASE_URL}/projects/${projectId}/termin/${terminId}/invoice`,
     {
       method: "POST",
       headers: {
@@ -180,9 +180,9 @@ export const uploadTerminTaxPdf = async (projectId: string, terminId: string, fi
   const formData = new FormData()
   formData.append("file", file)
 
-  const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null
+  const token = getAuthToken()
   const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_BASE_URL}/projects/${projectId}/termin/${terminId}/taxes`,
+    `${API_BASE_URL}/projects/${projectId}/termin/${terminId}/taxes`,
     {
       method: "POST",
       headers: {
@@ -217,9 +217,9 @@ export const uploadTerminSlip = async (projectId: string, terminId: string, file
   const formData = new FormData()
   formData.append("file", file)
 
-  const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null
+  const token = getAuthToken()
   const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_BASE_URL}/projects/${projectId}/termin/${terminId}/slip`,
+    `${API_BASE_URL}/projects/${projectId}/termin/${terminId}/slip`,
     {
       method: "POST",
       headers: {
@@ -290,7 +290,7 @@ export const terminApi = {
     const data = await createTerminFormat(projectId, transformedTermins)
     return { success: true, data }
   },
-  updateFormat: async (projectId: string, termins: Array<{ id: string; name: string; percentage: number }>) => {
+  updateFormat: async (projectId: string, termins: Array<{ id: string; name: string; percentage?: number; value?: number; valueType?: string; note?: string }>) => {
     const data = await updateTerminFormat(projectId, termins)
     return { success: true, data }
   },

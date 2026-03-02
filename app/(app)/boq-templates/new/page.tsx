@@ -124,7 +124,7 @@ export default function NewTemplatePage() {
       sku: string
       type: string
       brand?: string
-      qty: number
+      qty?: number
       unit: string
       sellingPrice: number
     }, // Added _id and other fields to product type
@@ -203,7 +203,7 @@ export default function NewTemplatePage() {
       sku: string
       type: string
       brand?: string
-      qty: number
+      qty?: number
       unit: string
       sellingPrice: number
     }, // Added _id and other fields to product type
@@ -282,7 +282,7 @@ export default function NewTemplatePage() {
       sku: string
       type: string
       brand?: string
-      qty: number
+      qty?: number
       unit: string
       sellingPrice: number
     }, // Added _id and other fields to product type
@@ -361,7 +361,7 @@ export default function NewTemplatePage() {
       sku: string
       type: string
       brand?: string
-      qty: number
+      qty?: number
       unit: string
       sellingPrice: number
     },

@@ -118,13 +118,19 @@ function ChartTooltipContent({
   color,
   nameKey,
   labelKey,
-}: React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
-  React.ComponentProps<'div'> & {
+}: React.ComponentProps<'div'> & {
+    active?: boolean
+    payload?: Array<{ value?: any; name?: any; dataKey?: any; color?: string; fill?: string; [key: string]: any }>
+    label?: any
+    labelFormatter?: (label: any, payload: any[]) => React.ReactNode
+    formatter?: (value: any, name: any, item: any, index: number) => React.ReactNode
     hideLabel?: boolean
     hideIndicator?: boolean
     indicator?: 'line' | 'dot' | 'dashed'
     nameKey?: string
     labelKey?: string
+    labelClassName?: string
+    color?: string
   }) {
   const { config } = useChart()
 
@@ -193,7 +199,7 @@ function ChartTooltipContent({
               )}
             >
               {formatter && item?.value !== undefined && item.name ? (
-                formatter(item.value, item.name, item, index, item.payload)
+                formatter(item.value, item.name, item, index)
               ) : (
                 <>
                   {itemConfig?.icon ? (
@@ -256,8 +262,9 @@ function ChartLegendContent({
   payload,
   verticalAlign = 'bottom',
   nameKey,
-}: React.ComponentProps<'div'> &
-  Pick<RechartsPrimitive.LegendProps, 'payload' | 'verticalAlign'> & {
+}: React.ComponentProps<'div'> & {
+    payload?: Array<{ value?: any; dataKey?: any; color?: string; type?: string; [key: string]: any }>
+    verticalAlign?: 'top' | 'middle' | 'bottom'
     hideIcon?: boolean
     nameKey?: string
   }) {

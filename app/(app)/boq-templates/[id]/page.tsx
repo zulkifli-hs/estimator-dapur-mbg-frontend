@@ -55,7 +55,8 @@ interface Category {
 // }
 
 export default function TemplateDetailPage() {
-  const params = useParams() //
+  const params = useParams()
+  const templateId = Array.isArray(params.id) ? params.id[0] : (params.id as string)
   const router = useRouter()
   const { toast } = useToast()
   const [loading, setLoading] = useState(true)
@@ -81,19 +82,14 @@ export default function TemplateDetailPage() {
   const mechanicalElectricalQtyRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
   const fetchTemplate = async () => {
-    if (!params.id) return
+    if (!templateId) return
 
     setLoading(true)
     try {
-      const response = await templatesApi.getById(params.id as string)
-      console.log("[v0] Template response:", response)
+      const response = await templatesApi.getById(templateId)
 
       if (response.success && response.data) {
         const template = response.data
-        console.log("[v0] Template name:", template.name)
-        console.log("[v0] Preliminary items:", template.preliminary?.length)
-        console.log("[v0] Fitting Out categories:", template.fittingOut?.length)
-        console.log("[v0] Furniture Work categories:", template.furnitureWork?.length)
 
         setTemplateName(template.name || "")
         setPreliminary(template.preliminary || [])
@@ -109,7 +105,7 @@ export default function TemplateDetailPage() {
         router.push("/boq-templates")
       }
     } catch (error) {
-      console.error("[v0] Failed to fetch template:", error) // Added [v0] prefix
+      console.error("Failed to fetch template:", error)
       toast({
         title: "Error",
         description: "Failed to load template",
@@ -121,10 +117,10 @@ export default function TemplateDetailPage() {
   }
 
   useEffect(() => {
-    if (params.id) {
+    if (templateId) {
       fetchTemplate()
     }
-  }, [params.id])
+  }, [templateId])
 
   // Highlight text function
   const highlightText = (text: string, query: string) => {
@@ -392,8 +388,7 @@ export default function TemplateDetailPage() {
 
     try {
       setSaving(true)
-      await templatesApi.update(params.id, {
-        // Use params.id here
+      await templatesApi.update(templateId, {
         name: templateName,
         preliminary: preliminary.map((item) => ({
           name: item.name,
@@ -819,11 +814,9 @@ export default function TemplateDetailPage() {
                       <div className="flex-1 min-w-0">
                         <Label className="text-xs text-muted-foreground mb-1.5 block">Item Name</Label>
                         <ProductSearchPopover
-                          products={products}
                           selectedProductName={item.name}
                           onSelect={(product) => selectPreliminaryProduct(index, product)}
                           onCreateNew={() => setCreateProductDialogOpen(true)}
-                          loadingProducts={loadingProducts}
                           className="w-full min-h-[40px] h-auto text-left font-normal"
                           formatCurrency={formatCurrency}
                         />
@@ -937,11 +930,9 @@ export default function TemplateDetailPage() {
                           <div className="flex-1 min-w-0">
                             <Label className="text-xs text-muted-foreground mb-1.5 block">Product Name</Label>
                             <ProductSearchPopover
-                              products={products}
                               selectedProductName={product.name}
                               onSelect={(prod) => selectFittingOutProduct(categoryIndex, productIndex, prod)}
                               onCreateNew={() => setCreateProductDialogOpen(true)}
-                              loadingProducts={loadingProducts}
                               className="w-full min-h-[40px] h-auto text-left font-normal"
                               formatCurrency={formatCurrency}
                             />
@@ -1074,11 +1065,9 @@ export default function TemplateDetailPage() {
                           <div className="flex-1 min-w-0">
                             <Label className="text-xs text-muted-foreground mb-1.5 block">Product Name</Label>
                             <ProductSearchPopover
-                              products={products}
                               selectedProductName={product.name}
                               onSelect={(prod) => selectFurnitureWorkProduct(categoryIndex, productIndex, prod)}
                               onCreateNew={() => setCreateProductDialogOpen(true)}
-                              loadingProducts={loadingProducts}
                               className="w-full min-h-[40px] h-auto text-left font-normal"
                               formatCurrency={formatCurrency}
                             />

@@ -87,7 +87,7 @@ export const usersApi = {
       params.append("type", type)
     }
 
-    const response = await apiRequest(`/users?${params.toString()}`, {
+    const response = await apiRequest<{ list: User[]; totalData: number; totalPage: number; page: number }>(`/users?${params.toString()}`, {
       method: "GET",
     })
 
@@ -95,7 +95,7 @@ export const usersApi = {
   },
 
   getById: async (id: string): Promise<User> => {
-    const response = await apiRequest(`/users/${id}`, {
+    const response = await apiRequest<User>(`/users/${id}`, {
       method: "GET",
     })
 
@@ -103,7 +103,7 @@ export const usersApi = {
   },
 
   create: async (data: CreateUserInput): Promise<User> => {
-    const response = await apiRequest("/users", {
+    const response = await apiRequest<User>("/users", {
       method: "POST",
       body: JSON.stringify(data),
     })
@@ -112,7 +112,7 @@ export const usersApi = {
   },
 
   update: async (id: string, data: UpdateUserInput): Promise<User> => {
-    const response = await apiRequest(`/users/${id}`, {
+    const response = await apiRequest<User>(`/users/${id}`, {
       method: "PUT",
       body: JSON.stringify(data),
     })
@@ -135,7 +135,7 @@ export const usersApi = {
 
   search: async (keyword: string): Promise<User[]> => {
     try {
-      const response = await apiRequest(`/users?search=${encodeURIComponent(keyword)}`, {
+      const response = await apiRequest<{ list: User[]; totalData: number; totalPage: number; page: number }>(`/users?search=${encodeURIComponent(keyword)}`, {
         method: "GET",
       })
 
@@ -151,7 +151,7 @@ export const usersApi = {
   },
 
   activate: async (id: string): Promise<User> => {
-    const response = await apiRequest(`/users/${id}/active`, {
+    const response = await apiRequest<User>(`/users/${id}/active`, {
       method: "PUT",
     })
 
@@ -159,7 +159,7 @@ export const usersApi = {
   },
 
   deactivate: async (id: string): Promise<User> => {
-    const response = await apiRequest(`/users/${id}/inactive`, {
+    const response = await apiRequest<User>(`/users/${id}/inactive`, {
       method: "PUT",
     })
 

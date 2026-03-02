@@ -106,14 +106,14 @@ function BOQApprovalContent() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[60px] px-4">No</TableHead>
-              <TableHead className="min-w-[250px] max-w-[400px] px-4">Item Name</TableHead>
-              <TableHead className="w-[120px] px-4">Brand/Equal</TableHead>
-              <TableHead className="w-[120px] px-4">Location</TableHead>
-              <TableHead className="text-right w-[80px] px-4">Qty</TableHead>
-              <TableHead className="w-[80px] px-4">Unit</TableHead>
-              <TableHead className="text-right w-[150px] px-4">Unit Price</TableHead>
-              <TableHead className="text-right w-[150px] px-4">Total Price</TableHead>
+              <TableHead className="w-15 px-4">No</TableHead>
+              <TableHead className="min-w-62.5 max-w-100 px-4">Item Name</TableHead>
+              <TableHead className="w-30 px-4">Brand/Equal</TableHead>
+              <TableHead className="w-30 px-4">Location</TableHead>
+              <TableHead className="text-right w-20 px-4">Qty</TableHead>
+              <TableHead className="w-20 px-4">Unit</TableHead>
+              <TableHead className="text-right w-37.5 px-4">Unit Price</TableHead>
+              <TableHead className="text-right w-37.5 px-4">Total Price</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -131,7 +131,7 @@ function BOQApprovalContent() {
                   return (
                     <TableRow key={item._id}>
                       <TableCell className="font-medium pl-8 pr-4">{itemNumber++}</TableCell>
-                      <TableCell className="whitespace-normal break-words px-4">{item.name}</TableCell>
+                      <TableCell className="whitespace-normal wrap-break-word px-4">{item.name}</TableCell>
                       <TableCell className="px-4">{item.brand || "-"}</TableCell>
                       <TableCell className="px-4">{item.location || "-"}</TableCell>
                       <TableCell className="text-right px-4">{item.qty}</TableCell>
@@ -181,7 +181,7 @@ function BOQApprovalContent() {
                           return (
                             <TableRow key={product._id}>
                               <TableCell className="font-medium pl-12 pr-4">{itemNumber++}</TableCell>
-                              <TableCell className="whitespace-normal break-words px-4">{product.name}</TableCell>
+                              <TableCell className="whitespace-normal wrap-break-word px-4">{product.name}</TableCell>
                               <TableCell className="px-4">{product.brand || "-"}</TableCell>
                               <TableCell className="px-4">{product.location || "-"}</TableCell>
                               <TableCell className="text-right px-4">{product.qty}</TableCell>
@@ -249,7 +249,7 @@ function BOQApprovalContent() {
                           return (
                             <TableRow key={product._id}>
                               <TableCell className="font-medium pl-12 pr-4">{itemNumber++}</TableCell>
-                              <TableCell className="whitespace-normal break-words px-4">{product.name}</TableCell>
+                              <TableCell className="whitespace-normal wrap-break-word px-4">{product.name}</TableCell>
                               <TableCell className="px-4">{product.brand || "-"}</TableCell>
                               <TableCell className="px-4">{product.location || "-"}</TableCell>
                               <TableCell className="text-right px-4">{product.qty}</TableCell>
@@ -317,7 +317,7 @@ function BOQApprovalContent() {
                           return (
                             <TableRow key={product._id}>
                               <TableCell className="font-medium pl-12 pr-4">{itemNumber++}</TableCell>
-                              <TableCell className="whitespace-normal break-words px-4">{product.name}</TableCell>
+                              <TableCell className="whitespace-normal wrap-break-word px-4">{product.name}</TableCell>
                               <TableCell className="px-4">{product.brand || "-"}</TableCell>
                               <TableCell className="px-4">{product.location || "-"}</TableCell>
                               <TableCell className="text-right px-4">{product.qty}</TableCell>
@@ -380,7 +380,7 @@ function BOQApprovalContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
         <Card className="w-full max-w-md">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
@@ -393,7 +393,7 @@ function BOQApprovalContent() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4">
         <Card className="w-full max-w-md">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <AlertCircle className="h-12 w-12 text-destructive mb-4" />
@@ -408,7 +408,7 @@ function BOQApprovalContent() {
 
   if (!boqData || !boqData.boq) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4">
         <Card className="w-full max-w-md">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
@@ -424,7 +424,7 @@ function BOQApprovalContent() {
   const isRequestStatus = String(boq.status || "").toLowerCase() === "request"
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+    <div className="min-h-screen bg-linear-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
       <div className="container mx-auto py-8 px-4 max-w-7xl">
         {/* Header */}
         <div className="mb-8">
@@ -570,7 +570,7 @@ export default function BOQApprovalPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+        <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
           <Card className="w-full max-w-md">
             <CardContent className="flex flex-col items-center justify-center py-12">
               <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />

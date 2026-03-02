@@ -98,7 +98,7 @@ export function ProductSearchPopover({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[500px] p-0" align="start">
+      <PopoverContent className="w-125 p-0" align="start">
         <Command shouldFilter={false}>
           <CommandInput placeholder="Search product..." onValueChange={setSearchQuery} />
           <CommandList>
@@ -112,7 +112,7 @@ export function ProductSearchPopover({
                 "No product found."
               )}
             </CommandEmpty>
-            <CommandGroup className="max-h-[300px] overflow-auto">
+            <CommandGroup className="max-h-75 overflow-auto">
               {products.map((product) => (
                 <CommandItem
                   key={product._id}

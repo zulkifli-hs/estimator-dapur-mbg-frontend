@@ -142,7 +142,7 @@ function TeamMemberInput({ label, emails, onAdd, onRemove, disabled }: TeamMembe
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
 
           {showDropdown && (
-            <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-md max-h-[300px] overflow-auto">
+            <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-md max-h-75 overflow-auto">
               {loading ? (
                 <div className="p-4 text-sm text-muted-foreground text-center">Searching...</div>
               ) : users.length > 0 ? (

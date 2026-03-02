@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Menu, Bell, User, LogOut, Settings, Moon, Sun } from "lucide-react"
+import { Menu, User, LogOut, Moon, Sun } from "lucide-react"
 import { useTheme } from "@/components/providers/theme-provider"
 import { useRouter } from "next/navigation"
 import { Breadcrumb } from "./breadcrumb"
@@ -37,7 +37,7 @@ export function AppHeader({ user, onMenuClick, mobileMenuContent }: AppHeaderPro
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
       <div className="flex h-14 sm:h-16 items-center gap-2 sm:gap-4 px-3 sm:px-4 md:px-6">
         {/* Mobile Menu Button */}
         <div className="lg:hidden">
@@ -88,7 +88,7 @@ export function AppHeader({ user, onMenuClick, mobileMenuContent }: AppHeaderPro
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="gap-2 h-9 px-2 sm:px-3">
-                  <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                     {user.avatar ? (
                       <img
                         src={user.avatar || "/placeholder.svg"}
@@ -102,8 +102,8 @@ export function AppHeader({ user, onMenuClick, mobileMenuContent }: AppHeaderPro
                     )}
                   </div>
                   <div className="hidden md:flex md:flex-col md:items-start">
-                    <span className="text-sm font-medium truncate max-w-[120px]">{user.name}</span>
-                    <span className="text-xs text-muted-foreground truncate max-w-[120px]">{user.email}</span>
+                    <span className="text-sm font-medium truncate max-w-30">{user.name}</span>
+                    <span className="text-xs text-muted-foreground truncate max-w-30">{user.email}</span>
                   </div>
                 </Button>
               </DropdownMenuTrigger>

@@ -179,7 +179,7 @@ export function ProjectMembers({ project, onUpdate }: ProjectMembersProps) {
     <div className="space-y-6">
       <div className="grid gap-6 md:grid-cols-2">
         <Card className="border-2">
-          <CardHeader className="bg-gradient-to-br from-primary/5 to-primary/10">
+          <CardHeader className="bg-linear-to-br from-primary/5 to-primary/10">
             <div className="flex items-center gap-2">
               <div className="p-2 bg-primary/10 rounded-lg">
                 <Crown className="h-5 w-5 text-primary" />
@@ -192,7 +192,7 @@ export function ProjectMembers({ project, onUpdate }: ProjectMembersProps) {
           </CardHeader>
           <CardContent className="pt-6">
             {project.owner && (
-              <div className="flex items-center gap-4 p-4 border-2 border-primary/20 rounded-lg bg-gradient-to-br from-primary/5 to-background">
+              <div className="flex items-center gap-4 p-4 border-2 border-primary/20 rounded-lg bg-linear-to-br from-primary/5 to-background">
                 <Avatar className="h-14 w-14 ring-2 ring-primary/20">
                   <AvatarImage src={project.owner.profile?.photo || "/placeholder.svg"} />
                   <AvatarFallback className="bg-primary/10 text-primary font-semibold">
@@ -216,7 +216,7 @@ export function ProjectMembers({ project, onUpdate }: ProjectMembersProps) {
         </Card>
 
         <Card className="border-2">
-          <CardHeader className="bg-gradient-to-br from-blue-500/5 to-blue-500/10">
+          <CardHeader className="bg-linear-to-br from-blue-500/5 to-blue-500/10">
             <div className="flex items-center gap-2">
               <div className="p-2 bg-blue-500/10 rounded-lg">
                 <Building2 className="h-5 w-5 text-blue-600" />
@@ -229,7 +229,7 @@ export function ProjectMembers({ project, onUpdate }: ProjectMembersProps) {
           </CardHeader>
           <CardContent className="pt-6">
             {project.companyClient && project.companyClient.picName ? (
-              <div className="flex items-center gap-4 p-4 border-2 border-blue-500/20 rounded-lg bg-gradient-to-br from-blue-500/5 to-background">
+              <div className="flex items-center gap-4 p-4 border-2 border-blue-500/20 rounded-lg bg-linear-to-br from-blue-500/5 to-background">
                 <Avatar className="h-14 w-14 ring-2 ring-blue-500/20">
                   <AvatarImage
                     src={
@@ -589,7 +589,7 @@ function InviteMemberDialog({ open, onOpenChange, projectId, role, onSuccess }: 
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
 
                 {showDropdown && (
-                  <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-md max-h-[300px] overflow-auto">
+                  <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-md max-h-75 overflow-auto">
                     {loading ? (
                       <div className="p-4 text-sm text-muted-foreground text-center">Searching...</div>
                     ) : users.length > 0 ? (

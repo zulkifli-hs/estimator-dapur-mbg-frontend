@@ -12,10 +12,7 @@ import { Separator } from "@/components/ui/separator"
 import {
   LayoutDashboard,
   FolderKanban,
-  MessageSquare,
   Users,
-  Settings,
-  HelpCircle,
   Package,
   User,
   FileText,
@@ -85,7 +82,7 @@ export function AppSidebar({ collapsed = false, onCollapse, className }: AppSide
           collapsed && "justify-center px-2",
         )}
       >
-        <Icon className={cn("h-5 w-5 flex-shrink-0", collapsed && "h-6 w-6")} />
+        <Icon className={cn("h-5 w-5 shrink-0", collapsed && "h-6 w-6")} />
         {!collapsed && (
           <>
             <span className="flex-1">{item.name}</span>

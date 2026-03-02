@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label"
 import { CreateProductDialog } from "@/components/products/create-product-dialog"
 import { ProductSearchPopover } from "@/components/product-search-popover"
 import { Loader2, Plus, Trash2, X } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface BoqEditFormProps {
   editingBOQ: any
@@ -53,6 +54,7 @@ interface BoqEditFormProps {
   uploadProductPhoto: (file: File) => Promise<{ url: string; provider: string }>
   onProductCreated: (newProduct: any) => void
   formatCurrency: (value: number) => string
+  invalidFields: Set<string>
 }
 
 export function BoqEditForm({
@@ -100,6 +102,7 @@ export function BoqEditForm({
   uploadProductPhoto,
   onProductCreated,
   formatCurrency,
+  invalidFields,
 }: BoqEditFormProps) {
   return (
     <div className="space-y-6">
@@ -174,7 +177,7 @@ export function BoqEditForm({
                           />
                         </div>
                         <div>
-                          <Label className="text-xs text-muted-foreground mb-1.5 block">Quantity</Label>
+                          <Label className={cn("text-xs mb-1.5 block", invalidFields.has(`preliminary-${index}-qty`) ? "text-red-500" : "text-muted-foreground")}>Quantity</Label>
                           <Input
                             ref={(el) => {
                               preliminaryQtyRefs.current[index] = el
@@ -183,23 +186,26 @@ export function BoqEditForm({
                             value={item.qty}
                             onChange={(e) => onUpdatePreliminaryItem(index, "qty", Number(e.target.value))}
                             placeholder="0"
+                            className={cn(invalidFields.has(`preliminary-${index}-qty`) && "border-red-500 focus-visible:ring-red-500")}
                           />
                         </div>
                         <div>
-                          <Label className="text-xs text-muted-foreground mb-1.5 block">Unit</Label>
+                          <Label className={cn("text-xs mb-1.5 block", invalidFields.has(`preliminary-${index}-unit`) ? "text-red-500" : "text-muted-foreground")}>Unit</Label>
                           <Input
                             value={item.unit}
                             onChange={(e) => onUpdatePreliminaryItem(index, "unit", e.target.value)}
                             placeholder="ls, m2"
+                            className={cn(invalidFields.has(`preliminary-${index}-unit`) && "border-red-500 focus-visible:ring-red-500")}
                           />
                         </div>
                         <div>
-                          <Label className="text-xs text-muted-foreground mb-1.5 block">Price</Label>
+                          <Label className={cn("text-xs mb-1.5 block", invalidFields.has(`preliminary-${index}-price`) ? "text-red-500" : "text-muted-foreground")}>Price</Label>
                           <Input
                             type="number"
                             value={item.price}
                             onChange={(e) => onUpdatePreliminaryItem(index, "price", Number(e.target.value))}
                             placeholder="0"
+                            className={cn(invalidFields.has(`preliminary-${index}-price`) && "border-red-500 focus-visible:ring-red-500")}
                           />
                         </div>
                       </div>
@@ -287,7 +293,7 @@ export function BoqEditForm({
                             />
                           </div>
                           <div>
-                            <Label className="text-xs text-muted-foreground mb-1.5 block">Quantity</Label>
+                            <Label className={cn("text-xs mb-1.5 block", invalidFields.has(`fittingOut-${categoryIndex}-${productIndex}-qty`) ? "text-red-500" : "text-muted-foreground")}>Quantity</Label>
                             <Input
                               ref={(el) => {
                                 fittingOutQtyRefs.current[`${categoryIndex}-${productIndex}`] = el
@@ -296,23 +302,26 @@ export function BoqEditForm({
                               value={product.qty}
                               onChange={(e) => onUpdateFittingOutProduct(categoryIndex, productIndex, "qty", Number(e.target.value))}
                               placeholder="0"
+                              className={cn(invalidFields.has(`fittingOut-${categoryIndex}-${productIndex}-qty`) && "border-red-500 focus-visible:ring-red-500")}
                             />
                           </div>
                           <div>
-                            <Label className="text-xs text-muted-foreground mb-1.5 block">Unit</Label>
+                            <Label className={cn("text-xs mb-1.5 block", invalidFields.has(`fittingOut-${categoryIndex}-${productIndex}-unit`) ? "text-red-500" : "text-muted-foreground")}>Unit</Label>
                             <Input
                               value={product.unit}
                               onChange={(e) => onUpdateFittingOutProduct(categoryIndex, productIndex, "unit", e.target.value)}
                               placeholder="ls, m2"
+                              className={cn(invalidFields.has(`fittingOut-${categoryIndex}-${productIndex}-unit`) && "border-red-500 focus-visible:ring-red-500")}
                             />
                           </div>
                           <div>
-                            <Label className="text-xs text-muted-foreground mb-1.5 block">Price</Label>
+                            <Label className={cn("text-xs mb-1.5 block", invalidFields.has(`fittingOut-${categoryIndex}-${productIndex}-price`) ? "text-red-500" : "text-muted-foreground")}>Price</Label>
                             <Input
                               type="number"
                               value={product.price}
                               onChange={(e) => onUpdateFittingOutProduct(categoryIndex, productIndex, "price", Number(e.target.value))}
                               placeholder="0"
+                              className={cn(invalidFields.has(`fittingOut-${categoryIndex}-${productIndex}-price`) && "border-red-500 focus-visible:ring-red-500")}
                             />
                           </div>
                         </div>
@@ -405,7 +414,7 @@ export function BoqEditForm({
                             />
                           </div>
                           <div>
-                            <Label className="text-xs text-muted-foreground mb-1.5 block">Quantity</Label>
+                            <Label className={cn("text-xs mb-1.5 block", invalidFields.has(`furnitureWork-${categoryIndex}-${productIndex}-qty`) ? "text-red-500" : "text-muted-foreground")}>Quantity</Label>
                             <Input
                               ref={(el) => {
                                 furnitureWorkQtyRefs.current[`${categoryIndex}-${productIndex}`] = el
@@ -414,23 +423,26 @@ export function BoqEditForm({
                               value={product.qty}
                               onChange={(e) => onUpdateFurnitureWorkProduct(categoryIndex, productIndex, "qty", Number(e.target.value))}
                               placeholder="0"
+                              className={cn(invalidFields.has(`furnitureWork-${categoryIndex}-${productIndex}-qty`) && "border-red-500 focus-visible:ring-red-500")}
                             />
                           </div>
                           <div>
-                            <Label className="text-xs text-muted-foreground mb-1.5 block">Unit</Label>
+                            <Label className={cn("text-xs mb-1.5 block", invalidFields.has(`furnitureWork-${categoryIndex}-${productIndex}-unit`) ? "text-red-500" : "text-muted-foreground")}>Unit</Label>
                             <Input
                               value={product.unit}
                               onChange={(e) => onUpdateFurnitureWorkProduct(categoryIndex, productIndex, "unit", e.target.value)}
                               placeholder="ls, m2"
+                              className={cn(invalidFields.has(`furnitureWork-${categoryIndex}-${productIndex}-unit`) && "border-red-500 focus-visible:ring-red-500")}
                             />
                           </div>
                           <div>
-                            <Label className="text-xs text-muted-foreground mb-1.5 block">Price</Label>
+                            <Label className={cn("text-xs mb-1.5 block", invalidFields.has(`furnitureWork-${categoryIndex}-${productIndex}-price`) ? "text-red-500" : "text-muted-foreground")}>Price</Label>
                             <Input
                               type="number"
                               value={product.price}
                               onChange={(e) => onUpdateFurnitureWorkProduct(categoryIndex, productIndex, "price", Number(e.target.value))}
                               placeholder="0"
+                              className={cn(invalidFields.has(`furnitureWork-${categoryIndex}-${productIndex}-price`) && "border-red-500 focus-visible:ring-red-500")}
                             />
                           </div>
                         </div>
@@ -523,7 +535,7 @@ export function BoqEditForm({
                             />
                           </div>
                           <div>
-                            <Label className="text-xs text-muted-foreground mb-1.5 block">Quantity</Label>
+                            <Label className={cn("text-xs mb-1.5 block", invalidFields.has(`mechanicalElectrical-${categoryIndex}-${productIndex}-qty`) ? "text-red-500" : "text-muted-foreground")}>Quantity</Label>
                             <Input
                               ref={(el) => {
                                 mechanicalElectricalQtyRefs.current[`${categoryIndex}-${productIndex}`] = el
@@ -532,23 +544,26 @@ export function BoqEditForm({
                               value={product.qty}
                               onChange={(e) => onUpdateMechanicalElectricalProduct(categoryIndex, productIndex, "qty", Number(e.target.value))}
                               placeholder="0"
+                              className={cn(invalidFields.has(`mechanicalElectrical-${categoryIndex}-${productIndex}-qty`) && "border-red-500 focus-visible:ring-red-500")}
                             />
                           </div>
                           <div>
-                            <Label className="text-xs text-muted-foreground mb-1.5 block">Unit</Label>
+                            <Label className={cn("text-xs mb-1.5 block", invalidFields.has(`mechanicalElectrical-${categoryIndex}-${productIndex}-unit`) ? "text-red-500" : "text-muted-foreground")}>Unit</Label>
                             <Input
                               value={product.unit}
                               onChange={(e) => onUpdateMechanicalElectricalProduct(categoryIndex, productIndex, "unit", e.target.value)}
                               placeholder="ls, set, pcs"
+                              className={cn(invalidFields.has(`mechanicalElectrical-${categoryIndex}-${productIndex}-unit`) && "border-red-500 focus-visible:ring-red-500")}
                             />
                           </div>
                           <div>
-                            <Label className="text-xs text-muted-foreground mb-1.5 block">Price</Label>
+                            <Label className={cn("text-xs mb-1.5 block", invalidFields.has(`mechanicalElectrical-${categoryIndex}-${productIndex}-price`) ? "text-red-500" : "text-muted-foreground")}>Price</Label>
                             <Input
                               type="number"
                               value={product.price}
                               onChange={(e) => onUpdateMechanicalElectricalProduct(categoryIndex, productIndex, "price", Number(e.target.value))}
                               placeholder="0"
+                              className={cn(invalidFields.has(`mechanicalElectrical-${categoryIndex}-${productIndex}-price`) && "border-red-500 focus-visible:ring-red-500")}
                             />
                           </div>
                         </div>

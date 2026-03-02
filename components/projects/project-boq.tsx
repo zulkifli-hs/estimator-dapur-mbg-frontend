@@ -122,6 +122,9 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   const [fullscreenBoqType, setFullscreenBoqType] = useState<"table" | "recap">("table")
   const [templateEditingBOQ, setTemplateEditingBOQ] = useState<any>(null)
 
+  // Track invalid field keys for highlighting (e.g. "preliminary-0-qty")
+  const [invalidFields, setInvalidFields] = useState<Set<string>>(new Set())
+
   // Approval request states
   const [showApprovalModal, setShowApprovalModal] = useState(false)
   const [approvalEmails, setApprovalEmails] = useState<Array<{ email: string; label: string }>>([])
@@ -637,9 +640,86 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         endDate: item.endDate ? normalizeDate(item.endDate) : undefined,
       })
 
+      // Determine if this is a main BOQ (number === 1) or additional
+      const isMainBOQ = editingBOQ ? editingBOQ.number === 1 : boqType === "main"
+
+      // Validate all items: qty, unit, price
+      const invalids: Array<{ section: string; subsection?: string; name: string; reasons: string[] }> = []
+      const newInvalidFields = new Set<string>()
+
+      const validateItem = (item: any, section: string, fieldPrefix: string, subsection?: string) => {
+        if (!item.name) return
+        const reasons: string[] = []
+
+        // qty validation
+        if (isMainBOQ) {
+          if (item.qty === 0) {
+            reasons.push("Quantity must be greater than 0")
+            newInvalidFields.add(`${fieldPrefix}-qty`)
+          } else if (item.qty < 0) {
+            reasons.push("Quantity cannot be negative for main BOQ (must be > 0)")
+            newInvalidFields.add(`${fieldPrefix}-qty`)
+          }
+        } else {
+          if (item.qty === 0) {
+            reasons.push("Quantity cannot be zero for additional BOQ (must be > 0 or < 0)")
+            newInvalidFields.add(`${fieldPrefix}-qty`)
+          }
+        }
+
+        // unit validation
+        if (!item.unit || item.unit.trim() === "") {
+          reasons.push("Unit cannot be empty")
+          newInvalidFields.add(`${fieldPrefix}-unit`)
+        }
+
+        // price validation (must be >= 0)
+        if (item.price === undefined || item.price === null || isNaN(item.price) || item.price < 0) {
+          reasons.push("Price must be a positive number or 0")
+          newInvalidFields.add(`${fieldPrefix}-price`)
+        }
+
+        if (reasons.length > 0) {
+          invalids.push({ section, subsection, name: item.name, reasons })
+        }
+      }
+
+      // Validate all sections
+      preliminary.forEach((item, idx) => validateItem(item, "Preliminary", `preliminary-${idx}`))
+      fittingOut.forEach((cat, catIdx) =>
+        cat.products.forEach((product, prodIdx) =>
+          validateItem(product, "Fitting Out", `fittingOut-${catIdx}-${prodIdx}`, cat.name)
+        )
+      )
+      furnitureWork.forEach((cat, catIdx) =>
+        cat.products.forEach((product, prodIdx) =>
+          validateItem(product, "Furniture Work", `furnitureWork-${catIdx}-${prodIdx}`, cat.name)
+        )
+      )
+      mechanicalElectrical.forEach((cat, catIdx) =>
+        cat.products.forEach((product, prodIdx) =>
+          validateItem(product, "Mechanical/Electrical", `mechanicalElectrical-${catIdx}-${prodIdx}`, cat.name)
+        )
+      )
+
+      setInvalidFields(newInvalidFields)
+
+      if (invalids.length > 0) {
+        const errorLines = invalids.map((inv) => {
+          const location = inv.subsection ? `${inv.section} / ${inv.subsection}` : inv.section
+          return `• [${location}] "${inv.name}": ${inv.reasons.join("; ")}`
+        })
+        toast({
+          title: `${invalids.length} Invalid Field${invalids.length > 1 ? "s" : ""} Found`,
+          description: errorLines.join("\n"),
+          variant: "destructive",
+        })
+        return
+      }
+
       // Filter preliminary items
       const filteredPreliminary = preliminary
-        .filter((item) => item.name && item.qty > 0 && item.unit && item.price >= 0)
+        .filter((item) => item.name && (isMainBOQ ? item.qty > 0 : item.qty !== 0))
         .map((item) => normalizeItemDates({
           productId: item.productId,
           qty: item.qty,
@@ -657,7 +737,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         .map((category) => ({
           name: category.name,
           products: category.products
-            .filter((product) => product.name && product.qty > 0 && product.unit && product.price >= 0)
+            .filter((product) => product.name && (isMainBOQ ? product.qty > 0 : product.qty !== 0))
             .map((product) => normalizeItemDates({
               productId: product.productId,
               qty: product.qty,
@@ -677,7 +757,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         .map((category) => ({
           name: category.name,
           products: category.products
-            .filter((product) => product.name && product.qty > 0 && product.unit && product.price >= 0)
+            .filter((product) => product.name && (isMainBOQ ? product.qty > 0 : product.qty !== 0))
             .map((product) => normalizeItemDates({
               productId: product.productId,
               qty: product.qty,
@@ -697,7 +777,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         .map((category) => ({
           name: category.name,
           products: category.products
-            .filter((product) => product.name && product.qty > 0 && product.unit && product.price >= 0)
+            .filter((product) => product.name && (isMainBOQ ? product.qty > 0 : product.qty !== 0))
             .map((product) => normalizeItemDates({
               productId: product.productId,
               qty: product.qty,
@@ -760,6 +840,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       setFittingOut([])
       setFurnitureWork([])
       setMechanicalElectrical([])
+      setInvalidFields(new Set())
       fetchBOQ() // Use renamed function
     } catch (error: any) {
       toast({
@@ -1381,10 +1462,12 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         fittingOutQtyRefs={fittingOutQtyRefs}
         furnitureWorkQtyRefs={furnitureWorkQtyRefs}
         mechanicalElectricalQtyRefs={mechanicalElectricalQtyRefs}
+        invalidFields={invalidFields}
         onCancel={() => {
           setCreationMode(null)
           setEditingBOQ(null)
           setBOQType("main")
+          setInvalidFields(new Set())
           if (boqType === "additional") {
             setActiveTab("additional")
           }

@@ -5,22 +5,25 @@ import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { Pencil, Plus } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Link2, Pencil, Plus } from 'lucide-react'
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 
 interface GanttTask {
   id: string
+  mongoId?: string
   name: string
   category: string
-  startDate: Date | null  // Allow null for tasks without dates
-  endDate: Date | null    // Allow null for tasks without dates
+  startDate: Date | null
+  endDate: Date | null
   duration: number
+  dependOn?: string | null  // Gantt task ID (e.g. "preliminary-0")
 }
 
 interface GanttChartViewProps {
   tasks: GanttTask[]
-  onUpdateTask?: (taskId: string, startDate: Date | null, endDate: Date | null) => Promise<void>
+  onUpdateTask?: (taskId: string, startDate: Date | null, endDate: Date | null, dependOn?: string | null) => Promise<void>
 }
 
 interface CategoryStyle {
@@ -46,6 +49,7 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
   const [editStartDate, setEditStartDate] = useState<string>("")
   const [editEndDate, setEditEndDate] = useState<string>("")
+  const [editDependOn, setEditDependOn] = useState<string>("none")
   const [saving, setSaving] = useState(false)
   const DAY_WIDTH = 36 // pixels per day
 
@@ -205,6 +209,7 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
     setEditingTaskId(task.id)
     setEditStartDate(task.startDate ? task.startDate.toISOString().split('T')[0] : "")
     setEditEndDate(task.endDate ? task.endDate.toISOString().split('T')[0] : "")
+    setEditDependOn(task.dependOn || "none")
   }
 
   const handleStartDateChange = (value: string) => {
@@ -220,11 +225,11 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
 
     setSaving(true)
     try {
-      // Send empty dates or null to backend to remove them
-      await onUpdateTask(editingTaskId, null as any, null as any)
+      await onUpdateTask(editingTaskId, null, null, null)
       setEditingTaskId(null)
       setEditStartDate("")
       setEditEndDate("")
+      setEditDependOn("none")
     } catch (error) {
       console.error("Failed to delete dates:", error)
     } finally {
@@ -258,14 +263,57 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
 
     setSaving(true)
     try {
-      await onUpdateTask(editingTaskId, start, end)
+      await onUpdateTask(editingTaskId, start, end, editDependOn === "none" ? null : editDependOn || null)
       setEditingTaskId(null)
+      setEditDependOn("none")
     } catch (error) {
       console.error("Failed to update task:", error)
     } finally {
       setSaving(false)
     }
   }
+
+  // Build row position map for SVG dependency arrows
+  const taskRowMap = useMemo(() => {
+    const ROW_H = 64, CAT_H = 24, SUB_H = 20
+    const map = new Map<string, { centerY: number; left: number; right: number }>()
+    let y = 0
+    groupedTasks.forEach(({ subcategories }) => {
+      y += CAT_H
+      subcategories.forEach(({ tasks: subTasks }) => {
+        y += SUB_H
+        subTasks.forEach((task) => {
+          let left = -1, right = -1
+          if (task.startDate && task.endDate) {
+            const offset = Math.floor((task.startDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+            const dur = task.duration + 1
+            left = offset * DAY_WIDTH
+            right = left + dur * DAY_WIDTH
+          }
+          map.set(task.id, { centerY: y + ROW_H / 2, left, right })
+          y += ROW_H
+        })
+      })
+    })
+    return map
+  }, [groupedTasks, startDate])
+
+  const totalTasksHeight = useMemo(() =>
+    groupedTasks.reduce((acc, { subcategories }) =>
+      acc + 24 + subcategories.reduce((s, { tasks: t }) => s + 20 + t.length * 64, 0), 0)
+  , [groupedTasks])
+
+  const dependencyArrows = useMemo(() =>
+    tasks
+      .filter(t => t.dependOn && taskRowMap.has(t.id) && taskRowMap.has(t.dependOn!))
+      .map(t => {
+        const from = taskRowMap.get(t.dependOn!)!
+        const to = taskRowMap.get(t.id)!
+        if (from.right < 0 || to.left < 0) return null
+        return { id: t.id, from, to }
+      })
+      .filter(Boolean) as { id: string; from: { centerY: number; left: number; right: number }; to: { centerY: number; left: number; right: number } }[]
+  , [tasks, taskRowMap])
 
   return (
     <div className="space-y-4">
@@ -325,6 +373,15 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
                             ) : (
                               <p className="text-[10px] text-muted-foreground mt-0.5">No dates set</p>
                             )}
+                            {task.dependOn && (() => {
+                              const dep = tasks.find(t => t.id === task.dependOn)
+                              return dep ? (
+                                <p className="text-[10px] text-amber-600 mt-0.5 leading-tight flex items-center gap-0.5">
+                                  <Link2 className="h-2.5 w-2.5 shrink-0" />
+                                  <span className="truncate">{dep.name}</span>
+                                </p>
+                              ) : null
+                            })()}
                           </div>
                         ))}
                       </div>
@@ -412,6 +469,24 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
                                           onChange={(e) => handleEndDateChange(e.target.value)}
                                         />
                                       </div>
+                                      <div className="space-y-2">
+                                        <Label>Depends On</Label>
+                                        <Select value={editDependOn} onValueChange={setEditDependOn}>
+                                          <SelectTrigger className="h-8 text-xs">
+                                            <SelectValue placeholder="No dependency" />
+                                          </SelectTrigger>
+                                          <SelectContent className="max-h-48">
+                                            <SelectItem value="none">— No dependency —</SelectItem>
+                                            {tasks
+                                              .filter(t => t.id !== editingTaskId)
+                                              .map(t => (
+                                                <SelectItem key={t.id} value={t.id}>
+                                                  <span className="text-xs line-clamp-1">{t.name}</span>
+                                                </SelectItem>
+                                              ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
                                     </div>
                                     <div className="flex gap-2">
                                       <Button
@@ -489,7 +564,7 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
               </div>
 
               {/* Timeline Task Bars */}
-              <div>
+              <div className="relative">
                 {groupedTasks.map(({ category, subcategories }) => (
                   <div key={category} className="border-b last:border-b-0">
                     {/* Category Header Spacer */}
@@ -572,6 +647,49 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
                     ))}
                   </div>
                 ))}
+
+                {/* SVG dependency arrows overlay */}
+                {dependencyArrows.length > 0 && (
+                  <svg
+                    className="absolute top-0 left-0 pointer-events-none z-20"
+                    width={totalDays * DAY_WIDTH}
+                    height={totalTasksHeight}
+                    style={{ overflow: "visible" }}
+                  >
+                    <defs>
+                      <marker id="dep-arrow" markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto">
+                        <path d="M0,0 L7,3 L0,6 Z" fill="#64748b" />
+                      </marker>
+                    </defs>
+                    {dependencyArrows.map(({ id, from, to }) => {
+                      const x1 = from.right
+                      const y1 = from.centerY
+                      const x2 = to.left
+                      const y2 = to.centerY
+                      let d: string
+                      if (x2 > x1 + 5) {
+                        // Forward: simple L-elbow
+                        const mid = x1 + (x2 - x1) / 2
+                        d = `M ${x1},${y1} H ${mid} V ${y2} H ${x2}`
+                      } else {
+                        // Backward / same column: route around
+                        const bypass = Math.max(x1, x2) + 20
+                        d = `M ${x1},${y1} H ${bypass} V ${y2} H ${x2}`
+                      }
+                      return (
+                        <path
+                          key={id}
+                          d={d}
+                          fill="none"
+                          stroke="#64748b"
+                          strokeWidth="1.5"
+                          strokeDasharray="5 3"
+                          markerEnd="url(#dep-arrow)"
+                        />
+                      )
+                    })}
+                  </svg>
+                )}
               </div>
             </div>
           </div>

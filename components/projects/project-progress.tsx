@@ -124,11 +124,13 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
       boq.preliminary.forEach((item: any, index: number) => {
         tasks.push({
           id: `preliminary-${index}`,
+          mongoId: item._id || "",
           name: item.name,
           category: "Preliminary",
           startDate: item.startDate ? new Date(item.startDate) : null,
           endDate: item.endDate ? new Date(item.endDate) : null,
           duration: item.startDate && item.endDate ? calculateDuration(item.startDate, item.endDate) : 0,
+          dependOn: item.dependOn || null, // temporarily MongoDB ObjectId, resolved below
         })
       })
     }
@@ -139,11 +141,13 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
           category.products.forEach((product: any, index: number) => {
             tasks.push({
               id: `fitting-${category.name}-${index}`,
+              mongoId: product._id || "",
               name: product.name,
               category: `Fitting Out - ${category.name}`,
               startDate: product.startDate ? new Date(product.startDate) : null,
               endDate: product.endDate ? new Date(product.endDate) : null,
               duration: product.startDate && product.endDate ? calculateDuration(product.startDate, product.endDate) : 0,
+              dependOn: product.dependOn || null,
             })
           })
         }
@@ -156,11 +160,13 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
           category.products.forEach((product: any, index: number) => {
             tasks.push({
               id: `furniture-${category.name}-${index}`,
+              mongoId: product._id || "",
               name: product.name,
               category: `Furniture Work - ${category.name}`,
               startDate: product.startDate ? new Date(product.startDate) : null,
               endDate: product.endDate ? new Date(product.endDate) : null,
               duration: product.startDate && product.endDate ? calculateDuration(product.startDate, product.endDate) : 0,
+              dependOn: product.dependOn || null,
             })
           })
         }
@@ -173,16 +179,31 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
           category.products.forEach((product: any, index: number) => {
             tasks.push({
               id: `mechanical-${category.name}-${index}`,
+              mongoId: product._id || "",
               name: product.name,
               category: `mechanicalElectrical - ${category.name}`,
               startDate: product.startDate ? new Date(product.startDate) : null,
               endDate: product.endDate ? new Date(product.endDate) : null,
               duration: product.startDate && product.endDate ? calculateDuration(product.startDate, product.endDate) : 0,
+              dependOn: product.dependOn || null,
             })
           })
         }
       })
     }
+
+    // Build a reverse map: MongoDB ObjectId → Gantt task ID
+    // so that dependOn (stored as MongoDB ObjectId in the API) can be resolved
+    // to the local Gantt task ID used throughout the UI
+    const mongoIdToGanttId = new Map<string, string>()
+    tasks.forEach((t) => {
+      if (t.mongoId) mongoIdToGanttId.set(t.mongoId, t.id)
+    })
+    tasks.forEach((t) => {
+      if (t.dependOn) {
+        t.dependOn = mongoIdToGanttId.get(t.dependOn) ?? null
+      }
+    })
 
     setGanttTasks(tasks)
   }
@@ -430,7 +451,7 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
     }
   }
 
-  const handleUpdateGanttTask = async (taskId: string, startDate: Date | null, endDate: Date | null) => {
+  const handleUpdateGanttTask = async (taskId: string, startDate: Date | null, endDate: Date | null, dependOn?: string | null) => {
     if (!mainBOQ) return
 
     try {
@@ -454,85 +475,87 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
         mechanicalElectrical: [],
       }
 
+      // Build a map from Gantt task ID → MongoDB ObjectId for dependOn resolution
+      const ganttIdToMongoId = new Map<string, string>()
+      ganttTasks.forEach((t: any) => {
+        if (t.mongoId) ganttIdToMongoId.set(t.id, t.mongoId)
+      })
+
+      const resolveMongoId = (ganttId: string | null | undefined): string | undefined => {
+        if (!ganttId) return undefined
+        return ganttIdToMongoId.get(ganttId) || undefined
+      }
+
+      const buildItemPayload = (item: any) => {
+        const payload: any = {}
+        if (item.startDate) payload.startDate = formatDateForAPI(new Date(item.startDate))
+        if (item.endDate) payload.endDate = formatDateForAPI(new Date(item.endDate))
+        // item.dependOn from mainBOQ is already a MongoDB ObjectId — pass through directly
+        if (item.dependOn) payload.dependOn = item.dependOn
+        return payload
+      }
+
       if (Array.isArray(mainBOQ.preliminary)) {
-        updatePayload.preliminary = mainBOQ.preliminary.map((item: any) => ({
-          name: item.name,
-          startDate: item.startDate ? formatDateForAPI(new Date(item.startDate)) : undefined,
-          endDate: item.endDate ? formatDateForAPI(new Date(item.endDate)) : undefined,
-        }))
+        updatePayload.preliminary = mainBOQ.preliminary.map((item: any) => buildItemPayload(item))
       }
 
       if (Array.isArray(mainBOQ.fittingOut)) {
         updatePayload.fittingOut = mainBOQ.fittingOut.map((category: any) => ({
-          name: category.name,
-          products: (category.products || []).map((product: any) => ({
-            name: product.name,
-            startDate: product.startDate ? formatDateForAPI(new Date(product.startDate)) : undefined,
-            endDate: product.endDate ? formatDateForAPI(new Date(product.endDate)) : undefined,
-          })),
+          products: (category.products || []).map((product: any) => buildItemPayload(product)),
         }))
       }
 
       if (Array.isArray(mainBOQ.furnitureWork)) {
         updatePayload.furnitureWork = mainBOQ.furnitureWork.map((category: any) => ({
-          name: category.name,
-          products: (category.products || []).map((product: any) => ({
-            name: product.name,
-            startDate: product.startDate ? formatDateForAPI(new Date(product.startDate)) : undefined,
-            endDate: product.endDate ? formatDateForAPI(new Date(product.endDate)) : undefined,
-          })),
+          products: (category.products || []).map((product: any) => buildItemPayload(product)),
         }))
       }
 
       if (Array.isArray(mainBOQ.mechanicalElectrical)) {
         updatePayload.mechanicalElectrical = mainBOQ.mechanicalElectrical.map((category: any) => ({
-          name: category.name,
-          products: (category.products || []).map((product: any) => ({
-            name: product.name,
-            startDate: product.startDate ? formatDateForAPI(new Date(product.startDate)) : undefined,
-            endDate: product.endDate ? formatDateForAPI(new Date(product.endDate)) : undefined,
-          })),
+          products: (category.products || []).map((product: any) => buildItemPayload(product)),
         }))
+      }
+
+      const applyTaskUpdate = (item: any, sDate: Date | null, eDate: Date | null, dep?: string | null) => {
+        if (sDate) item.startDate = formatDateForAPI(sDate)
+        else delete item.startDate
+        if (eDate) item.endDate = formatDateForAPI(eDate)
+        else delete item.endDate
+        // dep is a Gantt task ID — resolve to MongoDB ObjectId before sending
+        const resolvedDep = resolveMongoId(dep)
+        if (resolvedDep) item.dependOn = resolvedDep
+        else delete item.dependOn
       }
 
       if (taskId.startsWith("preliminary-")) {
         const index = Number.parseInt(taskId.split("-")[1])
-        if (updatePayload.preliminary[index]) {
-          updatePayload.preliminary[index].startDate = formatDateForAPI(startDate)
-          updatePayload.preliminary[index].endDate = formatDateForAPI(endDate)
+        if (updatePayload.preliminary[index] !== undefined) {
+          applyTaskUpdate(updatePayload.preliminary[index], startDate, endDate, dependOn)
         }
       } else if (taskId.startsWith("fitting-")) {
-        // Parse category and index from taskId
         const parts = taskId.split("-")
         const categoryName = parts.slice(1, -1).join("-")
         const index = Number.parseInt(parts[parts.length - 1])
-
-        const categoryIndex = updatePayload.fittingOut.findIndex((cat: any) => cat.name === categoryName)
-        if (categoryIndex !== -1 && updatePayload.fittingOut[categoryIndex].products[index]) {
-          updatePayload.fittingOut[categoryIndex].products[index].startDate = formatDateForAPI(startDate)
-          updatePayload.fittingOut[categoryIndex].products[index].endDate = formatDateForAPI(endDate)
+        const categoryIndex = (mainBOQ.fittingOut || []).findIndex((cat: any) => cat.name === categoryName)
+        if (categoryIndex !== -1 && updatePayload.fittingOut[categoryIndex]?.products[index] !== undefined) {
+          applyTaskUpdate(updatePayload.fittingOut[categoryIndex].products[index], startDate, endDate, dependOn)
         }
       } else if (taskId.startsWith("furniture-")) {
-        // Parse category and index from taskId
         const parts = taskId.split("-")
         const categoryName = parts.slice(1, -1).join("-")
         const index = Number.parseInt(parts[parts.length - 1])
-
-        const categoryIndex = updatePayload.furnitureWork.findIndex((cat: any) => cat.name === categoryName)
-        if (categoryIndex !== -1 && updatePayload.furnitureWork[categoryIndex].products[index]) {
-          updatePayload.furnitureWork[categoryIndex].products[index].startDate = formatDateForAPI(startDate)
-          updatePayload.furnitureWork[categoryIndex].products[index].endDate = formatDateForAPI(endDate)
+        const categoryIndex = (mainBOQ.furnitureWork || []).findIndex((cat: any) => cat.name === categoryName)
+        if (categoryIndex !== -1 && updatePayload.furnitureWork[categoryIndex]?.products[index] !== undefined) {
+          applyTaskUpdate(updatePayload.furnitureWork[categoryIndex].products[index], startDate, endDate, dependOn)
         }
       } else if (taskId.startsWith("mechanical-")) {
-        // Parse category and index from taskId
         const parts = taskId.split("-")
         const categoryName = parts.slice(1, -1).join("-")
         const index = Number.parseInt(parts[parts.length - 1])
-
-        const categoryIndex = updatePayload.mechanicalElectrical.findIndex((cat: any) => cat.name === categoryName)
-        if (categoryIndex !== -1 && updatePayload.mechanicalElectrical[categoryIndex].products[index]) {
-          updatePayload.mechanicalElectrical[categoryIndex].products[index].startDate = formatDateForAPI(startDate)
-          updatePayload.mechanicalElectrical[categoryIndex].products[index].endDate = formatDateForAPI(endDate)
+        const categoryIndex = (mainBOQ.mechanicalElectrical || []).findIndex((cat: any) => cat.name === categoryName)
+        if (categoryIndex !== -1 && updatePayload.mechanicalElectrical[categoryIndex]?.products[index] !== undefined) {
+          applyTaskUpdate(updatePayload.mechanicalElectrical[categoryIndex].products[index], startDate, endDate, dependOn)
         }
       }
 

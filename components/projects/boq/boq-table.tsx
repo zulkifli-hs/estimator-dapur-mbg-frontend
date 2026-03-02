@@ -1,14 +1,30 @@
 "use client"
 
-import React from "react"
+import React, { useState } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Loader2, Save, Pencil, X } from "lucide-react"
 import { cn } from "@/lib/utils"
+
+interface DiscountTaxData {
+  discount: string
+  discountType: "%" | "0"
+  tax: string
+  taxType: "%" | "0"
+  saving: boolean
+}
 
 interface BoqTableProps {
   boq: any
   formatCurrency: (value: number) => string
   showNote?: boolean
+  discountTaxData?: DiscountTaxData
+  onDiscountTaxChange?: (patch: Partial<Omit<DiscountTaxData, "saving">>) => void
+  onSaveDiscountTax?: () => void
 }
 
 // Sort: positive/zero qty first, negative qty last
@@ -26,7 +42,15 @@ const subtotalColor = (value: number) => {
   return ""
 }
 
-export function BoqTable({ boq, formatCurrency, showNote = false }: BoqTableProps) {
+export function BoqTable({
+  boq,
+  formatCurrency,
+  showNote = false,
+  discountTaxData,
+  onDiscountTaxChange,
+  onSaveDiscountTax,
+}: BoqTableProps) {
+  const [showForm, setShowForm] = useState(false)
   let itemNumber = 1
 
   const preliminarySubtotal = Array.isArray(boq.preliminary)
@@ -352,52 +376,188 @@ export function BoqTable({ boq, formatCurrency, showNote = false }: BoqTableProp
       </Table>
     </div>
 
-    {hasData && (
-      <Card className="border-2 border-primary bg-primary/5">
-        <CardContent>
-          <div className="flex justify-between items-center">
-            <span className="text-xl font-bold">GRAND TOTAL</span>
-            <span className={cn("text-3xl font-bold text-primary", subtotalColor(grandTotal))}>
-              {formatCurrency(grandTotal)}
-            </span>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t">
-            {Array.isArray(boq.preliminary) && boq.preliminary.length > 0 && (
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Preliminary</p>
-                <p className={cn("font-semibold", subtotalColor(preliminarySubtotal))}>
-                  {formatCurrency(preliminarySubtotal)}
-                </p>
+    {hasData && (() => {
+      // ── Discount / Tax calculation ──
+      const discountVal = parseFloat(discountTaxData?.discount || "0") || 0
+      const discountType = discountTaxData?.discountType ?? "%"
+      const taxVal = parseFloat(discountTaxData?.tax || "0") || 0
+      const taxType = discountTaxData?.taxType ?? "%"
+      const discountAmt =
+        discountType === "%" ? (grandTotal * discountVal) / 100 : discountVal
+      const afterDiscount = grandTotal - discountAmt
+      const taxAmt =
+        taxType === "%" ? (afterDiscount * taxVal) / 100 : taxVal
+      const finalTotal = afterDiscount + taxAmt
+      const hasDiscountOrTax = discountVal > 0 || taxVal > 0
+
+      return (
+        <Card className="border-2 border-primary bg-primary/5">
+          <CardContent className="pt-6">
+            {/* ── Section subtotals ── */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-4 border-b">
+              {Array.isArray(boq.preliminary) && boq.preliminary.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Preliminary</p>
+                  <p className={cn("font-semibold", subtotalColor(preliminarySubtotal))}>
+                    {formatCurrency(preliminarySubtotal)}
+                  </p>
+                </div>
+              )}
+              {Array.isArray(boq.fittingOut) && boq.fittingOut.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Fitting Out</p>
+                  <p className={cn("font-semibold", subtotalColor(fittingOutSubtotal))}>
+                    {formatCurrency(fittingOutSubtotal)}
+                  </p>
+                </div>
+              )}
+              {Array.isArray(boq.furnitureWork) && boq.furnitureWork.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Furniture Work</p>
+                  <p className={cn("font-semibold", subtotalColor(furnitureWorkSubtotal))}>
+                    {formatCurrency(furnitureWorkSubtotal)}
+                  </p>
+                </div>
+              )}
+              {Array.isArray(boq.mechanicalElectrical) && boq.mechanicalElectrical.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">MEP</p>
+                  <p className={cn("font-semibold", subtotalColor(mepSubtotal))}>
+                    {formatCurrency(mepSubtotal)}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* ── Grand total row ── */}
+            <div className="mt-4 space-y-2">
+              <div className="flex justify-between items-center text-sm text-muted-foreground">
+                <span>Subtotal</span>
+                <span className={cn("font-medium", subtotalColor(grandTotal))}>{formatCurrency(grandTotal)}</span>
+              </div>
+
+              {hasDiscountOrTax && discountVal > 0 && (
+                <div className="flex justify-between items-center text-sm text-muted-foreground">
+                  <span>Discount{discountType === "%" ? ` (${discountVal}%)` : " (flat)"}</span>
+                  <span className="font-medium text-red-500">-{formatCurrency(discountAmt)}</span>
+                </div>
+              )}
+              {hasDiscountOrTax && discountVal > 0 && (
+                <div className="flex justify-between items-center text-sm text-muted-foreground">
+                  <span>After Discount</span>
+                  <span className="font-medium">{formatCurrency(afterDiscount)}</span>
+                </div>
+              )}
+              {hasDiscountOrTax && taxVal > 0 && (
+                <div className="flex justify-between items-center text-sm text-muted-foreground">
+                  <span>Tax (PPN){taxType === "%" ? ` (${taxVal}%)` : " (flat)"}</span>
+                  <span className="font-medium text-amber-600">+{formatCurrency(taxAmt)}</span>
+                </div>
+              )}
+
+              <div className="flex justify-between items-center pt-2 border-t">
+                <span className="text-xl font-bold">{hasDiscountOrTax ? "TOTAL PRICE" : "GRAND TOTAL"}</span>
+                <span className={cn("text-3xl font-bold text-primary", subtotalColor(hasDiscountOrTax ? finalTotal : grandTotal))}>
+                  {formatCurrency(hasDiscountOrTax ? finalTotal : grandTotal)}
+                </span>
+              </div>
+            </div>
+
+            {/* ── Discount & Tax toggle form ── */}
+            {discountTaxData && onDiscountTaxChange && onSaveDiscountTax && (
+              <div className="mt-4 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowForm((v) => !v)}
+                  className="text-xs"
+                >
+                  {showForm ? (
+                    <><X className="h-3 w-3 mr-1" />Cancel</>
+                  ) : (
+                    <><Pencil className="h-3 w-3 mr-1" />{hasDiscountOrTax ? "Edit Discount & Tax" : "Add Discount & Tax"}</>
+                  )}
+                </Button>
+
+                {showForm && (
+                  <div className="mt-3 space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {/* Discount */}
+                      <div className="space-y-1">
+                        <Label className="text-xs">Discount</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            type="number"
+                            min={0}
+                            placeholder="0"
+                            value={discountTaxData.discount}
+                            onChange={(e) => onDiscountTaxChange({ discount: e.target.value })}
+                            className="flex-1 h-8 text-sm"
+                          />
+                          <Select
+                            value={discountTaxData.discountType}
+                            onValueChange={(v: "%" | "0") => onDiscountTaxChange({ discountType: v })}
+                          >
+                            <SelectTrigger className="w-20 h-8 text-sm">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="%">%</SelectItem>
+                              <SelectItem value="0">Flat</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      {/* Tax */}
+                      <div className="space-y-1">
+                        <Label className="text-xs">Tax (PPN)</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            type="number"
+                            min={0}
+                            placeholder="0"
+                            value={discountTaxData.tax}
+                            onChange={(e) => onDiscountTaxChange({ tax: e.target.value })}
+                            className="flex-1 h-8 text-sm"
+                          />
+                          <Select
+                            value={discountTaxData.taxType}
+                            onValueChange={(v: "%" | "0") => onDiscountTaxChange({ taxType: v })}
+                          >
+                            <SelectTrigger className="w-20 h-8 text-sm">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="%">%</SelectItem>
+                              <SelectItem value="0">Flat</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        onSaveDiscountTax()
+                        setShowForm(false)
+                      }}
+                      disabled={discountTaxData.saving}
+                    >
+                      {discountTaxData.saving ? (
+                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      ) : (
+                        <Save className="h-3 w-3 mr-1" />
+                      )}
+                      Save
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
-            {Array.isArray(boq.fittingOut) && boq.fittingOut.length > 0 && (
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Fitting Out</p>
-                <p className={cn("font-semibold", subtotalColor(fittingOutSubtotal))}>
-                  {formatCurrency(fittingOutSubtotal)}
-                </p>
-              </div>
-            )}
-            {Array.isArray(boq.furnitureWork) && boq.furnitureWork.length > 0 && (
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Furniture Work</p>
-                <p className={cn("font-semibold", subtotalColor(furnitureWorkSubtotal))}>
-                  {formatCurrency(furnitureWorkSubtotal)}
-                </p>
-              </div>
-            )}
-            {Array.isArray(boq.mechanicalElectrical) && boq.mechanicalElectrical.length > 0 && (
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">MEP</p>
-                <p className={cn("font-semibold", subtotalColor(mepSubtotal))}>
-                  {formatCurrency(mepSubtotal)}
-                </p>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    )}
+          </CardContent>
+        </Card>
+      )
+    })()}
     </div>
   )
 }

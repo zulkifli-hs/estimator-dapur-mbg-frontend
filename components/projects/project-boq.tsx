@@ -112,6 +112,16 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     progress: 0,
   })
 
+  const [discountTaxState, setDiscountTaxState] = useState<{
+    [boqId: string]: {
+      discount: string
+      discountType: "%" | "0"
+      tax: string
+      taxType: "%" | "0"
+      saving: boolean
+    }
+  }>({})
+
   const [saveAsTemplateOpen, setSaveAsTemplateOpen] = useState(false)
   const [templateName, setTemplateName] = useState("")
   const [replaceTemplateOpen, setReplaceTemplateOpen] = useState(false)
@@ -962,6 +972,55 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     }
   }
 
+  // Initialize discountTaxState whenever boqItems changes (e.g. after fetchBOQ)
+  useEffect(() => {
+    setDiscountTaxState((prev) => {
+      const next: {
+        [boqId: string]: {
+          discount: string
+          discountType: "%" | "0"
+          tax: string
+          taxType: "%" | "0"
+          saving: boolean
+        }
+      } = {}
+      boqItems.forEach((boq) => {
+        next[boq._id] = {
+          discount: String(boq.discount ?? prev[boq._id]?.discount ?? ""),
+          discountType: ((boq.discountType as "%" | "0") ?? prev[boq._id]?.discountType ?? "%"),
+          tax: String(boq.tax ?? prev[boq._id]?.tax ?? ""),
+          taxType: ((boq.taxType as "%" | "0") ?? prev[boq._id]?.taxType ?? "%"),
+          saving: prev[boq._id]?.saving ?? false,
+        }
+      })
+      return next
+    })
+  }, [boqItems])
+
+  const handleSaveDiscountTax = async (boqId: string) => {
+    const dtState = discountTaxState[boqId]
+    if (!dtState) return
+    setDiscountTaxState((prev) => ({ ...prev, [boqId]: { ...prev[boqId], saving: true } }))
+    try {
+      await boqApi.updateDiscountTax(projectId, boqId, {
+        discount: parseFloat(dtState.discount) || 0,
+        discountType: dtState.discountType,
+        tax: parseFloat(dtState.tax) || 0,
+        taxType: dtState.taxType,
+      })
+      toast({ title: "Saved", description: "Discount & tax updated successfully." })
+      fetchBOQ()
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save discount & tax.",
+        variant: "destructive",
+      })
+    } finally {
+      setDiscountTaxState((prev) => ({ ...prev, [boqId]: { ...prev[boqId], saving: false } }))
+    }
+  }
+
   const handleSaveAsTemplate = async () => {
     if (!templateName.trim() || (!mainBOQ && !templateEditingBOQ)) {
       toast({
@@ -1539,51 +1598,69 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Total Budget</CardTitle>
+        {/* AS PER CONTRACT — Main BOQ */}
+        <Card className="border-blue-200 bg-blue-50/50 dark:bg-blue-950/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-400">AS PER CONTRACT</CardTitle>
+            <CardDescription className="text-xs">Main BOQ Budget</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{formatCurrency(summary.totalBudget)}</p>
-            <div className="mt-3 space-y-2 text-xs">
-              <div className="flex justify-between text-muted-foreground">
-                <span>Main BOQ:</span>
-                <span className="font-medium text-foreground">{formatCurrency(summary.mainBudget)}</span>
-              </div>
-              {summary.additionalBudget > 0 && (
-                <div className="flex justify-between text-muted-foreground">
-                  <span>Additional BOQ(s):</span>
-                  <span className="font-medium text-foreground">{formatCurrency(summary.additionalBudget)}</span>
-                </div>
+            <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{formatCurrency(summary.mainBudget)}</p>
+            <div className="mt-2 flex items-center gap-2">
+              {mainBOQ ? (
+                getStatusBadge(mainBOQ.status)
+              ) : (
+                <Badge variant="outline" className="text-muted-foreground">Not Created</Badge>
               )}
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Total BOQs</CardTitle>
+        {/* ADDITIONAL / DEDUCTION */}
+        <Card className="border-amber-200 bg-amber-50/50 dark:bg-amber-950/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-amber-700 dark:text-amber-400">ADDITIONAL / DEDUCTION</CardTitle>
+            <CardDescription className="text-xs">{additionalBOQs.length} Additional BOQ(s)</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{boqItems.length}</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              {mainBOQ ? "1 Main" : "0 Main"} + {additionalBOQs.length} Additional
+            <p className={`text-2xl font-bold ${
+              summary.additionalBudget >= 0
+                ? "text-amber-700 dark:text-amber-300"
+                : "text-red-600 dark:text-red-400"
+            }`}>
+              {summary.additionalBudget >= 0 ? "+" : ""}{formatCurrency(summary.additionalBudget)}
             </p>
+            {additionalBOQs.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {additionalBOQs.map((boq) => {
+                  const boqTotal = calculateBOQBudget(boq)
+                  return (
+                    <div key={boq._id} className="flex justify-between text-xs text-muted-foreground">
+                      <span>BOQ #{boq.number}</span>
+                      <span className={`font-medium ${
+                        boqTotal < 0 ? "text-red-500" : "text-foreground"
+                      }`}>
+                        {boqTotal >= 0 ? "+" : ""}{formatCurrency(boqTotal)}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Main BOQ Status</CardTitle>
+        {/* NET TOTAL */}
+        <Card className="border-emerald-200 bg-emerald-50/50 dark:bg-emerald-950/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-emerald-700 dark:text-emerald-400">NET TOTAL</CardTitle>
+            <CardDescription className="text-xs">As Per Contract + Additional</CardDescription>
           </CardHeader>
           <CardContent>
-            {mainBOQ ? (
-              getStatusBadge(mainBOQ.status)
-            ) : (
-              <Badge variant="outline" className="text-muted-foreground">
-                Not Created
-              </Badge>
-            )}
+            <p className="text-2xl font-bold text-emerald-900 dark:text-emerald-100">{formatCurrency(summary.totalBudget)}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {mainBOQ ? "1 Main" : "0 Main"} + {additionalBOQs.length} Additional
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -1663,7 +1740,18 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                 </div>
               </CardHeader>
               <CardContent>
-                <BoqTable boq={mainBOQ} formatCurrency={formatCurrency} />
+                <BoqTable
+                  boq={mainBOQ}
+                  formatCurrency={formatCurrency}
+                  discountTaxData={discountTaxState[mainBOQ._id]}
+                  onDiscountTaxChange={(patch) =>
+                    setDiscountTaxState((prev) => ({
+                      ...prev,
+                      [mainBOQ._id]: { ...prev[mainBOQ._id], ...patch },
+                    }))
+                  }
+                  onSaveDiscountTax={() => handleSaveDiscountTax(mainBOQ._id)}
+                />
               </CardContent>
             </Card>
           )}
@@ -1746,7 +1834,19 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <BoqTable boq={boq} formatCurrency={formatCurrency} showNote />
+                  <BoqTable
+                    boq={boq}
+                    formatCurrency={formatCurrency}
+                    showNote
+                    discountTaxData={discountTaxState[boq._id]}
+                    onDiscountTaxChange={(patch) =>
+                      setDiscountTaxState((prev) => ({
+                        ...prev,
+                        [boq._id]: { ...prev[boq._id], ...patch },
+                      }))
+                    }
+                    onSaveDiscountTax={() => handleSaveDiscountTax(boq._id)}
+                  />
                 </CardContent>
               </Card>
             ))

@@ -243,7 +243,7 @@ function RecapTableHeader() {
           colSpan={3}
           className="px-3 text-center bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-xs font-bold uppercase tracking-wide"
         >
-          Net Result
+          ACTUAL
         </TableHead>
       </TableRow>
       <TableRow>
@@ -370,6 +370,20 @@ function SubtotalRow({
   )
 }
 
+// ─── Discount / Tax helper ────────────────────────────────────────────────────
+
+function applyDiscountTax(subtotal: number, boq: any) {
+  const discount = Number(boq?.discount ?? 0)
+  const discountType: "%" | "0" = boq?.discountType ?? "%"
+  const tax = Number(boq?.tax ?? 0)
+  const taxType: "%" | "0" = boq?.taxType ?? "%"
+  const discountAmt = discountType === "%" ? (subtotal * discount) / 100 : discount
+  const afterDiscount = subtotal - discountAmt
+  const taxAmt = taxType === "%" ? (afterDiscount * tax) / 100 : tax
+  const final = afterDiscount + taxAmt
+  return { discount, discountType, discountAmt, afterDiscount, tax, taxType, taxAmt, final, hasAdjustment: discount > 0 || tax > 0 }
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function BoqRecap({ mainBOQ, additionalBOQs, formatCurrency }: BoqRecapProps) {
@@ -388,6 +402,22 @@ export function BoqRecap({ mainBOQ, additionalBOQs, formatCurrency }: BoqRecapPr
     add: prelTotals.add + foTotals.add + fwTotals.add + mepTotals.add,
     net: prelTotals.net + foTotals.net + fwTotals.net + mepTotals.net,
   }
+
+  // ── Discount / Tax per BOQ ──
+  const mainDT = applyDiscountTax(grandTotals.main, mainBOQ)
+
+  // Each additional BOQ subtotal = sum of its own items
+  const additionalDTs = additionalBOQs.map((boq) => {
+    const sub =
+      (Array.isArray(boq.preliminary) ? boq.preliminary.reduce((s: number, i: any) => s + (i.qty || 0) * (i.price || 0), 0) : 0) +
+      (Array.isArray(boq.fittingOut) ? boq.fittingOut.reduce((s: number, c: any) => s + (Array.isArray(c.products) ? c.products.reduce((ps: number, p: any) => ps + (p.qty || 0) * (p.price || 0), 0) : 0), 0) : 0) +
+      (Array.isArray(boq.furnitureWork) ? boq.furnitureWork.reduce((s: number, c: any) => s + (Array.isArray(c.products) ? c.products.reduce((ps: number, p: any) => ps + (p.qty || 0) * (p.price || 0), 0) : 0), 0) : 0) +
+      (Array.isArray(boq.mechanicalElectrical) ? boq.mechanicalElectrical.reduce((s: number, c: any) => s + (Array.isArray(c.products) ? c.products.reduce((ps: number, p: any) => ps + (p.qty || 0) * (p.price || 0), 0) : 0), 0) : 0)
+    return { boq, sub, ...applyDiscountTax(sub, boq) }
+  })
+
+  const addFinalTotal = additionalDTs.reduce((s, dt) => s + dt.final, 0)
+  const anyDTApplied = mainDT.hasAdjustment || additionalDTs.some((dt) => dt.hasAdjustment)
 
   // Sequential item numbering across all sections
   let itemNo = 1
@@ -509,6 +539,7 @@ export function BoqRecap({ mainBOQ, additionalBOQs, formatCurrency }: BoqRecapPr
       {/* ── GRAND TOTAL SUMMARY ── */}
       <Card className="border-2 border-primary bg-primary/5">
         <CardContent className="pt-6">
+          {/* Raw subtotals */}
           <div className="grid grid-cols-3 gap-6 text-center">
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">As Per Contract</p>
@@ -528,7 +559,7 @@ export function BoqRecap({ mainBOQ, additionalBOQs, formatCurrency }: BoqRecapPr
               </p>
             </div>
             <div className="space-y-1">
-              <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">Net Total</p>
+              <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">Actual Total</p>
               <p className={cn("text-2xl font-bold", grandTotals.net < 0 ? "text-red-600 dark:text-red-400" : "text-primary")}>{formatCurrency(grandTotals.net)}</p>
             </div>
           </div>
@@ -560,6 +591,87 @@ export function BoqRecap({ mainBOQ, additionalBOQs, formatCurrency }: BoqRecapPr
               </div>
             )}
           </div>
+
+          {/* Discount & Tax applied breakdown — only shown if any BOQ has discount/tax */}
+          {anyDTApplied && (
+            <div className="mt-6 pt-6 border-t space-y-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">After Discount &amp; Tax</p>
+
+              {/* Main BOQ row */}
+              {mainDT.hasAdjustment && (
+                <div className="rounded-md border bg-blue-50/50 dark:bg-blue-950/20 p-3 space-y-1 text-sm">
+                  <p className="font-semibold text-xs uppercase text-blue-700 dark:text-blue-400">Main BOQ (As Per Contract)</p>
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Subtotal</span>
+                    <span>{formatCurrency(grandTotals.main)}</span>
+                  </div>
+                  {mainDT.discount > 0 && (
+                    <>
+                      <div className="flex justify-between text-muted-foreground">
+                        <span>Discount{mainDT.discountType === "%" ? ` (${mainDT.discount}%)` : " (flat)"}</span>
+                        <span className="text-red-500">-{formatCurrency(mainDT.discountAmt)}</span>
+                      </div>
+                      <div className="flex justify-between text-muted-foreground">
+                        <span>After Discount</span>
+                        <span>{formatCurrency(mainDT.afterDiscount)}</span>
+                      </div>
+                    </>
+                  )}
+                  {mainDT.tax > 0 && (
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Tax (PPN){mainDT.taxType === "%" ? ` (${mainDT.tax}%)` : " (flat)"}</span>
+                      <span className="text-amber-600">+{formatCurrency(mainDT.taxAmt)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between font-semibold pt-1 border-t">
+                    <span>Total</span>
+                    <span className="text-blue-700 dark:text-blue-400">{formatCurrency(mainDT.final)}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Additional BOQs rows */}
+              {additionalDTs.filter((dt) => dt.hasAdjustment).map((dt) => (
+                <div key={dt.boq._id} className="rounded-md border bg-amber-50/50 dark:bg-amber-950/20 p-3 space-y-1 text-sm">
+                  <p className="font-semibold text-xs uppercase text-amber-700 dark:text-amber-400">Additional BOQ #{dt.boq.number}</p>
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Subtotal</span>
+                    <span>{formatCurrency(dt.sub)}</span>
+                  </div>
+                  {dt.discount > 0 && (
+                    <>
+                      <div className="flex justify-between text-muted-foreground">
+                        <span>Discount{dt.discountType === "%" ? ` (${dt.discount}%)` : " (flat)"}</span>
+                        <span className="text-red-500">-{formatCurrency(dt.discountAmt)}</span>
+                      </div>
+                      <div className="flex justify-between text-muted-foreground">
+                        <span>After Discount</span>
+                        <span>{formatCurrency(dt.afterDiscount)}</span>
+                      </div>
+                    </>
+                  )}
+                  {dt.tax > 0 && (
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Tax (PPN){dt.taxType === "%" ? ` (${dt.tax}%)` : " (flat)"}</span>
+                      <span className="text-amber-600">+{formatCurrency(dt.taxAmt)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between font-semibold pt-1 border-t">
+                    <span>Total</span>
+                    <span className="text-amber-700 dark:text-amber-400">{formatCurrency(dt.final)}</span>
+                  </div>
+                </div>
+              ))}
+
+              {/* FINAL NET */}
+              <div className="flex justify-between items-center rounded-md border-2 border-primary bg-primary/5 p-4">
+                <span className="font-bold text-lg">TOTAL PRICE (After Discount &amp; Tax)</span>
+                <span className={cn("text-2xl font-bold", (mainDT.final + addFinalTotal) < 0 ? "text-red-600 dark:text-red-400" : "text-primary")}>
+                  {formatCurrency(mainDT.final + addFinalTotal)}
+                </span>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

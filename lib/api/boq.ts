@@ -214,6 +214,23 @@ export const updateGanttChart = async (
   })
 }
 
+// Update discount and tax for a BOQ
+export const updateDiscountTax = async (
+  projectId: string,
+  boqId: string,
+  data: {
+    discount: number
+    discountType: "%" | "0"
+    tax: number
+    taxType: "%" | "0"
+  },
+): Promise<any> => {
+  return apiRequest<any>(`/projects/${projectId}/boq/${boqId}/discount-tax`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  })
+}
+
 // Request BOQ approval
 export const requestBOQApproval = async (projectId: string, boqId: string, data?: { email: string }): Promise<void> => {
   await apiRequest<void>(`/projects/${projectId}/boq/${boqId}/request`, {
@@ -414,5 +431,13 @@ export const boqApi = {
       console.error("Token verification error:", error)
       return { success: false, data: null }
     }
+  },
+  updateDiscountTax: async (
+    projectId: string,
+    boqId: string,
+    data: { discount: number; discountType: "%" | "0"; tax: number; taxType: "%" | "0" },
+  ) => {
+    const result = await updateDiscountTax(projectId, boqId, data)
+    return { success: true, data: result }
   },
 }

@@ -46,14 +46,14 @@ interface BoqRecapProps {
 
 /**
  * Build canonical merge key for an item.
- * Rule: name + _id must BOTH match for same item.
- * Fallback: if _id is absent, use normalised name only.
+ * Rule: productId + name must BOTH match for same item.
+ * Fallback: if productId is absent, use normalised name only.
  */
 function itemKey(item: any): string {
-  const id = (item?._id ?? "").trim()
+  const productId = (item?.productId ?? "").trim()
   const name = (item?.name ?? "").trim().toLowerCase()
   if (!name) return ""
-  return id ? `${name}:::${id}` : name
+  return productId ? `${name}:::${productId}` : name
 }
 
 // ─── Merge helpers ────────────────────────────────────────────────────────────

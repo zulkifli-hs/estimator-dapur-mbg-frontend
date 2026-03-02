@@ -525,9 +525,14 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
         if (eDate) item.endDate = formatDateForAPI(eDate)
         else delete item.endDate
         // dep is a Gantt task ID — resolve to MongoDB ObjectId before sending
-        const resolvedDep = resolveMongoId(dep)
-        if (resolvedDep) item.dependOn = resolvedDep
-        else delete item.dependOn
+        // send null explicitly to clear; omit if dep is undefined (no change intent)
+        if (dep === null) {
+          item.dependOn = null
+        } else if (dep) {
+          const resolvedDep = resolveMongoId(dep)
+          if (resolvedDep) item.dependOn = resolvedDep
+          else delete item.dependOn
+        }
       }
 
       if (taskId.startsWith("preliminary-")) {
@@ -560,6 +565,8 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
           applyTaskUpdate(updatePayload.mechanicalElectrical[categoryIndex].products[index], startDate, endDate, dependOn)
         }
       }
+
+      console.log("Update payload for Gantt task update:", updatePayload)
 
       // Call API to update gantt chart
       const response = await boqApi.updateGanttChart(projectId, mainBOQ._id, updatePayload)

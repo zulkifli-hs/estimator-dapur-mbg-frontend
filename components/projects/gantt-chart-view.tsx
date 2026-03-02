@@ -6,7 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Link2, Pencil, Plus } from 'lucide-react'
+import { Link2, Pencil, Plus, Trash2 } from 'lucide-react'
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 
@@ -471,21 +471,36 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
                                       </div>
                                       <div className="space-y-2">
                                         <Label>Depends On</Label>
-                                        <Select value={editDependOn} onValueChange={setEditDependOn}>
-                                          <SelectTrigger className="h-8 text-xs">
-                                            <SelectValue placeholder="No dependency" />
-                                          </SelectTrigger>
-                                          <SelectContent className="max-h-48">
-                                            <SelectItem value="none">— No dependency —</SelectItem>
-                                            {tasks
-                                              .filter(t => t.id !== editingTaskId)
-                                              .map(t => (
-                                                <SelectItem key={t.id} value={t.id}>
-                                                  <span className="text-xs line-clamp-1">{t.name}</span>
-                                                </SelectItem>
-                                              ))}
-                                          </SelectContent>
-                                        </Select>
+                                        <div className="flex gap-1 items-center">
+                                          <Select value={editDependOn} onValueChange={setEditDependOn}>
+                                            <SelectTrigger className="h-8 text-xs flex-1 min-w-0">
+                                              <SelectValue placeholder="No dependency" />
+                                            </SelectTrigger>
+                                            <SelectContent className="max-h-48">
+                                              <SelectItem value="none">— No dependency —</SelectItem>
+                                              {tasks
+                                                .filter(t => t.id !== editingTaskId)
+                                                .map(t => (
+                                                  <SelectItem key={t.id} value={t.id}>
+                                                    <span className="text-xs line-clamp-1">{t.name}</span>
+                                                  </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                          </Select>
+                                          <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="ghost"
+                                            className={cn(
+                                              "h-8 w-8 shrink-0 p-0 text-destructive hover:text-destructive hover:bg-destructive/10",
+                                              editDependOn === "none" && "invisible pointer-events-none"
+                                            )}
+                                            onClick={() => setEditDependOn("none")}
+                                            title="Remove dependency"
+                                          >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                          </Button>
+                                        </div>
                                       </div>
                                     </div>
                                     <div className="flex gap-2">

@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ImageIcon, TrendingUp, Edit, Plus, X, Download, Eye, MoreVertical } from 'lucide-react'
+import { ImageIcon, TrendingUp, Edit, Plus, X, Download, Eye, MoreVertical, Maximize2 } from 'lucide-react'
+import { FullscreenBoqDialog } from "@/components/projects/boq/fullscreen-boq-dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -64,6 +65,7 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
   const [deletingAlbum, setDeletingAlbum] = useState(false)
   const [exportingPdf, setExportingPdf] = useState<string | null>(null)
   const [previewPdf, setPreviewPdf] = useState<{ url: string; name: string } | null>(null)
+  const [ganttFullscreen, setGanttFullscreen] = useState(false)
   const { toast } = useToast()
 
   const tabs = [
@@ -614,6 +616,12 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
                   <CardTitle>Gantt Chart</CardTitle>
                   <CardDescription>Project timeline from Main BOQ</CardDescription>
                 </div>
+                {mainBOQ && !loading && (
+                  <Button variant="outline" size="sm" onClick={() => setGanttFullscreen(true)}>
+                    <Maximize2 className="h-4 w-4 mr-2" />
+                    Full Screen
+                  </Button>
+                )}
               </div>
             </CardHeader>
             <CardContent>
@@ -880,6 +888,15 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
           onSuccess={loadBOQData}
         />
       )} */}
+
+      <FullscreenBoqDialog
+        open={ganttFullscreen}
+        title="Gantt Chart"
+        onOpenChange={setGanttFullscreen}
+        renderContent={() => (
+          <GanttChartView tasks={ganttTasks} onUpdateTask={handleUpdateGanttTask} />
+        )}
+      />
 
       <CreateAlbumDialog
         open={showCreateAlbum}

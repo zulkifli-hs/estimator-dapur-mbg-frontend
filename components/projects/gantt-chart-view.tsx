@@ -320,7 +320,7 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
       <div className="border rounded-lg overflow-hidden">
         <div className="flex">
           {/* Sticky Left Panel - Task Name + Action */}
-          <div className="flex flex-shrink-0 border-r bg-background z-10">
+          <div className="flex shrink-0 border-r bg-background z-10">
             {/* Task Name Column */}
             <div className="w-72 border-r">
               {/* Header */}

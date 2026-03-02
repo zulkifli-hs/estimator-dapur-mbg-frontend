@@ -14,7 +14,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
-import { Package, Wrench, Hammer, Building2, MoreHorizontal, Image, FileCheck, StickyNote, ExternalLink, Pencil, Upload, Loader2 } from "lucide-react"
+import { Package, Wrench, Hammer, Building2, MoreHorizontal, Image, FileCheck, StickyNote, ExternalLink, Pencil, Upload, Loader2, Maximize2 } from "lucide-react"
+import { FullscreenBoqDialog } from "@/components/projects/boq/fullscreen-boq-dialog"
 import { boqApi } from "@/lib/api/boq"
 import { uploadApi } from "@/lib/api/upload"
 import { API_BASE_URL } from "@/lib/api/config"
@@ -123,6 +124,17 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
   const [uploadingApproval, setUploadingApproval] = useState(false)
   const [uploadingNoteImage, setUploadingNoteImage] = useState(false)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
+  const [fullscreenOpen, setFullscreenOpen] = useState(false)
+  const [fullscreenTitle, setFullscreenTitle] = useState("")
+  const [fullscreenItems, setFullscreenItems] = useState<BOQItem[]>([])
+  const [fullscreenShowTags, setFullscreenShowTags] = useState(false)
+
+  const openFullscreen = (title: string, items: BOQItem[], showTags = false) => {
+    setFullscreenTitle(title)
+    setFullscreenItems(items)
+    setFullscreenShowTags(showTags)
+    setFullscreenOpen(true)
+  }
 
   useEffect(() => {
     if (projectId) {
@@ -689,8 +701,16 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
         <TabsContent value="vendor">
           <Card>
             <CardHeader>
-              <CardTitle>Vendor Procurement</CardTitle>
-              <CardDescription>Manage vendor procurement and orders</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Vendor Procurement</CardTitle>
+                  <CardDescription>Manage vendor procurement and orders</CardDescription>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => openFullscreen("Vendor Procurement", groupedItems.vendor)}>
+                  <Maximize2 className="h-4 w-4 mr-1" />
+                  Full Screen
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {renderItemsTable(groupedItems.vendor, "Vendor")}
@@ -701,8 +721,16 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
         <TabsContent value="mep">
           <Card>
             <CardHeader>
-              <CardTitle>MEP Procurement</CardTitle>
-              <CardDescription>Manage Mechanical, Electrical, and Plumbing procurement</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>MEP Procurement</CardTitle>
+                  <CardDescription>Manage Mechanical, Electrical, and Plumbing procurement</CardDescription>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => openFullscreen("MEP Procurement", groupedItems.mep)}>
+                  <Maximize2 className="h-4 w-4 mr-1" />
+                  Full Screen
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {renderItemsTable(groupedItems.mep, "MEP")}
@@ -713,8 +741,16 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
         <TabsContent value="workshop">
           <Card>
             <CardHeader>
-              <CardTitle>Workshop Procurement</CardTitle>
-              <CardDescription>Manage workshop materials and equipment</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Workshop Procurement</CardTitle>
+                  <CardDescription>Manage workshop materials and equipment</CardDescription>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => openFullscreen("Workshop Procurement", groupedItems.workshop)}>
+                  <Maximize2 className="h-4 w-4 mr-1" />
+                  Full Screen
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {renderItemsTable(groupedItems.workshop, "Workshop")}
@@ -725,8 +761,16 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
         <TabsContent value="internal">
           <Card>
             <CardHeader>
-              <CardTitle>Internal Procurement</CardTitle>
-              <CardDescription>Manage internal procurement and resources</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Internal Procurement</CardTitle>
+                  <CardDescription>Manage internal procurement and resources</CardDescription>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => openFullscreen("Internal Procurement", groupedItems.internal)}>
+                  <Maximize2 className="h-4 w-4 mr-1" />
+                  Full Screen
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {renderItemsTable(groupedItems.internal, "Internal")}
@@ -737,8 +781,16 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
         <TabsContent value="others">
           <Card>
             <CardHeader>
-              <CardTitle>Others Procurement</CardTitle>
-              <CardDescription>Manage other procurement items</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Others Procurement</CardTitle>
+                  <CardDescription>Manage other procurement items</CardDescription>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => openFullscreen("Others Procurement", getFilteredOthersItems(), true)}>
+                  <Maximize2 className="h-4 w-4 mr-1" />
+                  Full Screen
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Tag Filter */}
@@ -772,6 +824,13 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <FullscreenBoqDialog
+        open={fullscreenOpen}
+        title={fullscreenTitle}
+        onOpenChange={setFullscreenOpen}
+        renderContent={() => renderItemsTable(fullscreenItems, fullscreenTitle, { showTags: fullscreenShowTags })}
+      />
 
       {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>

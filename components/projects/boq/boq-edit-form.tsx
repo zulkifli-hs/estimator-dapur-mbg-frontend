@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label"
 import { CreateProductDialog } from "@/components/products/create-product-dialog"
 import { ProductSearchPopover } from "@/components/product-search-popover"
 import { Loader2, Plus, Trash2, X } from "lucide-react"
+import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 
 interface BoqEditFormProps {
@@ -209,6 +210,18 @@ export function BoqEditForm({
                           />
                         </div>
                       </div>
+                      {boqType === "additional" && (
+                        <div className="pl-11">
+                          <Label className="text-xs text-muted-foreground mb-1.5 block">Note (optional)</Label>
+                          <Textarea
+                            value={item.note || ""}
+                            onChange={(e) => onUpdatePreliminaryItem(index, "note", e.target.value)}
+                            placeholder="Additional notes for this item"
+                            rows={2}
+                            className="resize-none"
+                          />
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -325,6 +338,18 @@ export function BoqEditForm({
                             />
                           </div>
                         </div>
+                        {boqType === "additional" && (
+                          <div className="pl-11">
+                            <Label className="text-xs text-muted-foreground mb-1.5 block">Note (optional)</Label>
+                            <Textarea
+                              value={product.note || ""}
+                              onChange={(e) => onUpdateFittingOutProduct(categoryIndex, productIndex, "note", e.target.value)}
+                              placeholder="Additional notes for this item"
+                              rows={2}
+                              className="resize-none"
+                            />
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -446,6 +471,18 @@ export function BoqEditForm({
                             />
                           </div>
                         </div>
+                        {boqType === "additional" && (
+                          <div className="pl-11">
+                            <Label className="text-xs text-muted-foreground mb-1.5 block">Note (optional)</Label>
+                            <Textarea
+                              value={product.note || ""}
+                              onChange={(e) => onUpdateFurnitureWorkProduct(categoryIndex, productIndex, "note", e.target.value)}
+                              placeholder="Additional notes for this item"
+                              rows={2}
+                              className="resize-none"
+                            />
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -567,6 +604,18 @@ export function BoqEditForm({
                             />
                           </div>
                         </div>
+                        {boqType === "additional" && (
+                          <div className="pl-11">
+                            <Label className="text-xs text-muted-foreground mb-1.5 block">Note (optional)</Label>
+                            <Textarea
+                              value={product.note || ""}
+                              onChange={(e) => onUpdateMechanicalElectricalProduct(categoryIndex, productIndex, "note", e.target.value)}
+                              placeholder="Additional notes for this item"
+                              rows={2}
+                              className="resize-none"
+                            />
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

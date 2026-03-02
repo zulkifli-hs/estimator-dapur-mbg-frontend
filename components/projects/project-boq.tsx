@@ -52,6 +52,7 @@ interface ProductItem {
   productId?: string
   location?: string
   brand?: string
+  note?: string
   tags?: string[]
   startDate?: string
   endDate?: string
@@ -429,6 +430,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     productId?: string
     location?: string
     brand?: string
+    note?: string
     tags?: string[]
     startDate?: string // Added startDate
     endDate?: string // Added endDate
@@ -728,6 +730,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
           price: item.price,
           location: item.location || undefined,
           brand: item.brand || undefined,
+          note: item.note || undefined,
           tags: item.tags || [],
           startDate: item.startDate || undefined,
           endDate: item.endDate || undefined,
@@ -746,6 +749,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
               price: product.price,
               location: product.location || undefined,
               brand: product.brand || undefined,
+              note: product.note || undefined,
               tags: product.tags || [],
               startDate: product.startDate || undefined,
               endDate: product.endDate || undefined,
@@ -766,6 +770,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
               price: product.price,
               location: product.location || undefined,
               brand: product.brand || undefined,
+              note: product.note || undefined,
               tags: product.tags || [],
               startDate: product.startDate || undefined,
               endDate: product.endDate || undefined,
@@ -786,6 +791,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
               price: product.price,
               location: product.location || undefined,
               brand: product.brand || undefined,
+              note: product.note || undefined,
               tags: product.tags || [],
               startDate: product.startDate || undefined,
               endDate: product.endDate || undefined,
@@ -1724,6 +1730,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                       onEdit={() => {
                         setEditingBOQ(boq)
                         setCreationMode("blank")
+                        setBOQType("additional")
                         setIsCreatingAdditional(true)
                       }}
                       onSaveTemplate={() => {
@@ -1739,7 +1746,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <BoqTable boq={boq} formatCurrency={formatCurrency} />
+                  <BoqTable boq={boq} formatCurrency={formatCurrency} showNote />
                 </CardContent>
               </Card>
             ))
@@ -1769,7 +1776,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
           fullscreenBoqType === "recap" ? (
             <BoqRecap mainBOQ={mainBOQ} additionalBOQs={additionalBOQs} formatCurrency={formatCurrency} />
           ) : fullscreenBoqData ? (
-            <BoqTable boq={fullscreenBoqData} formatCurrency={formatCurrency} />
+            <BoqTable boq={fullscreenBoqData} formatCurrency={formatCurrency} showNote={fullscreenBoqData?.number > 1} />
           ) : null
         }
       />

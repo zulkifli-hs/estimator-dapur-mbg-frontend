@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils"
 interface BoqTableProps {
   boq: any
   formatCurrency: (value: number) => string
+  showNote?: boolean
 }
 
 // Sort: positive/zero qty first, negative qty last
@@ -25,7 +26,7 @@ const subtotalColor = (value: number) => {
   return ""
 }
 
-export function BoqTable({ boq, formatCurrency }: BoqTableProps) {
+export function BoqTable({ boq, formatCurrency, showNote = false }: BoqTableProps) {
   let itemNumber = 1
 
   const preliminarySubtotal = Array.isArray(boq.preliminary)
@@ -94,7 +95,12 @@ export function BoqTable({ boq, formatCurrency }: BoqTableProps) {
                 return (
                   <TableRow key={item._id} className={cn(isNegative && "bg-red-50 dark:bg-red-950/20")}>
                     <TableCell className="font-medium pl-8 pr-4">{itemNumber++}</TableCell>
-                    <TableCell className="whitespace-normal wrap-break-word px-4">{item.name}</TableCell>
+                    <TableCell className="whitespace-normal wrap-break-word px-4">
+                      {item.name}
+                      {showNote && item.note && (
+                        <p className="text-xs text-muted-foreground mt-1 italic">{item.note}</p>
+                      )}
+                    </TableCell>
                     <TableCell className="whitespace-normal wrap-break-word px-4">{item.brand || "-"}</TableCell>
                     <TableCell className="whitespace-normal wrap-break-word px-4">{item.location || "-"}</TableCell>
                     <TableCell className={cn("text-right px-4", isNegative && "text-red-600 dark:text-red-400 font-semibold")}>{item.qty}</TableCell>
@@ -146,7 +152,12 @@ export function BoqTable({ boq, formatCurrency }: BoqTableProps) {
                         return (
                           <TableRow key={product._id} className={cn(isNegative && "bg-red-50 dark:bg-red-950/20")}>
                             <TableCell className="font-medium pl-12 pr-4">{itemNumber++}</TableCell>
-                            <TableCell className="whitespace-normal wrap-break-word px-4">{product.name}</TableCell>
+                            <TableCell className="whitespace-normal wrap-break-word px-4">
+                              {product.name}
+                              {showNote && product.note && (
+                                <p className="text-xs text-muted-foreground mt-1 italic">{product.note}</p>
+                              )}
+                            </TableCell>
                             <TableCell className="whitespace-normal wrap-break-word px-4">{product.brand || "-"}</TableCell>
                             <TableCell className="whitespace-normal wrap-break-word px-4">{product.location || "-"}</TableCell>
                             <TableCell className={cn("text-right px-4", isNegative && "text-red-600 dark:text-red-400 font-semibold")}>{product.qty}</TableCell>
@@ -215,7 +226,12 @@ export function BoqTable({ boq, formatCurrency }: BoqTableProps) {
                         return (
                           <TableRow key={product._id} className={cn(isNegative && "bg-red-50 dark:bg-red-950/20")}>
                             <TableCell className="font-medium pl-12 pr-4">{itemNumber++}</TableCell>
-                            <TableCell className="whitespace-normal wrap-break-word px-4">{product.name}</TableCell>
+                            <TableCell className="whitespace-normal wrap-break-word px-4">
+                              {product.name}
+                              {showNote && product.note && (
+                                <p className="text-xs text-muted-foreground mt-1 italic">{product.note}</p>
+                              )}
+                            </TableCell>
                             <TableCell className="whitespace-normal wrap-break-word px-4">{product.brand || "-"}</TableCell>
                             <TableCell className="whitespace-normal wrap-break-word px-4">{product.location || "-"}</TableCell>
                             <TableCell className={cn("text-right px-4", isNegative && "text-red-600 dark:text-red-400 font-semibold")}>{product.qty}</TableCell>
@@ -284,7 +300,12 @@ export function BoqTable({ boq, formatCurrency }: BoqTableProps) {
                         return (
                           <TableRow key={product._id} className={cn(isNegative && "bg-red-50 dark:bg-red-950/20")}>
                             <TableCell className="font-medium pl-12 pr-4">{itemNumber++}</TableCell>
-                            <TableCell className="whitespace-normal wrap-break-word px-4">{product.name}</TableCell>
+                            <TableCell className="whitespace-normal wrap-break-word px-4">
+                              {product.name}
+                              {showNote && product.note && (
+                                <p className="text-xs text-muted-foreground mt-1 italic">{product.note}</p>
+                              )}
+                            </TableCell>
                             <TableCell className="whitespace-normal wrap-break-word px-4">{product.brand || "-"}</TableCell>
                             <TableCell className="whitespace-normal wrap-break-word px-4">{product.location || "-"}</TableCell>
                             <TableCell className={cn("text-right px-4", isNegative && "text-red-600 dark:text-red-400 font-semibold")}>{product.qty}</TableCell>

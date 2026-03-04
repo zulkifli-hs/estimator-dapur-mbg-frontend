@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
-import { Package, Wrench, Hammer, Building2, MoreHorizontal, Image, FileCheck, StickyNote, ExternalLink, Pencil, Upload, Loader2, Maximize2 } from "lucide-react"
+import { Package, Wrench, Hammer, Building2, MoreHorizontal, Image, FileCheck, StickyNote, ExternalLink, Pencil, Upload, Loader2, Maximize2, ChevronRight, ChevronDown, Plus, Trash2 } from "lucide-react"
 import { FullscreenBoqDialog } from "@/components/projects/boq/fullscreen-boq-dialog"
 import { boqApi } from "@/lib/api/boq"
 import { uploadApi } from "@/lib/api/upload"
@@ -24,7 +24,29 @@ interface ProjectProcurementProps {
   projectId: string
 }
 
+interface DocField {
+  url: string
+  provider: string
+  note?: string
+}
+
+interface SubItem {
+  _id: string
+  name: string
+  note?: string
+  finishing?: string
+  type?: string
+  code?: string
+  spesification?: string
+  image?: DocField
+  approval?: DocField
+  noteImage?: DocField
+}
+
 interface BOQItem {
+  _id?: string
+  _categoryId?: string
+  subItems?: SubItem[]
   productId?: string
   qty: number
   name: string
@@ -33,21 +55,9 @@ interface BOQItem {
   location?: string
   brand?: string
   tags?: string[]
-  image?: {
-    url: string
-    provider: string
-    note?: string
-  }
-  approval?: {
-    url: string
-    provider: string
-    note?: string
-  }
-  noteImage?: {
-    url: string
-    provider: string
-    note?: string
-  }
+  image?: DocField
+  approval?: DocField
+  noteImage?: DocField
   note?: string
   finishing?: string
   type?: string
@@ -129,6 +139,19 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
   const [fullscreenItems, setFullscreenItems] = useState<BOQItem[]>([])
   const [fullscreenShowTags, setFullscreenShowTags] = useState(false)
 
+  // Expandable sub-item rows
+  const [expandedItemKeys, setExpandedItemKeys] = useState<Set<string>>(new Set())
+
+  // Sub-item dialog
+  const [subItemDialogOpen, setSubItemDialogOpen] = useState(false)
+  const [subItemDialogMode, setSubItemDialogMode] = useState<"add" | "edit">("add")
+  const [editingSubItem, setEditingSubItem] = useState<SubItem | null>(null)
+  const [subItemParentItem, setSubItemParentItem] = useState<BOQItem | null>(null)
+  const [savingSubItem, setSavingSubItem] = useState(false)
+  const [uploadingSubItemImage, setUploadingSubItemImage] = useState(false)
+  const [uploadingSubItemApproval, setUploadingSubItemApproval] = useState(false)
+  const [uploadingSubItemNoteImage, setUploadingSubItemNoteImage] = useState(false)
+
   const openFullscreen = (title: string, items: BOQItem[], showTags = false) => {
     setFullscreenTitle(title)
     setFullscreenItems(items)
@@ -181,6 +204,7 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
                 _section: "fittingOut",
                 _categoryIndex: categoryIndex,
                 _itemIndex: productIndex,
+                _categoryId: category._id,
               })
             })
           })
@@ -197,6 +221,7 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
                 _section: "furnitureWork",
                 _categoryIndex: categoryIndex,
                 _itemIndex: productIndex,
+                _categoryId: category._id,
               })
             })
           })
@@ -213,6 +238,7 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
                 _section: "mechanicalElectrical",
                 _categoryIndex: categoryIndex,
                 _itemIndex: productIndex,
+                _categoryId: category._id,
               })
             })
           })
@@ -445,6 +471,134 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
     }
   }
 
+  // ── Sub-item helpers ─────────────────────────────────────────────────────────
+
+  const toggleItemExpand = (key: string) => {
+    setExpandedItemKeys((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+
+  const handleAddSubItem = (item: BOQItem) => {
+    setSubItemParentItem(item)
+    setEditingSubItem({ _id: "", name: "", note: "", finishing: "", type: "", code: "", spesification: "" })
+    setSubItemDialogMode("add")
+    setSubItemDialogOpen(true)
+  }
+
+  const handleEditSubItem = (item: BOQItem, subItem: SubItem) => {
+    setSubItemParentItem(item)
+    setEditingSubItem({ ...subItem })
+    setSubItemDialogMode("edit")
+    setSubItemDialogOpen(true)
+  }
+
+  const handleDeleteSubItem = async (item: BOQItem, subItem: SubItem) => {
+    if (!item._boqId || !item._id || !subItem._id) return
+    if (!window.confirm(`Delete sub-item "${subItem.name}"?`)) return
+
+    try {
+      await boqApi.deleteSubItem(
+        projectId,
+        item._boqId,
+        item._section!,
+        item._categoryId || null,
+        item._id,
+        subItem._id,
+      )
+      toast({ title: "Success", description: "Sub-item deleted" })
+      fetchAndGroupBOQItems()
+    } catch (error: any) {
+      console.error("Failed to delete sub-item:", error)
+      toast({ title: "Error", description: error.message || "Failed to delete sub-item", variant: "destructive" })
+    }
+  }
+
+  const handleSubItemImageUpload = async (file: File, type: "image" | "approval" | "noteImage") => {
+    try {
+      if (type === "image") setUploadingSubItemImage(true)
+      if (type === "approval") setUploadingSubItemApproval(true)
+      if (type === "noteImage") setUploadingSubItemNoteImage(true)
+
+      const result = await uploadApi.uploadFile(file)
+      const docField: DocField = { url: result.url, provider: result.provider }
+
+      setEditingSubItem((prev) => {
+        if (!prev) return prev
+        return { ...prev, [type]: { ...docField, note: prev[type]?.note || "" } }
+      })
+
+      toast({ title: "Success", description: "File uploaded successfully" })
+    } catch (error: any) {
+      console.error("Failed to upload file:", error)
+      toast({ title: "Error", description: error.message || "Failed to upload file", variant: "destructive" })
+    } finally {
+      if (type === "image") setUploadingSubItemImage(false)
+      if (type === "approval") setUploadingSubItemApproval(false)
+      if (type === "noteImage") setUploadingSubItemNoteImage(false)
+    }
+  }
+
+  const handleSaveSubItem = async () => {
+    if (!editingSubItem || !subItemParentItem || !subItemParentItem._boqId || !subItemParentItem._id) return
+    if (!editingSubItem.name.trim()) {
+      toast({ title: "Error", description: "Sub-item name is required", variant: "destructive" })
+      return
+    }
+
+    const body: Record<string, unknown> = {
+      name: editingSubItem.name.trim(),
+    }
+    if (editingSubItem.note) body.note = editingSubItem.note
+    if (editingSubItem.finishing) body.finishing = editingSubItem.finishing
+    if (editingSubItem.type) body.type = editingSubItem.type
+    if (editingSubItem.code) body.code = editingSubItem.code
+    if (editingSubItem.spesification) body.spesification = editingSubItem.spesification
+    if (editingSubItem.image?.url) body.image = editingSubItem.image
+    if (editingSubItem.approval?.url) body.approval = editingSubItem.approval
+    if (editingSubItem.noteImage?.url) body.noteImage = editingSubItem.noteImage
+
+    try {
+      setSavingSubItem(true)
+      if (subItemDialogMode === "add") {
+        await boqApi.addSubItem(
+          projectId,
+          subItemParentItem._boqId,
+          subItemParentItem._section!,
+          subItemParentItem._categoryId || null,
+          subItemParentItem._id,
+          body,
+        )
+        toast({ title: "Success", description: "Sub-item added successfully" })
+      } else {
+        await boqApi.updateSubItem(
+          projectId,
+          subItemParentItem._boqId,
+          subItemParentItem._section!,
+          subItemParentItem._categoryId || null,
+          subItemParentItem._id,
+          editingSubItem._id,
+          body,
+        )
+        toast({ title: "Success", description: "Sub-item updated successfully" })
+      }
+      setSubItemDialogOpen(false)
+      setEditingSubItem(null)
+      setSubItemParentItem(null)
+      fetchAndGroupBOQItems()
+    } catch (error: any) {
+      console.error("Failed to save sub-item:", error)
+      toast({ title: "Error", description: error.message || "Failed to save sub-item", variant: "destructive" })
+    } finally {
+      setSavingSubItem(false)
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+
   const renderItemsTable = (items: BOQItem[], title: string, settings?: { showTags?: boolean }) => {
     if (loading) {
       return (
@@ -462,11 +616,14 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
       )
     }
 
+    const totalCols = settings?.showTags ? 13 : 12
+
     return (
       <div className="border rounded-lg overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-8" />
               <TableHead className="w-12">No</TableHead>
               <TableHead className="min-w-50">Item Name</TableHead>
               {settings?.showTags && <TableHead>Tags</TableHead>}
@@ -478,148 +635,270 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
               <TableHead>Type</TableHead>
               <TableHead>Finishing</TableHead>
               <TableHead>Specification</TableHead>
-              {/* <TableHead>Note</TableHead> */}
               <TableHead className="text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {items.map((item, index) => (
-              <TableRow key={`${item._source}-${item.name}-${index}`}>
-                <TableCell>{index + 1}</TableCell>
-                <TableCell className="font-medium whitespace-normal wrap-break-word">{item.name || "-"}</TableCell>
-                {settings?.showTags && (
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {item.tags?.map((tag, i) => (
-                        <Badge key={i} variant="outline" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  </TableCell>
-                )}
-                <TableCell>
-                  <Badge variant={item._source?.includes("Main") ? "default" : "secondary"} className="whitespace-nowrap">
-                    {item._source || "-"}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-center">
-                  {item.image?.url ? (
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <button className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800">
-                          <Image className="h-4 w-4" />
-                          <ExternalLink className="h-3 w-3" />
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-2">
-                        <div className="space-y-2">
-                          <img
-                            src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${item.image.provider}/${item.image.url}`}
-                            alt={item.image.note || "Image preview"}
-                            className="max-w-sm max-h-96 object-contain rounded"
-                          />
-                          {item.image.note && (
-                            <p className="text-xs text-muted-foreground">{item.image.note}</p>
-                          )}
+            {items.map((item, index) => {
+              const expandKey = `${item._boqId}-${item._id}`
+              const isExpanded = !!item._id && expandedItemKeys.has(expandKey)
+              return (
+                <>
+                  <TableRow key={`${item._source}-${item.name}-${index}`}>
+                    {/* Expand toggle */}
+                    <TableCell className="text-center p-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        onClick={() => item._id && toggleItemExpand(expandKey)}
+                        disabled={!item._id}
+                      >
+                        {isExpanded ? (
+                          <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </Button>
+                    </TableCell>
+                    <TableCell>{index + 1}</TableCell>
+                    <TableCell className="font-medium whitespace-normal wrap-break-word">{item.name || "-"}</TableCell>
+                    {settings?.showTags && (
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {item.tags?.map((tag, i) => (
+                            <Badge key={i} variant="outline" className="text-xs">
+                              {tag}
+                            </Badge>
+                          ))}
                         </div>
-                      </PopoverContent>
-                    </Popover>
-                  ) : (
-                    <span className="text-muted-foreground">-</span>
-                  )}
-                </TableCell>
-                <TableCell className="text-center">
-                  {item.approval?.url ? (
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <button className="inline-flex items-center gap-1 text-green-600 hover:text-green-800">
-                          <FileCheck className="h-4 w-4" />
-                          <ExternalLink className="h-3 w-3" />
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-2">
-                        <div className="space-y-2">
-                          {item.approval.url.endsWith('.pdf') ? (
-                            <div className="flex flex-col items-center gap-2 p-4">
-                              <FileCheck className="h-12 w-12 text-green-600" />
-                              <a
-                                href={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${item.approval.provider}/${item.approval.url}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-sm text-blue-600 hover:underline"
-                              >
-                                Open PDF
-                              </a>
+                      </TableCell>
+                    )}
+                    <TableCell>
+                      <Badge variant={item._source?.includes("Main") ? "default" : "secondary"} className="whitespace-nowrap">
+                        {item._source || "-"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {item.image?.url ? (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800">
+                              <Image className="h-4 w-4" />
+                              <ExternalLink className="h-3 w-3" />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-2">
+                            <div className="space-y-2">
+                              <img
+                                src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${item.image.provider}/${item.image.url}`}
+                                alt={item.image.note || "Image preview"}
+                                className="max-w-sm max-h-96 object-contain rounded"
+                              />
+                              {item.image.note && (
+                                <p className="text-xs text-muted-foreground">{item.image.note}</p>
+                              )}
                             </div>
-                          ) : (
-                            <img
-                              src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${item.approval.provider}/${item.approval.url}`}
-                              alt={item.approval.note || "Approval preview"}
-                              className="max-w-sm max-h-96 object-contain rounded"
-                            />
-                          )}
-                          {item.approval.note && (
-                            <p className="text-xs text-muted-foreground">{item.approval.note}</p>
-                          )}
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  ) : (
-                    <span className="text-muted-foreground">-</span>
+                          </PopoverContent>
+                        </Popover>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {item.approval?.url ? (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button className="inline-flex items-center gap-1 text-green-600 hover:text-green-800">
+                              <FileCheck className="h-4 w-4" />
+                              <ExternalLink className="h-3 w-3" />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-2">
+                            <div className="space-y-2">
+                              {item.approval.url.endsWith('.pdf') ? (
+                                <div className="flex flex-col items-center gap-2 p-4">
+                                  <FileCheck className="h-12 w-12 text-green-600" />
+                                  <a
+                                    href={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${item.approval.provider}/${item.approval.url}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-sm text-blue-600 hover:underline"
+                                  >
+                                    Open PDF
+                                  </a>
+                                </div>
+                              ) : (
+                                <img
+                                  src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${item.approval.provider}/${item.approval.url}`}
+                                  alt={item.approval.note || "Approval preview"}
+                                  className="max-w-sm max-h-96 object-contain rounded"
+                                />
+                              )}
+                              {item.approval.note && (
+                                <p className="text-xs text-muted-foreground">{item.approval.note}</p>
+                              )}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {item.noteImage?.url ? (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button className="inline-flex items-center gap-1 text-orange-600 hover:text-orange-800">
+                              <StickyNote className="h-4 w-4" />
+                              <ExternalLink className="h-3 w-3" />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-2">
+                            <div className="space-y-2">
+                              <img
+                                src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${item.noteImage.provider}/${item.noteImage.url}`}
+                                alt={item.noteImage.note || "Note image preview"}
+                                className="max-w-sm max-h-96 object-contain rounded"
+                              />
+                              {item.noteImage.note && (
+                                <p className="text-xs text-muted-foreground">{item.noteImage.note}</p>
+                              )}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>{item.code || "-"}</TableCell>
+                    <TableCell>{item.type || "-"}</TableCell>
+                    <TableCell>{item.finishing || "-"}</TableCell>
+                    <TableCell className="max-w-50">
+                      <div className="truncate" title={item.spesification || "-"}>
+                        {item.spesification || "-"}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEditItem(item)}
+                        className="h-8 w-8 p-0"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+
+                  {/* ── Expanded sub-item rows ── */}
+                  {isExpanded && (
+                    <>
+                      {(item.subItems || []).map((subItem, subIndex) => (
+                        <TableRow key={`sub-${subItem._id || subIndex}`} className="bg-muted/30 text-sm">
+                          <TableCell />
+                          <TableCell className="text-muted-foreground pl-4 text-xs">{index + 1}.{subIndex + 1}</TableCell>
+                          <TableCell className="pl-6 font-normal">
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-px bg-border flex-shrink-0" />
+                              {subItem.name || "-"}
+                            </div>
+                          </TableCell>
+                          {settings?.showTags && <TableCell />}
+                          <TableCell />
+                          <TableCell className="text-center">
+                            {subItem.image?.url ? (
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <button className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800">
+                                    <Image className="h-4 w-4" />
+                                    <ExternalLink className="h-3 w-3" />
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-2">
+                                  <div className="space-y-2">
+                                    <img src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${subItem.image.provider}/${subItem.image.url}`} alt={subItem.image.note || "Image"} className="max-w-sm max-h-96 object-contain rounded" />
+                                    {subItem.image.note && <p className="text-xs text-muted-foreground">{subItem.image.note}</p>}
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
+                            ) : <span className="text-muted-foreground">-</span>}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {subItem.approval?.url ? (
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <button className="inline-flex items-center gap-1 text-green-600 hover:text-green-800">
+                                    <FileCheck className="h-4 w-4" />
+                                    <ExternalLink className="h-3 w-3" />
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-2">
+                                  <div className="space-y-2">
+                                    {subItem.approval.url.endsWith('.pdf') ? (
+                                      <div className="flex flex-col items-center gap-2 p-4">
+                                        <FileCheck className="h-12 w-12 text-green-600" />
+                                        <a href={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${subItem.approval.provider}/${subItem.approval.url}`} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">Open PDF</a>
+                                      </div>
+                                    ) : (
+                                      <img src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${subItem.approval.provider}/${subItem.approval.url}`} alt={subItem.approval.note || "Approval"} className="max-w-sm max-h-96 object-contain rounded" />
+                                    )}
+                                    {subItem.approval.note && <p className="text-xs text-muted-foreground">{subItem.approval.note}</p>}
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
+                            ) : <span className="text-muted-foreground">-</span>}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {subItem.noteImage?.url ? (
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <button className="inline-flex items-center gap-1 text-orange-600 hover:text-orange-800">
+                                    <StickyNote className="h-4 w-4" />
+                                    <ExternalLink className="h-3 w-3" />
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-2">
+                                  <div className="space-y-2">
+                                    <img src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${subItem.noteImage.provider}/${subItem.noteImage.url}`} alt={subItem.noteImage.note || "Note image"} className="max-w-sm max-h-96 object-contain rounded" />
+                                    {subItem.noteImage.note && <p className="text-xs text-muted-foreground">{subItem.noteImage.note}</p>}
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
+                            ) : <span className="text-muted-foreground">-</span>}
+                          </TableCell>
+                          <TableCell>{subItem.code || "-"}</TableCell>
+                          <TableCell>{subItem.type || "-"}</TableCell>
+                          <TableCell>{subItem.finishing || "-"}</TableCell>
+                          <TableCell className="max-w-50">
+                            <div className="truncate" title={subItem.spesification || "-"}>{subItem.spesification || "-"}</div>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              <Button variant="ghost" size="sm" onClick={() => handleEditSubItem(item, subItem)} className="h-7 w-7 p-0">
+                                <Pencil className="h-3 w-3" />
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => handleDeleteSubItem(item, subItem)} className="h-7 w-7 p-0 text-destructive hover:text-destructive">
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {/* Add sub-item row */}
+                      <TableRow className="bg-muted/10 hover:bg-muted/20">
+                        <TableCell colSpan={totalCols} className="text-center py-2">
+                          <Button variant="ghost" size="sm" onClick={() => handleAddSubItem(item)} className="h-7 gap-1 text-muted-foreground hover:text-foreground">
+                            <Plus className="h-3 w-3" />
+                            Add Sub-item
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    </>
                   )}
-                </TableCell>
-                <TableCell className="text-center">
-                  {item.noteImage?.url ? (
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <button className="inline-flex items-center gap-1 text-orange-600 hover:text-orange-800">
-                          <StickyNote className="h-4 w-4" />
-                          <ExternalLink className="h-3 w-3" />
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-2">
-                        <div className="space-y-2">
-                          <img
-                            src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${item.noteImage.provider}/${item.noteImage.url}`}
-                            alt={item.noteImage.note || "Note image preview"}
-                            className="max-w-sm max-h-96 object-contain rounded"
-                          />
-                          {item.noteImage.note && (
-                            <p className="text-xs text-muted-foreground">{item.noteImage.note}</p>
-                          )}
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  ) : (
-                    <span className="text-muted-foreground">-</span>
-                  )}
-                </TableCell>
-                <TableCell>{item.code || "-"}</TableCell>
-                <TableCell>{item.type || "-"}</TableCell>
-                <TableCell>{item.finishing || "-"}</TableCell>
-                <TableCell className="max-w-50">
-                  <div className="truncate" title={item.spesification || "-"}>
-                    {item.spesification || "-"}
-                  </div>
-                </TableCell>
-                {/* <TableCell className="max-w-50">
-                  <div className="truncate" title={item.note || "-"}>
-                    {item.note || "-"}
-                  </div>
-                </TableCell> */}
-                <TableCell className="text-center">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleEditItem(item)}
-                    className="h-8 w-8 p-0"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
+                </>
+              )
+            })}
           </TableBody>
         </Table>
       </div>
@@ -1178,6 +1457,195 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
             </Button>
             <Button onClick={handleSaveItem} disabled={saving}>
               {saving ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Sub-item Dialog */}
+      <Dialog open={subItemDialogOpen} onOpenChange={setSubItemDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{subItemDialogMode === "add" ? "Add Sub-item" : "Edit Sub-item"}</DialogTitle>
+            <DialogDescription>
+              {subItemDialogMode === "add" ? "Add a descriptive sub-item to" : "Update sub-item of"}{" "}
+              <span className="font-medium">{subItemParentItem?.name}</span>
+            </DialogDescription>
+          </DialogHeader>
+          {editingSubItem && (
+            <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="sub-name">
+                  Name <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="sub-name"
+                  value={editingSubItem.name}
+                  onChange={(e) => setEditingSubItem({ ...editingSubItem, name: e.target.value })}
+                  placeholder="Sub-item name"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="sub-code">Code</Label>
+                  <Input
+                    id="sub-code"
+                    value={editingSubItem.code || ""}
+                    onChange={(e) => setEditingSubItem({ ...editingSubItem, code: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="sub-type">Type</Label>
+                  <Input
+                    id="sub-type"
+                    value={editingSubItem.type || ""}
+                    onChange={(e) => setEditingSubItem({ ...editingSubItem, type: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="sub-finishing">Finishing</Label>
+                  <Input
+                    id="sub-finishing"
+                    value={editingSubItem.finishing || ""}
+                    onChange={(e) => setEditingSubItem({ ...editingSubItem, finishing: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="sub-note">Note</Label>
+                  <Input
+                    id="sub-note"
+                    value={editingSubItem.note || ""}
+                    onChange={(e) => setEditingSubItem({ ...editingSubItem, note: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="sub-specification">Specification</Label>
+                <Textarea
+                  id="sub-specification"
+                  value={editingSubItem.spesification || ""}
+                  onChange={(e) => setEditingSubItem({ ...editingSubItem, spesification: e.target.value })}
+                  rows={2}
+                />
+              </div>
+
+              {/* Image */}
+              <div className="space-y-4 border-t pt-4">
+                <h4 className="font-semibold">Image</h4>
+                <div className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <Label htmlFor="sub-imageFile" className="cursor-pointer">
+                      <div className="flex items-center gap-2 px-4 py-2 border border-dashed rounded-md hover:bg-primary hover:text-primary-foreground transition-colors">
+                        {uploadingSubItemImage ? (
+                          <><Loader2 className="h-4 w-4 animate-spin" /><span>Uploading...</span></>
+                        ) : (
+                          <><Upload className="h-4 w-4" /><span>Upload Image</span></>
+                        )}
+                      </div>
+                    </Label>
+                    <Input id="sub-imageFile" type="file" accept="image/*" className="hidden"
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) handleSubItemImageUpload(f, "image") }}
+                      disabled={uploadingSubItemImage}
+                    />
+                  </div>
+                </div>
+                {editingSubItem.image?.url && (
+                  <div className="space-y-2">
+                    <Label>Preview</Label>
+                    <div className="border rounded-lg p-2 bg-muted/50 flex flex-col items-center gap-2">
+                      <img src={`${API_BASE_URL}/public/${editingSubItem.image.provider}/${editingSubItem.image.url}`} alt="preview" className="max-w-full max-h-48 object-contain rounded" />
+                      <a href={`${API_BASE_URL}/public/${editingSubItem.image.provider}/${editingSubItem.image.url}`} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">Open in new tab</a>
+                    </div>
+                    <Input placeholder="Optional image note" value={editingSubItem.image.note || ""}
+                      onChange={(e) => setEditingSubItem({ ...editingSubItem, image: { ...editingSubItem.image!, note: e.target.value } })}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Approval */}
+              <div className="space-y-4 border-t pt-4">
+                <h4 className="font-semibold">Approval</h4>
+                <div className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <Label htmlFor="sub-approvalFile" className="cursor-pointer">
+                      <div className="flex items-center gap-2 px-4 py-2 border border-dashed rounded-md hover:bg-primary hover:text-primary-foreground transition-colors">
+                        {uploadingSubItemApproval ? (
+                          <><Loader2 className="h-4 w-4 animate-spin" /><span>Uploading...</span></>
+                        ) : (
+                          <><Upload className="h-4 w-4" /><span>Upload Approval</span></>
+                        )}
+                      </div>
+                    </Label>
+                    <Input id="sub-approvalFile" type="file" accept="image/*,.pdf" className="hidden"
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) handleSubItemImageUpload(f, "approval") }}
+                      disabled={uploadingSubItemApproval}
+                    />
+                  </div>
+                </div>
+                {editingSubItem.approval?.url && (
+                  <div className="space-y-2">
+                    <Label>Preview</Label>
+                    <div className="border rounded-lg p-2 bg-muted/50 flex flex-col items-center gap-2">
+                      {editingSubItem.approval.url.endsWith(".pdf") ? (
+                        <><FileCheck className="h-12 w-12 text-green-600" /><a href={`${API_BASE_URL}/public/${editingSubItem.approval.provider}/${editingSubItem.approval.url}`} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">Open PDF</a></>
+                      ) : (
+                        <img src={`${API_BASE_URL}/public/${editingSubItem.approval.provider}/${editingSubItem.approval.url}`} alt="approval" className="max-w-full max-h-48 object-contain rounded" />
+                      )}
+                      <a href={`${API_BASE_URL}/public/${editingSubItem.approval.provider}/${editingSubItem.approval.url}`} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">Open in new tab</a>
+                    </div>
+                    <Input placeholder="Optional approval note" value={editingSubItem.approval.note || ""}
+                      onChange={(e) => setEditingSubItem({ ...editingSubItem, approval: { ...editingSubItem.approval!, note: e.target.value } })}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Note Image */}
+              <div className="space-y-4 border-t pt-4">
+                <h4 className="font-semibold">Note Image</h4>
+                <div className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <Label htmlFor="sub-noteImageFile" className="cursor-pointer">
+                      <div className="flex items-center gap-2 px-4 py-2 border border-dashed rounded-md hover:bg-primary hover:text-primary-foreground transition-colors">
+                        {uploadingSubItemNoteImage ? (
+                          <><Loader2 className="h-4 w-4 animate-spin" /><span>Uploading...</span></>
+                        ) : (
+                          <><Upload className="h-4 w-4" /><span>Upload Note Image</span></>
+                        )}
+                      </div>
+                    </Label>
+                    <Input id="sub-noteImageFile" type="file" accept="image/*" className="hidden"
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) handleSubItemImageUpload(f, "noteImage") }}
+                      disabled={uploadingSubItemNoteImage}
+                    />
+                  </div>
+                </div>
+                {editingSubItem.noteImage?.url && (
+                  <div className="space-y-2">
+                    <Label>Preview</Label>
+                    <div className="border rounded-lg p-2 bg-muted/50 flex flex-col items-center gap-2">
+                      <img src={`${API_BASE_URL}/public/${editingSubItem.noteImage.provider}/${editingSubItem.noteImage.url}`} alt="note" className="max-w-full max-h-48 object-contain rounded" />
+                      <a href={`${API_BASE_URL}/public/${editingSubItem.noteImage.provider}/${editingSubItem.noteImage.url}`} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">Open in new tab</a>
+                    </div>
+                    <Input placeholder="Optional note image note" value={editingSubItem.noteImage.note || ""}
+                      onChange={(e) => setEditingSubItem({ ...editingSubItem, noteImage: { ...editingSubItem.noteImage!, note: e.target.value } })}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSubItemDialogOpen(false)} disabled={savingSubItem}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveSubItem} disabled={savingSubItem}>
+              {savingSubItem ? "Saving..." : subItemDialogMode === "add" ? "Add Sub-item" : "Save Changes"}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -440,4 +440,73 @@ export const boqApi = {
     const result = await updateDiscountTax(projectId, boqId, data)
     return { success: true, data: result }
   },
+
+  // Sub-item helpers — maps internal section names to URL slugs
+  _getSectionSlug: (section: string): string => {
+    switch (section) {
+      case "fittingOut":
+        return "fitting-out"
+      case "furnitureWork":
+        return "furniture-work"
+      case "mechanicalElectrical":
+        return "mechanical-electrical"
+      default:
+        return section
+    }
+  },
+
+  addSubItem: async (
+    projectId: string,
+    boqId: string,
+    section: string,
+    categoryId: string | null,
+    itemId: string,
+    body: Record<string, unknown>,
+  ) => {
+    let endpoint: string
+    if (section === "preliminary") {
+      endpoint = `/projects/${projectId}/boq/${boqId}/preliminary/${itemId}/sub-items`
+    } else {
+      const slug = boqApi._getSectionSlug(section)
+      endpoint = `/projects/${projectId}/boq/${boqId}/${slug}/${categoryId}/${itemId}/sub-items`
+    }
+    return apiRequest<any>(endpoint, { method: "POST", body: JSON.stringify(body) })
+  },
+
+  updateSubItem: async (
+    projectId: string,
+    boqId: string,
+    section: string,
+    categoryId: string | null,
+    itemId: string,
+    subItemId: string,
+    body: Record<string, unknown>,
+  ) => {
+    let endpoint: string
+    if (section === "preliminary") {
+      endpoint = `/projects/${projectId}/boq/${boqId}/preliminary/${itemId}/sub-items/${subItemId}`
+    } else {
+      const slug = boqApi._getSectionSlug(section)
+      endpoint = `/projects/${projectId}/boq/${boqId}/${slug}/${categoryId}/${itemId}/sub-items/${subItemId}`
+    }
+    return apiRequest<any>(endpoint, { method: "PUT", body: JSON.stringify(body) })
+  },
+
+  deleteSubItem: async (
+    projectId: string,
+    boqId: string,
+    section: string,
+    categoryId: string | null,
+    itemId: string,
+    subItemId: string,
+  ) => {
+    let endpoint: string
+    if (section === "preliminary") {
+      endpoint = `/projects/${projectId}/boq/${boqId}/preliminary/${itemId}/sub-items/${subItemId}`
+    } else {
+      const slug = boqApi._getSectionSlug(section)
+      endpoint = `/projects/${projectId}/boq/${boqId}/${slug}/${categoryId}/${itemId}/sub-items/${subItemId}`
+    }
+    return apiRequest<any>(endpoint, { method: "DELETE" })
+  },
 }

@@ -433,6 +433,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   }
 
   interface PreliminaryItem {
+    _id?: string
     name: string
     qty: number
     unit: string
@@ -733,6 +734,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       const filteredPreliminary = preliminary
         .filter((item) => item.name && (isMainBOQ ? item.qty > 0 : item.qty !== 0))
         .map((item) => normalizeItemDates({
+          _id: (item as any)._id || undefined,
           productId: item.productId,
           qty: item.qty,
           name: item.name,
@@ -748,10 +750,12 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
 
       const filteredFittingOut = fittingOut
         .map((category) => ({
+          _id: (category as any)._id || undefined,
           name: category.name,
           products: category.products
             .filter((product) => product.name && (isMainBOQ ? product.qty > 0 : product.qty !== 0))
             .map((product) => normalizeItemDates({
+              _id: (product as any)._id || undefined,
               productId: product.productId,
               qty: product.qty,
               name: product.name,
@@ -769,10 +773,12 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
 
       const filteredFurnitureWork = furnitureWork
         .map((category) => ({
+          _id: (category as any)._id || undefined,
           name: category.name,
           products: category.products
             .filter((product) => product.name && (isMainBOQ ? product.qty > 0 : product.qty !== 0))
             .map((product) => normalizeItemDates({
+              _id: (product as any)._id || undefined,
               productId: product.productId,
               qty: product.qty,
               name: product.name,
@@ -790,10 +796,12 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
 
       const filteredMechanicalElectrical = mechanicalElectrical
         .map((category) => ({
+          _id: (category as any)._id || undefined,
           name: category.name,
           products: category.products
             .filter((product) => product.name && (isMainBOQ ? product.qty > 0 : product.qty !== 0))
             .map((product) => normalizeItemDates({
+              _id: (product as any)._id || undefined,
               productId: product.productId,
               qty: product.qty,
               name: product.name,
@@ -1110,6 +1118,12 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
 
   const handleReplaceWithTemplate = async () => {
     if (!selectedReplaceTemplate || (!mainBOQ && !templateEditingBOQ)) return
+
+    // Warn that replacing with a template will permanently remove all existing sub-items
+    const confirmed = window.confirm(
+      "Replacing with a template will permanently remove all sub-items attached to existing BOQ items. This action cannot be undone. Continue?"
+    )
+    if (!confirmed) return
 
     try {
       // Use templateEditingBOQ if set (for additional BOQs), otherwise use mainBOQ

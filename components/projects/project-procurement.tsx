@@ -662,7 +662,7 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
       )
     }
 
-    const totalCols = settings?.showTags ? 13 : 12
+    const totalCols = settings?.showTags ? 11 : 10
 
     return (
       <>
@@ -678,22 +678,25 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
           </Button>
         </div>
         <div className="border rounded-lg overflow-x-auto">
-        <Table>
+        <Table className="[&_th]:border [&_th]:border-border [&_td]:border [&_td]:border-border">
           <TableHeader>
+            {/* Row 1: group headers */}
             <TableRow>
-              <TableHead className="w-8" />
-              <TableHead className="w-12">No</TableHead>
-              <TableHead className="min-w-50">Item Name</TableHead>
-              {settings?.showTags && <TableHead>Tags</TableHead>}
-              <TableHead>Source</TableHead>
-              <TableHead className="text-center">Image</TableHead>
-              <TableHead className="text-center">Approval</TableHead>
-              <TableHead className="text-center">Note Image</TableHead>
-              <TableHead>Code</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Finishing</TableHead>
-              <TableHead>Specification</TableHead>
-              <TableHead className="text-center">Actions</TableHead>
+              <TableHead rowSpan={2} className="w-8" />
+              <TableHead rowSpan={2} className="w-12 align-middle">No</TableHead>
+              <TableHead colSpan={3} className="text-center font-bold border-b">Material</TableHead>
+              {settings?.showTags && <TableHead rowSpan={2} className="align-middle">Tags</TableHead>}
+              <TableHead rowSpan={2} className="min-w-36 align-middle">Application</TableHead>
+              <TableHead rowSpan={2} className="text-center align-middle">Image Material</TableHead>
+              <TableHead rowSpan={2} className="text-center align-middle">Approval</TableHead>
+              <TableHead rowSpan={2} className="text-center align-middle">Note</TableHead>
+              <TableHead rowSpan={2} className="text-center align-middle">Actions</TableHead>
+            </TableRow>
+            {/* Row 2: Material sub-headers */}
+            <TableRow>
+              <TableHead className="min-w-48">Item</TableHead>
+              <TableHead className="min-w-32">Finishing</TableHead>
+              <TableHead className="min-w-48">Brand/Type/Code/Specification</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -720,7 +723,19 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
                       </Button>
                     </TableCell>
                     <TableCell>{index + 1}</TableCell>
-                    <TableCell className="font-medium whitespace-normal wrap-break-word">{item.name || "-"}</TableCell>
+                    {/* Item */}
+                    <TableCell className="font-medium whitespace-normal">{item.name || "-"}</TableCell>
+                    {/* Finishing */}
+                    <TableCell className="text-sm">{item.finishing || "-"}</TableCell>
+                    {/* Brand/Type/Code/Specification */}
+                    <TableCell className="whitespace-normal align-top">
+                      <div className="space-y-0.5 text-xs">
+                        <div className="text-muted-foreground"><span className="font-medium text-foreground">Brand:</span> {item.brand || "-"}</div>
+                        <div className="text-muted-foreground"><span className="font-medium text-foreground">Type:</span> {item.type || "-"}</div>
+                        <div className="font-bold"><span className="font-medium">Code:</span> {item.code || "-"}</div>
+                        <div className="italic text-muted-foreground"><span className="not-italic font-medium text-foreground">Spec:</span> {item.spesification || "-"}</div>
+                      </div>
+                    </TableCell>
                     {settings?.showTags && (
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
@@ -732,18 +747,19 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
                         </div>
                       </TableCell>
                     )}
-                    <TableCell>
-                      <Badge variant={item._source?.includes("Main") ? "default" : "secondary"} className="whitespace-nowrap">
-                        {item._source || "-"}
-                      </Badge>
-                    </TableCell>
+                    {/* Application (location) — read-only */}
+                    <TableCell className="text-sm">{item.location || "-"}</TableCell>
+                    {/* Image Material — inline thumbnail */}
                     <TableCell className="text-center">
                       {item.image?.url ? (
                         <Popover>
                           <PopoverTrigger asChild>
-                            <button className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800">
-                              <Image className="h-4 w-4" />
-                              <ExternalLink className="h-3 w-3" />
+                            <button className="block mx-auto hover:opacity-80 transition-opacity">
+                              <img
+                                src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${item.image.provider}/${item.image.url}`}
+                                alt={item.image.note || "Image preview"}
+                                className="h-16 w-16 object-cover rounded border"
+                              />
                             </button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-2">
@@ -763,39 +779,37 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
                         <span className="text-muted-foreground">-</span>
                       )}
                     </TableCell>
+                    {/* Approval — inline thumbnail */}
                     <TableCell className="text-center">
                       {item.approval?.url ? (
                         <Popover>
                           <PopoverTrigger asChild>
-                            <button className="inline-flex items-center gap-1 text-green-600 hover:text-green-800">
-                              <FileCheck className="h-4 w-4" />
-                              <ExternalLink className="h-3 w-3" />
-                            </button>
+                            {item.approval.url.endsWith('.pdf') ? (
+                              <button className="inline-flex flex-col items-center gap-1 hover:opacity-80 transition-opacity">
+                                <FileCheck className="h-12 w-12 text-green-600" />
+                                <span className="text-xs text-blue-600">PDF</span>
+                              </button>
+                            ) : (
+                              <button className="block mx-auto hover:opacity-80 transition-opacity">
+                                <img
+                                  src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${item.approval.provider}/${item.approval.url}`}
+                                  alt={item.approval.note || "Approval"}
+                                  className="h-16 w-16 object-cover rounded border"
+                                />
+                              </button>
+                            )}
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-2">
                             <div className="space-y-2">
                               {item.approval.url.endsWith('.pdf') ? (
                                 <div className="flex flex-col items-center gap-2 p-4">
                                   <FileCheck className="h-12 w-12 text-green-600" />
-                                  <a
-                                    href={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${item.approval.provider}/${item.approval.url}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-sm text-blue-600 hover:underline"
-                                  >
-                                    Open PDF
-                                  </a>
+                                  <a href={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${item.approval.provider}/${item.approval.url}`} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">Open PDF</a>
                                 </div>
                               ) : (
-                                <img
-                                  src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${item.approval.provider}/${item.approval.url}`}
-                                  alt={item.approval.note || "Approval preview"}
-                                  className="max-w-sm max-h-96 object-contain rounded"
-                                />
+                                <img src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${item.approval.provider}/${item.approval.url}`} alt={item.approval.note || "Approval preview"} className="max-w-sm max-h-96 object-contain rounded" />
                               )}
-                              {item.approval.note && (
-                                <p className="text-xs text-muted-foreground">{item.approval.note}</p>
-                              )}
+                              {item.approval.note && <p className="text-xs text-muted-foreground">{item.approval.note}</p>}
                             </div>
                           </PopoverContent>
                         </Popover>
@@ -803,39 +817,29 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
                         <span className="text-muted-foreground">-</span>
                       )}
                     </TableCell>
+                    {/* Note (= noteImage) — inline thumbnail */}
                     <TableCell className="text-center">
                       {item.noteImage?.url ? (
                         <Popover>
                           <PopoverTrigger asChild>
-                            <button className="inline-flex items-center gap-1 text-orange-600 hover:text-orange-800">
-                              <StickyNote className="h-4 w-4" />
-                              <ExternalLink className="h-3 w-3" />
+                            <button className="block mx-auto hover:opacity-80 transition-opacity">
+                              <img
+                                src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${item.noteImage.provider}/${item.noteImage.url}`}
+                                alt={item.noteImage.note || "Note"}
+                                className="h-16 w-16 object-cover rounded border"
+                              />
                             </button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-2">
                             <div className="space-y-2">
-                              <img
-                                src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${item.noteImage.provider}/${item.noteImage.url}`}
-                                alt={item.noteImage.note || "Note image preview"}
-                                className="max-w-sm max-h-96 object-contain rounded"
-                              />
-                              {item.noteImage.note && (
-                                <p className="text-xs text-muted-foreground">{item.noteImage.note}</p>
-                              )}
+                              <img src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${item.noteImage.provider}/${item.noteImage.url}`} alt={item.noteImage.note || "Note preview"} className="max-w-sm max-h-96 object-contain rounded" />
+                              {item.noteImage.note && <p className="text-xs text-muted-foreground">{item.noteImage.note}</p>}
                             </div>
                           </PopoverContent>
                         </Popover>
                       ) : (
                         <span className="text-muted-foreground">-</span>
                       )}
-                    </TableCell>
-                    <TableCell>{item.code || "-"}</TableCell>
-                    <TableCell>{item.type || "-"}</TableCell>
-                    <TableCell>{item.finishing || "-"}</TableCell>
-                    <TableCell className="max-w-50">
-                      <div className="truncate" title={item.spesification || "-"}>
-                        {item.spesification || "-"}
-                      </div>
                     </TableCell>
                     <TableCell className="text-center">
                       <Button
@@ -856,21 +860,38 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
                         <TableRow key={`sub-${subItem._id || subIndex}`} className="bg-muted/30 text-sm">
                           <TableCell />
                           <TableCell className="text-muted-foreground pl-4 text-xs">{index + 1}.{subIndex + 1}</TableCell>
-                          <TableCell className="pl-6 font-normal">
+                          {/* Item */}
+                          <TableCell className="pl-6 whitespace-normal">
                             <div className="flex items-center gap-2">
                               <div className="w-3 h-px bg-border flex-shrink-0" />
-                              {subItem.name || "-"}
+                              <span>{subItem.name || "-"}</span>
+                            </div>
+                          </TableCell>
+                          {/* Finishing */}
+                          <TableCell className="text-sm">{subItem.finishing || "-"}</TableCell>
+                          {/* Brand/Type/Code/Specification */}
+                          <TableCell className="whitespace-normal align-top">
+                            <div className="space-y-0.5 text-xs">
+                              <div className="text-muted-foreground"><span className="font-medium text-foreground">Brand:</span> {item.brand || "-"}</div>
+                              <div className="text-muted-foreground"><span className="font-medium text-foreground">Type:</span> {subItem.type || "-"}</div>
+                              <div className="font-bold"><span className="font-medium">Code:</span> {subItem.code || "-"}</div>
+                              <div className="italic text-muted-foreground"><span className="not-italic font-medium text-foreground">Spec:</span> {subItem.spesification || "-"}</div>
                             </div>
                           </TableCell>
                           {settings?.showTags && <TableCell />}
-                          <TableCell />
+                          {/* Application — inherit from parent */}
+                          <TableCell className="text-sm">{item.location || "-"}</TableCell>
+                          {/* Image Material — inline thumbnail */}
                           <TableCell className="text-center">
                             {subItem.image?.url ? (
                               <Popover>
                                 <PopoverTrigger asChild>
-                                  <button className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800">
-                                    <Image className="h-4 w-4" />
-                                    <ExternalLink className="h-3 w-3" />
+                                  <button className="block mx-auto hover:opacity-80 transition-opacity">
+                                    <img
+                                      src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${subItem.image.provider}/${subItem.image.url}`}
+                                      alt={subItem.image.note || "Image"}
+                                      className="h-16 w-16 object-cover rounded border"
+                                    />
                                   </button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-2">
@@ -882,14 +903,21 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
                               </Popover>
                             ) : <span className="text-muted-foreground">-</span>}
                           </TableCell>
+                          {/* Approval — inline thumbnail */}
                           <TableCell className="text-center">
                             {subItem.approval?.url ? (
                               <Popover>
                                 <PopoverTrigger asChild>
-                                  <button className="inline-flex items-center gap-1 text-green-600 hover:text-green-800">
-                                    <FileCheck className="h-4 w-4" />
-                                    <ExternalLink className="h-3 w-3" />
-                                  </button>
+                                  {subItem.approval.url.endsWith('.pdf') ? (
+                                    <button className="inline-flex flex-col items-center gap-1 hover:opacity-80 transition-opacity">
+                                      <FileCheck className="h-12 w-12 text-green-600" />
+                                      <span className="text-xs text-blue-600">PDF</span>
+                                    </button>
+                                  ) : (
+                                    <button className="block mx-auto hover:opacity-80 transition-opacity">
+                                      <img src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${subItem.approval.provider}/${subItem.approval.url}`} alt={subItem.approval.note || "Approval"} className="h-16 w-16 object-cover rounded border" />
+                                    </button>
+                                  )}
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-2">
                                   <div className="space-y-2">
@@ -907,29 +935,23 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
                               </Popover>
                             ) : <span className="text-muted-foreground">-</span>}
                           </TableCell>
+                          {/* Note (= noteImage) — inline thumbnail */}
                           <TableCell className="text-center">
                             {subItem.noteImage?.url ? (
                               <Popover>
                                 <PopoverTrigger asChild>
-                                  <button className="inline-flex items-center gap-1 text-orange-600 hover:text-orange-800">
-                                    <StickyNote className="h-4 w-4" />
-                                    <ExternalLink className="h-3 w-3" />
+                                  <button className="block mx-auto hover:opacity-80 transition-opacity">
+                                    <img src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${subItem.noteImage.provider}/${subItem.noteImage.url}`} alt={subItem.noteImage.note || "Note"} className="h-16 w-16 object-cover rounded border" />
                                   </button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-2">
                                   <div className="space-y-2">
-                                    <img src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${subItem.noteImage.provider}/${subItem.noteImage.url}`} alt={subItem.noteImage.note || "Note image"} className="max-w-sm max-h-96 object-contain rounded" />
+                                    <img src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${subItem.noteImage.provider}/${subItem.noteImage.url}`} alt={subItem.noteImage.note || "Note"} className="max-w-sm max-h-96 object-contain rounded" />
                                     {subItem.noteImage.note && <p className="text-xs text-muted-foreground">{subItem.noteImage.note}</p>}
                                   </div>
                                 </PopoverContent>
                               </Popover>
                             ) : <span className="text-muted-foreground">-</span>}
-                          </TableCell>
-                          <TableCell>{subItem.code || "-"}</TableCell>
-                          <TableCell>{subItem.type || "-"}</TableCell>
-                          <TableCell>{subItem.finishing || "-"}</TableCell>
-                          <TableCell className="max-w-50">
-                            <div className="truncate" title={subItem.spesification || "-"}>{subItem.spesification || "-"}</div>
                           </TableCell>
                           <TableCell className="text-center">
                             <div className="flex items-center justify-center gap-1">

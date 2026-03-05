@@ -399,6 +399,7 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
       delete cleanItem._itemIndex
       delete cleanItem._categoryIndex
       delete cleanItem._categoryId
+      delete cleanItem.subItems // sub-items are managed separately, never sent with BOQ update
 
       if (cleanItem.tags) {
         const sanitizedTags = cleanItem.tags.map((tag) => tag.trim()).filter(Boolean)
@@ -846,7 +847,7 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
                             {/* Item */}
                             <TableCell className="pl-6 whitespace-normal">
                               <div className="flex items-center gap-2">
-                                <div className="w-3 h-px bg-border flex-shrink-0" />
+                                <div className="w-3 h-px bg-border shrink-0" />
                                 <span>{subItem.name || "-"}</span>
                               </div>
                             </TableCell>

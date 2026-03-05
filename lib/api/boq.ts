@@ -152,17 +152,25 @@ export const updateBOQ = async (
   projectId: string,
   boqId: string,
   data: {
-    preliminary: Array<{ qty: number; name: string; unit: string; price: number; startDate?: string; endDate?: string }>
+    preliminary: Array<{ _id?: string; qty: number; name: string; unit: string; price: number; startDate?: string; endDate?: string }>
     fittingOut: Array<{
+      _id?: string
       name: string
-      products: Array<{ qty: number; name: string; unit: string; price: number; startDate?: string; endDate?: string }>
+      products: Array<{ _id?: string; qty: number; name: string; unit: string; price: number; startDate?: string; endDate?: string }>
     }>
     furnitureWork: Array<{
+      _id?: string
       name: string
-      products: Array<{ qty: number; name: string; unit: string; price: number; startDate?: string; endDate?: string }>
+      products: Array<{ _id?: string; qty: number; name: string; unit: string; price: number; startDate?: string; endDate?: string }>
+    }>
+    mechanicalElectrical?: Array<{
+      _id?: string
+      name: string
+      products: Array<{ _id?: string; qty: number; name: string; unit: string; price: number; startDate?: string; endDate?: string }>
     }>
   },
 ): Promise<any> => {
+  console.log("Updating BOQ with data:", data)
   return apiRequest<any>(`/projects/${projectId}/boq/${boqId}`, {
     method: "PUT",
     body: JSON.stringify(data),
@@ -347,6 +355,7 @@ export const boqApi = {
     boqId: string,
     boqData: {
       preliminary: Array<{
+        _id?: string
         qty: number
         name: string
         unit: string
@@ -355,8 +364,10 @@ export const boqApi = {
         endDate?: string
       }>
       fittingOut: Array<{
+        _id?: string
         name: string
         products: Array<{
+          _id?: string
           qty: number
           name: string
           unit: string
@@ -366,8 +377,23 @@ export const boqApi = {
         }>
       }>
       furnitureWork: Array<{
+        _id?: string
         name: string
         products: Array<{
+          _id?: string
+          qty: number
+          name: string
+          unit: string
+          price: number
+          startDate?: string
+          endDate?: string
+        }>
+      }>
+      mechanicalElectrical?: Array<{
+        _id?: string
+        name: string
+        products: Array<{
+          _id?: string
           qty: number
           name: string
           unit: string
@@ -439,5 +465,74 @@ export const boqApi = {
   ) => {
     const result = await updateDiscountTax(projectId, boqId, data)
     return { success: true, data: result }
+  },
+
+  // Sub-item helpers — maps internal section names to URL slugs
+  _getSectionSlug: (section: string): string => {
+    switch (section) {
+      case "fittingOut":
+        return "fitting-out"
+      case "furnitureWork":
+        return "furniture-work"
+      case "mechanicalElectrical":
+        return "mechanical-electrical"
+      default:
+        return section
+    }
+  },
+
+  addSubItem: async (
+    projectId: string,
+    boqId: string,
+    section: string,
+    categoryId: string | null,
+    itemId: string,
+    body: Record<string, unknown>,
+  ) => {
+    let endpoint: string
+    if (section === "preliminary") {
+      endpoint = `/projects/${projectId}/boq/${boqId}/preliminary/${itemId}/sub-items`
+    } else {
+      const slug = boqApi._getSectionSlug(section)
+      endpoint = `/projects/${projectId}/boq/${boqId}/${slug}/${categoryId}/${itemId}/sub-items`
+    }
+    return apiRequest<any>(endpoint, { method: "POST", body: JSON.stringify(body) })
+  },
+
+  updateSubItem: async (
+    projectId: string,
+    boqId: string,
+    section: string,
+    categoryId: string | null,
+    itemId: string,
+    subItemId: string,
+    body: Record<string, unknown>,
+  ) => {
+    let endpoint: string
+    if (section === "preliminary") {
+      endpoint = `/projects/${projectId}/boq/${boqId}/preliminary/${itemId}/sub-items/${subItemId}`
+    } else {
+      const slug = boqApi._getSectionSlug(section)
+      endpoint = `/projects/${projectId}/boq/${boqId}/${slug}/${categoryId}/${itemId}/sub-items/${subItemId}`
+    }
+    return apiRequest<any>(endpoint, { method: "PUT", body: JSON.stringify(body) })
+  },
+
+  deleteSubItem: async (
+    projectId: string,
+    boqId: string,
+    section: string,
+    categoryId: string | null,
+    itemId: string,
+    subItemId: string,
+  ) => {
+    let endpoint: string
+    if (section === "preliminary") {
+      endpoint = `/projects/${projectId}/boq/${boqId}/preliminary/${itemId}/sub-items/${subItemId}`
+    } else {
+      const slug = boqApi._getSectionSlug(section)
+      endpoint = `/projects/${projectId}/boq/${boqId}/${slug}/${categoryId}/${itemId}/sub-items/${subItemId}`
+    }
+    return apiRequest<any>(endpoint, { method: "DELETE" })
   },
 }

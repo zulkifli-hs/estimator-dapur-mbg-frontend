@@ -662,326 +662,300 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
       )
     }
 
-    const totalCols = settings?.showTags ? 11 : 10
+    const totalCols = settings?.showTags ? 10 : 9
 
     return (
       <>
-        <div className="flex justify-end gap-2 mb-2">
-          <Button variant="outline" size="sm" onClick={() => expandWithSubItems(items)}>
-            Expand with Sub-items
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => expandAll(items)}>
-            Expand All
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => collapseAll(items)}>
-            Collapse All
-          </Button>
-        </div>
         <div className="border rounded-lg overflow-x-auto">
-        <Table className="[&_th]:border [&_th]:border-border [&_td]:border [&_td]:border-border">
-          <TableHeader>
-            {/* Row 1: group headers */}
-            <TableRow>
-              <TableHead rowSpan={2} className="w-8" />
-              <TableHead rowSpan={2} className="w-12 align-middle">No</TableHead>
-              <TableHead colSpan={3} className="text-center font-bold border-b">Material</TableHead>
-              {settings?.showTags && <TableHead rowSpan={2} className="align-middle">Tags</TableHead>}
-              <TableHead rowSpan={2} className="min-w-36 align-middle">Application</TableHead>
-              <TableHead rowSpan={2} className="text-center align-middle">Image Material</TableHead>
-              <TableHead rowSpan={2} className="text-center align-middle">Approval</TableHead>
-              <TableHead rowSpan={2} className="text-center align-middle">Note</TableHead>
-              <TableHead rowSpan={2} className="text-center align-middle">Actions</TableHead>
-            </TableRow>
-            {/* Row 2: Material sub-headers */}
-            <TableRow>
-              <TableHead className="min-w-48">Item</TableHead>
-              <TableHead className="min-w-32">Finishing</TableHead>
-              <TableHead className="min-w-48">Brand/Type/Code/Specification</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.map((item, index) => {
-              const expandKey = `${item._boqId}-${item._id}`
-              const isExpanded = !!item._id && expandedItemKeys.has(expandKey)
-              return (
-                <>
-                  <TableRow key={`${item._source}-${item.name}-${index}`}>
-                    {/* Expand toggle */}
-                    <TableCell className="text-center p-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 w-7 p-0"
-                        onClick={() => item._id && toggleItemExpand(expandKey)}
-                        disabled={!item._id}
-                      >
-                        {isExpanded ? (
-                          <ChevronDown className="h-4 w-4" />
-                        ) : (
-                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                        )}
-                      </Button>
-                    </TableCell>
-                    <TableCell>{index + 1}</TableCell>
-                    {/* Item */}
-                    <TableCell className="font-medium whitespace-normal">{item.name || "-"}</TableCell>
-                    {/* Finishing */}
-                    <TableCell className="text-sm">{item.finishing || "-"}</TableCell>
-                    {/* Brand/Type/Code/Specification */}
-                    <TableCell className="whitespace-normal align-top">
-                      <div className="space-y-0.5 text-xs">
-                        <div className="text-muted-foreground"><span className="font-medium text-foreground">Brand:</span> {item.brand || "-"}</div>
-                        <div className="text-muted-foreground"><span className="font-medium text-foreground">Type:</span> {item.type || "-"}</div>
-                        <div className="font-bold"><span className="font-medium">Code:</span> {item.code || "-"}</div>
-                        <div className="italic text-muted-foreground"><span className="not-italic font-medium text-foreground">Spec:</span> {item.spesification || "-"}</div>
-                      </div>
-                    </TableCell>
-                    {settings?.showTags && (
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {item.tags?.map((tag, i) => (
-                            <Badge key={i} variant="outline" className="text-xs">
-                              {tag}
-                            </Badge>
-                          ))}
+          <Table className="[&_th]:border [&_th]:border-border [&_td]:border [&_td]:border-border">
+            <TableHeader>
+              {/* Row 1: group headers */}
+              <TableRow>
+                <TableHead rowSpan={2} className="w-12 align-middle">No</TableHead>
+                <TableHead colSpan={3} className="text-center font-bold border-b">Material</TableHead>
+                {settings?.showTags && <TableHead rowSpan={2} className="align-middle">Tags</TableHead>}
+                <TableHead rowSpan={2} className="min-w-36 align-middle">Application</TableHead>
+                <TableHead rowSpan={2} className="text-center align-middle">Image Material</TableHead>
+                <TableHead rowSpan={2} className="text-center align-middle">Approval</TableHead>
+                <TableHead rowSpan={2} className="text-center align-middle">Note</TableHead>
+                <TableHead rowSpan={2} className="text-center align-middle">Actions</TableHead>
+              </TableRow>
+              {/* Row 2: Material sub-headers */}
+              <TableRow>
+                <TableHead className="min-w-48">Item</TableHead>
+                <TableHead className="min-w-32">Finishing</TableHead>
+                <TableHead className="min-w-48">Brand/Type/Code/Specification</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {items.map((item, index) => {
+                return (
+                  <>
+                    <TableRow key={`${item._source}-${item.name}-${index}`}>
+                      <TableCell className="text-center">{index + 1}</TableCell>
+                      {/* Item */}
+                      <TableCell className="font-medium whitespace-normal">{item.name || "-"}</TableCell>
+                      {/* Finishing */}
+                      <TableCell className="text-sm">{item.finishing || "-"}</TableCell>
+                      {/* Brand/Type/Code/Specification */}
+                      <TableCell className="whitespace-normal align-top">
+                        <div className="space-y-0.5 text-xs">
+                          <div className="text-muted-foreground"><span className="font-medium text-foreground">Brand:</span> {item.brand || "-"}</div>
+                          <div className="text-muted-foreground"><span className="font-medium text-foreground">Type:</span> {item.type || "-"}</div>
+                          <div className="font-bold"><span className="font-medium">Code:</span> {item.code || "-"}</div>
+                          <div className="italic text-muted-foreground"><span className="not-italic font-medium text-foreground">Spec:</span> {item.spesification || "-"}</div>
                         </div>
                       </TableCell>
-                    )}
-                    {/* Application (location) — read-only */}
-                    <TableCell className="text-sm">{item.location || "-"}</TableCell>
-                    {/* Image Material — inline thumbnail */}
-                    <TableCell className="text-center">
-                      {item.image?.url ? (
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <button className="block mx-auto hover:opacity-80 transition-opacity">
-                              <img
-                                src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${item.image.provider}/${item.image.url}`}
-                                alt={item.image.note || "Image preview"}
-                                className="h-16 w-16 object-cover rounded border"
-                              />
-                            </button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-2">
-                            <div className="space-y-2">
-                              <img
-                                src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${item.image.provider}/${item.image.url}`}
-                                alt={item.image.note || "Image preview"}
-                                className="max-w-sm max-h-96 object-contain rounded"
-                              />
-                              {item.image.note && (
-                                <p className="text-xs text-muted-foreground">{item.image.note}</p>
-                              )}
-                            </div>
-                          </PopoverContent>
-                        </Popover>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
+                      {settings?.showTags && (
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {item.tags?.map((tag, i) => (
+                              <Badge key={i} variant="outline" className="text-xs">
+                                {tag}
+                              </Badge>
+                            ))}
+                          </div>
+                        </TableCell>
                       )}
-                    </TableCell>
-                    {/* Approval — inline thumbnail */}
-                    <TableCell className="text-center">
-                      {item.approval?.url ? (
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            {item.approval.url.endsWith('.pdf') ? (
-                              <button className="inline-flex flex-col items-center gap-1 hover:opacity-80 transition-opacity">
-                                <FileCheck className="h-12 w-12 text-green-600" />
-                                <span className="text-xs text-blue-600">PDF</span>
-                              </button>
-                            ) : (
+                      {/* Application (location) — read-only */}
+                      <TableCell className="text-sm">{item.location || "-"}</TableCell>
+                      {/* Image Material — inline thumbnail */}
+                      <TableCell className="text-center">
+                        {item.image?.url ? (
+                          <Popover>
+                            <PopoverTrigger asChild>
                               <button className="block mx-auto hover:opacity-80 transition-opacity">
                                 <img
-                                  src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${item.approval.provider}/${item.approval.url}`}
-                                  alt={item.approval.note || "Approval"}
-                                  className="h-16 w-16 object-cover rounded border"
+                                  src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${item.image.provider}/${item.image.url}`}
+                                  alt={item.image.note || "Image preview"}
+                                  className="h-24 w-24 cursor-pointer object-cover rounded border"
                                 />
                               </button>
-                            )}
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-2">
-                            <div className="space-y-2">
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-2">
+                              <div className="space-y-2">
+                                <img
+                                  src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${item.image.provider}/${item.image.url}`}
+                                  alt={item.image.note || "Image preview"}
+                                  className="max-w-sm max-h-96 object-contain rounded"
+                                />
+                                {item.image.note && (
+                                  <p className="text-xs text-muted-foreground">{item.image.note}</p>
+                                )}
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      {/* Approval — inline thumbnail */}
+                      <TableCell className="text-center">
+                        {item.approval?.url ? (
+                          <Popover>
+                            <PopoverTrigger asChild>
                               {item.approval.url.endsWith('.pdf') ? (
-                                <div className="flex flex-col items-center gap-2 p-4">
+                                <button className="inline-flex flex-col items-center gap-1 hover:opacity-80 transition-opacity">
                                   <FileCheck className="h-12 w-12 text-green-600" />
-                                  <a href={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${item.approval.provider}/${item.approval.url}`} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">Open PDF</a>
-                                </div>
+                                  <span className="text-xs text-blue-600">PDF</span>
+                                </button>
                               ) : (
-                                <img src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${item.approval.provider}/${item.approval.url}`} alt={item.approval.note || "Approval preview"} className="max-w-sm max-h-96 object-contain rounded" />
+                                <button className="block mx-auto hover:opacity-80 transition-opacity">
+                                  <img
+                                    src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${item.approval.provider}/${item.approval.url}`}
+                                    alt={item.approval.note || "Approval"}
+                                    className="h-24 w-24 cursor-pointer object-cover rounded border"
+                                  />
+                                </button>
                               )}
-                              {item.approval.note && <p className="text-xs text-muted-foreground">{item.approval.note}</p>}
-                            </div>
-                          </PopoverContent>
-                        </Popover>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    {/* Note (= noteImage) — inline thumbnail */}
-                    <TableCell className="text-center">
-                      {item.noteImage?.url ? (
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <button className="block mx-auto hover:opacity-80 transition-opacity">
-                              <img
-                                src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${item.noteImage.provider}/${item.noteImage.url}`}
-                                alt={item.noteImage.note || "Note"}
-                                className="h-16 w-16 object-cover rounded border"
-                              />
-                            </button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-2">
-                            <div className="space-y-2">
-                              <img src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${item.noteImage.provider}/${item.noteImage.url}`} alt={item.noteImage.note || "Note preview"} className="max-w-sm max-h-96 object-contain rounded" />
-                              {item.noteImage.note && <p className="text-xs text-muted-foreground">{item.noteImage.note}</p>}
-                            </div>
-                          </PopoverContent>
-                        </Popover>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEditItem(item)}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-
-                  {/* ── Expanded sub-item rows ── */}
-                  {isExpanded && (
-                    <>
-                      {(item.subItems || []).map((subItem, subIndex) => (
-                        <TableRow key={`sub-${subItem._id || subIndex}`} className="bg-muted/30 text-sm">
-                          <TableCell />
-                          <TableCell className="text-muted-foreground pl-4 text-xs">{index + 1}.{subIndex + 1}</TableCell>
-                          {/* Item */}
-                          <TableCell className="pl-6 whitespace-normal">
-                            <div className="flex items-center gap-2">
-                              <div className="w-3 h-px bg-border flex-shrink-0" />
-                              <span>{subItem.name || "-"}</span>
-                            </div>
-                          </TableCell>
-                          {/* Finishing */}
-                          <TableCell className="text-sm">{subItem.finishing || "-"}</TableCell>
-                          {/* Brand/Type/Code/Specification */}
-                          <TableCell className="whitespace-normal align-top">
-                            <div className="space-y-0.5 text-xs">
-                              <div className="text-muted-foreground"><span className="font-medium text-foreground">Brand:</span> {item.brand || "-"}</div>
-                              <div className="text-muted-foreground"><span className="font-medium text-foreground">Type:</span> {subItem.type || "-"}</div>
-                              <div className="font-bold"><span className="font-medium">Code:</span> {subItem.code || "-"}</div>
-                              <div className="italic text-muted-foreground"><span className="not-italic font-medium text-foreground">Spec:</span> {subItem.spesification || "-"}</div>
-                            </div>
-                          </TableCell>
-                          {settings?.showTags && <TableCell />}
-                          {/* Application — inherit from parent */}
-                          <TableCell className="text-sm">{item.location || "-"}</TableCell>
-                          {/* Image Material — inline thumbnail */}
-                          <TableCell className="text-center">
-                            {subItem.image?.url ? (
-                              <Popover>
-                                <PopoverTrigger asChild>
-                                  <button className="block mx-auto hover:opacity-80 transition-opacity">
-                                    <img
-                                      src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${subItem.image.provider}/${subItem.image.url}`}
-                                      alt={subItem.image.note || "Image"}
-                                      className="h-16 w-16 object-cover rounded border"
-                                    />
-                                  </button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-2">
-                                  <div className="space-y-2">
-                                    <img src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${subItem.image.provider}/${subItem.image.url}`} alt={subItem.image.note || "Image"} className="max-w-sm max-h-96 object-contain rounded" />
-                                    {subItem.image.note && <p className="text-xs text-muted-foreground">{subItem.image.note}</p>}
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-2">
+                              <div className="space-y-2">
+                                {item.approval.url.endsWith('.pdf') ? (
+                                  <div className="flex flex-col items-center gap-2 p-4">
+                                    <FileCheck className="h-12 w-12 text-green-600" />
+                                    <a href={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${item.approval.provider}/${item.approval.url}`} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">Open PDF</a>
                                   </div>
-                                </PopoverContent>
-                              </Popover>
-                            ) : <span className="text-muted-foreground">-</span>}
-                          </TableCell>
-                          {/* Approval — inline thumbnail */}
-                          <TableCell className="text-center">
-                            {subItem.approval?.url ? (
-                              <Popover>
-                                <PopoverTrigger asChild>
-                                  {subItem.approval.url.endsWith('.pdf') ? (
-                                    <button className="inline-flex flex-col items-center gap-1 hover:opacity-80 transition-opacity">
-                                      <FileCheck className="h-12 w-12 text-green-600" />
-                                      <span className="text-xs text-blue-600">PDF</span>
-                                    </button>
-                                  ) : (
-                                    <button className="block mx-auto hover:opacity-80 transition-opacity">
-                                      <img src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${subItem.approval.provider}/${subItem.approval.url}`} alt={subItem.approval.note || "Approval"} className="h-16 w-16 object-cover rounded border" />
-                                    </button>
-                                  )}
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-2">
-                                  <div className="space-y-2">
-                                    {subItem.approval.url.endsWith('.pdf') ? (
-                                      <div className="flex flex-col items-center gap-2 p-4">
-                                        <FileCheck className="h-12 w-12 text-green-600" />
-                                        <a href={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${subItem.approval.provider}/${subItem.approval.url}`} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">Open PDF</a>
-                                      </div>
-                                    ) : (
-                                      <img src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${subItem.approval.provider}/${subItem.approval.url}`} alt={subItem.approval.note || "Approval"} className="max-w-sm max-h-96 object-contain rounded" />
-                                    )}
-                                    {subItem.approval.note && <p className="text-xs text-muted-foreground">{subItem.approval.note}</p>}
-                                  </div>
-                                </PopoverContent>
-                              </Popover>
-                            ) : <span className="text-muted-foreground">-</span>}
-                          </TableCell>
-                          {/* Note (= noteImage) — inline thumbnail */}
-                          <TableCell className="text-center">
-                            {subItem.noteImage?.url ? (
-                              <Popover>
-                                <PopoverTrigger asChild>
-                                  <button className="block mx-auto hover:opacity-80 transition-opacity">
-                                    <img src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${subItem.noteImage.provider}/${subItem.noteImage.url}`} alt={subItem.noteImage.note || "Note"} className="h-16 w-16 object-cover rounded border" />
-                                  </button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-2">
-                                  <div className="space-y-2">
-                                    <img src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${subItem.noteImage.provider}/${subItem.noteImage.url}`} alt={subItem.noteImage.note || "Note"} className="max-w-sm max-h-96 object-contain rounded" />
-                                    {subItem.noteImage.note && <p className="text-xs text-muted-foreground">{subItem.noteImage.note}</p>}
-                                  </div>
-                                </PopoverContent>
-                              </Popover>
-                            ) : <span className="text-muted-foreground">-</span>}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <div className="flex items-center justify-center gap-1">
-                              <Button variant="ghost" size="sm" onClick={() => handleEditSubItem(item, subItem)} className="h-7 w-7 p-0">
-                                <Pencil className="h-3 w-3" />
-                              </Button>
-                              <Button variant="ghost" size="sm" onClick={() => handleDeleteSubItem(item, subItem)} className="h-7 w-7 p-0 text-destructive hover:text-destructive">
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                      {/* Add sub-item row */}
-                      <TableRow className="bg-muted/10 hover:bg-muted/20">
-                        <TableCell colSpan={totalCols} className="text-center py-2">
-                          <Button variant="ghost" size="sm" onClick={() => handleAddSubItem(item)} className="h-7 gap-1 text-muted-foreground hover:text-foreground">
-                            <Plus className="h-3 w-3" />
-                            Add Sub-item
+                                ) : (
+                                  <img src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${item.approval.provider}/${item.approval.url}`} alt={item.approval.note || "Approval preview"} className="max-w-sm max-h-96 object-contain rounded" />
+                                )}
+                                {item.approval.note && <p className="text-xs text-muted-foreground">{item.approval.note}</p>}
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      {/* Note (= noteImage) — inline thumbnail */}
+                      <TableCell className="text-center">
+                        {item.noteImage?.url ? (
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <button className="block mx-auto hover:opacity-80 transition-opacity">
+                                <img
+                                  src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${item.noteImage.provider}/${item.noteImage.url}`}
+                                  alt={item.noteImage.note || "Note"}
+                                  className="h-24 w-24 cursor-pointer object-cover rounded border"
+                                />
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-2">
+                              <div className="space-y-2">
+                                <img src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${item.noteImage.provider}/${item.noteImage.url}`} alt={item.noteImage.note || "Note preview"} className="max-w-sm max-h-96 object-contain rounded" />
+                                {item.noteImage.note && <p className="text-xs text-muted-foreground">{item.noteImage.note}</p>}
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditItem(item)}
+                            className="h-8 w-8 p-0"
+                            title="Edit item"
+                          >
+                            <Pencil className="h-4 w-4" />
                           </Button>
-                        </TableCell>
-                      </TableRow>
-                    </>
-                  )}
-                </>
-              )
-            })}
-          </TableBody>
-        </Table>
-      </div>
+                          {item._id && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleAddSubItem(item)}
+                              className="h-8 w-8 p-0 text-primary hover:text-foreground"
+                              title="Add sub-item"
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+
+                    {/* ── Sub-item rows (always visible) ── */}
+                    {(item.subItems || []).length > 0 && (
+                      <>
+                        {(item.subItems || []).map((subItem, subIndex) => (
+                          <TableRow key={`sub-${subItem._id || subIndex}`} className="bg-muted/30 text-sm">
+                            <TableCell className="text-muted-foreground pl-4 text-xs text-center">{index + 1}.{subIndex + 1}</TableCell>
+                            {/* Item */}
+                            <TableCell className="pl-6 whitespace-normal">
+                              <div className="flex items-center gap-2">
+                                <div className="w-3 h-px bg-border flex-shrink-0" />
+                                <span>{subItem.name || "-"}</span>
+                              </div>
+                            </TableCell>
+                            {/* Finishing */}
+                            <TableCell className="text-sm">{subItem.finishing || "-"}</TableCell>
+                            {/* Brand/Type/Code/Specification */}
+                            <TableCell className="whitespace-normal align-top">
+                              <div className="space-y-0.5 text-xs">
+                                <div className="text-muted-foreground"><span className="font-medium text-foreground">Brand:</span> {item.brand || "-"}</div>
+                                <div className="text-muted-foreground"><span className="font-medium text-foreground">Type:</span> {subItem.type || "-"}</div>
+                                <div className="font-bold"><span className="font-medium">Code:</span> {subItem.code || "-"}</div>
+                                <div className="italic text-muted-foreground"><span className="not-italic font-medium text-foreground">Spec:</span> {subItem.spesification || "-"}</div>
+                              </div>
+                            </TableCell>
+                            {settings?.showTags && <TableCell />}
+                            {/* Application — inherit from parent */}
+                            <TableCell className="text-sm">{item.location || "-"}</TableCell>
+                            {/* Image Material — inline thumbnail */}
+                            <TableCell className="text-center">
+                              {subItem.image?.url ? (
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <button className="block mx-auto hover:opacity-80 transition-opacity">
+                                      <img
+                                        src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${subItem.image.provider}/${subItem.image.url}`}
+                                        alt={subItem.image.note || "Image"}
+                                        className="h-24 w-24 cursor-pointer object-cover rounded border"
+                                      />
+                                    </button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-auto p-2">
+                                    <div className="space-y-2">
+                                      <img src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${subItem.image.provider}/${subItem.image.url}`} alt={subItem.image.note || "Image"} className="max-w-sm max-h-96 object-contain rounded" />
+                                      {subItem.image.note && <p className="text-xs text-muted-foreground">{subItem.image.note}</p>}
+                                    </div>
+                                  </PopoverContent>
+                                </Popover>
+                              ) : <span className="text-muted-foreground">-</span>}
+                            </TableCell>
+                            {/* Approval — inline thumbnail */}
+                            <TableCell className="text-center">
+                              {subItem.approval?.url ? (
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    {subItem.approval.url.endsWith('.pdf') ? (
+                                      <button className="inline-flex flex-col items-center gap-1 hover:opacity-80 transition-opacity">
+                                        <FileCheck className="h-12 w-12 text-green-600" />
+                                        <span className="text-xs text-blue-600">PDF</span>
+                                      </button>
+                                    ) : (
+                                      <button className="block mx-auto hover:opacity-80 transition-opacity">
+                                        <img src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${subItem.approval.provider}/${subItem.approval.url}`} alt={subItem.approval.note || "Approval"} className="h-24 w-24 cursor-pointer object-cover rounded border" />
+                                      </button>
+                                    )}
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-auto p-2">
+                                    <div className="space-y-2">
+                                      {subItem.approval.url.endsWith('.pdf') ? (
+                                        <div className="flex flex-col items-center gap-2 p-4">
+                                          <FileCheck className="h-12 w-12 text-green-600" />
+                                          <a href={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${subItem.approval.provider}/${subItem.approval.url}`} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">Open PDF</a>
+                                        </div>
+                                      ) : (
+                                        <img src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${subItem.approval.provider}/${subItem.approval.url}`} alt={subItem.approval.note || "Approval"} className="max-w-sm max-h-96 object-contain rounded" />
+                                      )}
+                                      {subItem.approval.note && <p className="text-xs text-muted-foreground">{subItem.approval.note}</p>}
+                                    </div>
+                                  </PopoverContent>
+                                </Popover>
+                              ) : <span className="text-muted-foreground">-</span>}
+                            </TableCell>
+                            {/* Note (= noteImage) — inline thumbnail */}
+                            <TableCell className="text-center">
+                              {subItem.noteImage?.url ? (
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <button className="block mx-auto hover:opacity-80 transition-opacity">
+                                      <img src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${subItem.noteImage.provider}/${subItem.noteImage.url}`} alt={subItem.noteImage.note || "Note"} className="h-24 w-24 cursor-pointer object-cover rounded border" />
+                                    </button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-auto p-2">
+                                    <div className="space-y-2">
+                                      <img src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/public/${subItem.noteImage.provider}/${subItem.noteImage.url}`} alt={subItem.noteImage.note || "Note"} className="max-w-sm max-h-96 object-contain rounded" />
+                                      {subItem.noteImage.note && <p className="text-xs text-muted-foreground">{subItem.noteImage.note}</p>}
+                                    </div>
+                                  </PopoverContent>
+                                </Popover>
+                              ) : <span className="text-muted-foreground">-</span>}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <div className="flex items-center justify-center gap-1">
+                                <Button variant="ghost" size="sm" onClick={() => handleEditSubItem(item, subItem)} className="h-7 w-7 p-0">
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
+                                <Button variant="ghost" size="sm" onClick={() => handleDeleteSubItem(item, subItem)} className="h-7 w-7 p-0 text-destructive hover:text-destructive">
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </>
+                    )}
+                  </>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </div>
       </>
     )
   }

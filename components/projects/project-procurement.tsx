@@ -281,6 +281,15 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
         })
 
         setGroupedItems(grouped)
+
+        // Auto-expand items that already have sub-items
+        const keysWithSubItems = new Set<string>()
+        allItems.forEach((item) => {
+          if (item._id && item.subItems && item.subItems.length > 0) {
+            keysWithSubItems.add(`${item._boqId}-${item._id}`)
+          }
+        })
+        setExpandedItemKeys(keysWithSubItems)
       }
     } catch (error) {
       console.error("Failed to fetch BOQ items:", error)
@@ -389,6 +398,7 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
       delete cleanItem._section
       delete cleanItem._itemIndex
       delete cleanItem._categoryIndex
+      delete cleanItem._categoryId
 
       if (cleanItem.tags) {
         const sanitizedTags = cleanItem.tags.map((tag) => tag.trim()).filter(Boolean)
@@ -478,6 +488,42 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
       const next = new Set(prev)
       if (next.has(key)) next.delete(key)
       else next.add(key)
+      return next
+    })
+  }
+
+  const collapseAll = (items: BOQItem[]) => {
+    setExpandedItemKeys((prev) => {
+      const next = new Set(prev)
+      items.forEach((item) => {
+        if (item._id) next.delete(`${item._boqId}-${item._id}`)
+      })
+      return next
+    })
+  }
+
+  const expandAll = (items: BOQItem[]) => {
+    setExpandedItemKeys((prev) => {
+      const next = new Set(prev)
+      items.forEach((item) => {
+        if (item._id) next.add(`${item._boqId}-${item._id}`)
+      })
+      return next
+    })
+  }
+
+  const expandWithSubItems = (items: BOQItem[]) => {
+    setExpandedItemKeys((prev) => {
+      const next = new Set(prev)
+      // First collapse all items in this list, then expand only those with sub-items
+      items.forEach((item) => {
+        if (item._id) next.delete(`${item._boqId}-${item._id}`)
+      })
+      items.forEach((item) => {
+        if (item._id && item.subItems && item.subItems.length > 0) {
+          next.add(`${item._boqId}-${item._id}`)
+        }
+      })
       return next
     })
   }
@@ -619,7 +665,19 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
     const totalCols = settings?.showTags ? 13 : 12
 
     return (
-      <div className="border rounded-lg overflow-x-auto">
+      <>
+        <div className="flex justify-end gap-2 mb-2">
+          <Button variant="outline" size="sm" onClick={() => expandWithSubItems(items)}>
+            Expand with Sub-items
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => expandAll(items)}>
+            Expand All
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => collapseAll(items)}>
+            Collapse All
+          </Button>
+        </div>
+        <div className="border rounded-lg overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -902,6 +960,7 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
           </TableBody>
         </Table>
       </div>
+      </>
     )
   }
 

@@ -152,17 +152,25 @@ export const updateBOQ = async (
   projectId: string,
   boqId: string,
   data: {
-    preliminary: Array<{ qty: number; name: string; unit: string; price: number; startDate?: string; endDate?: string }>
+    preliminary: Array<{ _id?: string; qty: number; name: string; unit: string; price: number; startDate?: string; endDate?: string }>
     fittingOut: Array<{
+      _id?: string
       name: string
-      products: Array<{ qty: number; name: string; unit: string; price: number; startDate?: string; endDate?: string }>
+      products: Array<{ _id?: string; qty: number; name: string; unit: string; price: number; startDate?: string; endDate?: string }>
     }>
     furnitureWork: Array<{
+      _id?: string
       name: string
-      products: Array<{ qty: number; name: string; unit: string; price: number; startDate?: string; endDate?: string }>
+      products: Array<{ _id?: string; qty: number; name: string; unit: string; price: number; startDate?: string; endDate?: string }>
+    }>
+    mechanicalElectrical?: Array<{
+      _id?: string
+      name: string
+      products: Array<{ _id?: string; qty: number; name: string; unit: string; price: number; startDate?: string; endDate?: string }>
     }>
   },
 ): Promise<any> => {
+  console.log("Updating BOQ with data:", data)
   return apiRequest<any>(`/projects/${projectId}/boq/${boqId}`, {
     method: "PUT",
     body: JSON.stringify(data),
@@ -347,6 +355,7 @@ export const boqApi = {
     boqId: string,
     boqData: {
       preliminary: Array<{
+        _id?: string
         qty: number
         name: string
         unit: string
@@ -355,8 +364,10 @@ export const boqApi = {
         endDate?: string
       }>
       fittingOut: Array<{
+        _id?: string
         name: string
         products: Array<{
+          _id?: string
           qty: number
           name: string
           unit: string
@@ -366,8 +377,23 @@ export const boqApi = {
         }>
       }>
       furnitureWork: Array<{
+        _id?: string
         name: string
         products: Array<{
+          _id?: string
+          qty: number
+          name: string
+          unit: string
+          price: number
+          startDate?: string
+          endDate?: string
+        }>
+      }>
+      mechanicalElectrical?: Array<{
+        _id?: string
+        name: string
+        products: Array<{
+          _id?: string
           qty: number
           name: string
           unit: string

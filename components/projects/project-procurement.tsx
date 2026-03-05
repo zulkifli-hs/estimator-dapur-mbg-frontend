@@ -1217,23 +1217,13 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
 
               <div className="space-y-2">
                 <Label htmlFor="specification">Specification</Label>
-                <Textarea
+                <Input
                   id="specification"
                   value={editingItem.spesification || ""}
                   onChange={(e) => setEditingItem({ ...editingItem, spesification: e.target.value })}
-                  rows={2}
+                  placeholder="Enter specification"
                 />
               </div>
-
-              {/* <div className="space-y-2">
-                <Label htmlFor="note">Note</Label>
-                <Textarea
-                  id="note"
-                  value={editingItem.note || ""}
-                  onChange={(e) => setEditingItem({ ...editingItem, note: e.target.value })}
-                  rows={2}
-                />
-              </div> */}
 
               <div className="space-y-2">
                 <Label htmlFor="edit-item-tag">Tag</Label>
@@ -1281,227 +1271,122 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
                 </div>
               )}
 
-              <div className="space-y-4 border-t pt-4">
-                <h4 className="font-semibold">Image</h4>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4">
-                    <div className="flex-1">
-                      <Label htmlFor="imageFile" className="cursor-pointer">
-                        <div className="flex items-center gap-2 px-4 py-2 border border-dashed rounded-md hover:bg-primary hover:text-primary-foreground transition-colors">
-                          {uploadingImage ? (
-                            <>
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                              <span>Uploading...</span>
-                            </>
-                          ) : (
-                            <>
-                              <Upload className="h-4 w-4" />
-                              <span>Upload Image</span>
-                            </>
-                          )}
-                        </div>
-                      </Label>
-                      <Input
-                        id="imageFile"
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0]
-                          if (file) handleImageUpload(file, 'image')
-                        }}
-                        disabled={uploadingImage}
-                      />
+              <div className="grid grid-cols-3 gap-3 border-t pt-4">
+                {/* Image */}
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground">Image</p>
+                  <Label htmlFor="imageFile" className="cursor-pointer block">
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 border border-dashed rounded text-xs hover:bg-primary hover:text-primary-foreground transition-colors">
+                      {uploadingImage ? <><Loader2 className="h-3 w-3 animate-spin" /><span>Uploading...</span></> : <><Upload className="h-3 w-3" /><span>Upload</span></>}
                     </div>
-                  </div>
+                  </Label>
+                  <Input id="imageFile" type="file" accept="image/*" className="hidden"
+                    onChange={(e) => { const file = e.target.files?.[0]; if (file) handleImageUpload(file, 'image') }}
+                    disabled={uploadingImage}
+                  />
                   {editingItem.image?.url && (
-                    <div className="space-y-2">
-                      <Label>Preview</Label>
-                      <div className="border rounded-lg p-2 bg-muted/50">
-                        <div className="flex flex-col items-center gap-2 p-4">
-                          <img
-                            src={`${API_BASE_URL}/public/${editingItem.image.provider}/${editingItem.image.url}`}
-                            alt="Image preview"
-                            className="max-w-full max-h-64 object-contain rounded mx-auto"
-                          />
-                          <a
-                            href={`${API_BASE_URL}/public/${editingItem.image.provider}/${editingItem.image.url}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm text-blue-600 hover:underline"
-                          >
-                            Open in new tab
-                          </a>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="imageNote">Note</Label>
-                        <Input
-                          id="imageNote"
-                          value={editingItem.image?.note || ""}
-                          onChange={(e) => setEditingItem({
-                            ...editingItem,
-                            image: { ...editingItem.image, note: e.target.value, url: editingItem.image?.url || "", provider: editingItem.image?.provider || "local" } as any
-                          })}
-                          placeholder="Optional note for image"
-                        />
-                      </div>
-                    </div>
+                    <>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button className="block w-full hover:opacity-80 transition-opacity">
+                            <img src={`${API_BASE_URL}/public/${editingItem.image.provider}/${editingItem.image.url}`} alt="Image" className="w-full aspect-square object-cover rounded border" />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-2">
+                          <div className="space-y-1">
+                            <img src={`${API_BASE_URL}/public/${editingItem.image.provider}/${editingItem.image.url}`} alt="Image" className="max-w-sm max-h-96 object-contain rounded" />
+                            {editingItem.image.note && <p className="text-xs text-muted-foreground">{editingItem.image.note}</p>}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                      <Input className="h-8 text-xs" placeholder="Note"
+                        value={editingItem.image?.note || ""}
+                        onChange={(e) => setEditingItem({ ...editingItem, image: { ...editingItem.image, note: e.target.value, url: editingItem.image?.url || "", provider: editingItem.image?.provider || "local" } as any })}
+                      />
+                    </>
                   )}
                 </div>
-              </div>
 
-              <div className="space-y-4 border-t pt-4">
-                <h4 className="font-semibold">Approval</h4>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4">
-                    <div className="flex-1">
-                      <Label htmlFor="approvalFile" className="cursor-pointer">
-                        <div className="flex items-center gap-2 px-4 py-2 border border-dashed rounded-md hover:bg-primary hover:text-primary-foreground transition-colors">
-                          {uploadingApproval ? (
-                            <>
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                              <span>Uploading...</span>
-                            </>
-                          ) : (
-                            <>
-                              <Upload className="h-4 w-4" />
-                              <span>Upload Approval</span>
-                            </>
-                          )}
-                        </div>
-                      </Label>
-                      <Input
-                        id="approvalFile"
-                        type="file"
-                        accept="image/*,.pdf"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0]
-                          if (file) handleImageUpload(file, 'approval')
-                        }}
-                        disabled={uploadingApproval}
-                      />
+                {/* Approval */}
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground">Approval</p>
+                  <Label htmlFor="approvalFile" className="cursor-pointer block">
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 border border-dashed rounded text-xs hover:bg-primary hover:text-primary-foreground transition-colors">
+                      {uploadingApproval ? <><Loader2 className="h-3 w-3 animate-spin" /><span>Uploading...</span></> : <><Upload className="h-3 w-3" /><span>Upload</span></>}
                     </div>
-                  </div>
+                  </Label>
+                  <Input id="approvalFile" type="file" accept="image/*,.pdf" className="hidden"
+                    onChange={(e) => { const file = e.target.files?.[0]; if (file) handleImageUpload(file, 'approval') }}
+                    disabled={uploadingApproval}
+                  />
                   {editingItem.approval?.url && (
-                    <div className="space-y-2">
-                      <Label>Preview</Label>
-                      <div className="border rounded-lg p-2 bg-muted/50">
-                        {editingItem.approval.url.endsWith('.pdf') ? (
-                          <div className="flex flex-col items-center gap-2 p-4">
-                            <FileCheck className="h-16 w-16 text-green-600" />
-                            <span className="text-sm text-muted-foreground">PDF Document</span>
-                            <a
-                              href={`${API_BASE_URL}/public/${editingItem.approval.provider}/${editingItem.approval.url}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-sm text-blue-600 hover:underline"
-                            >
-                              Open in new tab
-                            </a>
+                    <>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          {editingItem.approval.url.endsWith('.pdf') ? (
+                            <button className="block w-full hover:opacity-80 transition-opacity">
+                              <div className="w-full aspect-square flex items-center justify-center rounded border bg-muted"><FileCheck className="h-6 w-6 text-green-600" /></div>
+                            </button>
+                          ) : (
+                            <button className="block w-full hover:opacity-80 transition-opacity">
+                              <img src={`${API_BASE_URL}/public/${editingItem.approval.provider}/${editingItem.approval.url}`} alt="Approval" className="w-full aspect-square object-cover rounded border" />
+                            </button>
+                          )}
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-2">
+                          <div className="space-y-1">
+                            {editingItem.approval.url.endsWith('.pdf') ? (
+                              <div className="flex flex-col items-center gap-2 p-4">
+                                <FileCheck className="h-12 w-12 text-green-600" />
+                                <a href={`${API_BASE_URL}/public/${editingItem.approval.provider}/${editingItem.approval.url}`} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">Open PDF</a>
+                              </div>
+                            ) : (
+                              <img src={`${API_BASE_URL}/public/${editingItem.approval.provider}/${editingItem.approval.url}`} alt="Approval" className="max-w-sm max-h-96 object-contain rounded" />
+                            )}
+                            {editingItem.approval.note && <p className="text-xs text-muted-foreground">{editingItem.approval.note}</p>}
                           </div>
-                        ) : (
-                          <div className="flex flex-col items-center gap-2 p-4">
-                            <img
-                              src={`${API_BASE_URL}/public/${editingItem.approval.provider}/${editingItem.approval.url}`}
-                              alt="Approval preview"
-                              className="max-w-full max-h-64 object-contain rounded mx-auto"
-                            />
-                            <a
-                              href={`${API_BASE_URL}/public/${editingItem.approval.provider}/${editingItem.approval.url}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-sm text-blue-600 hover:underline"
-                            >
-                              Open in new tab
-                            </a>
-                          </div>
-                        )}
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="approvalNote">Note</Label>
-                        <Input
-                          id="approvalNote"
-                          value={editingItem.approval?.note || ""}
-                          onChange={(e) => setEditingItem({
-                            ...editingItem,
-                            approval: { ...editingItem.approval, note: e.target.value, url: editingItem.approval?.url || "", provider: editingItem.approval?.provider || "local" } as any
-                          })}
-                          placeholder="Optional note for approval"
-                        />
-                      </div>
-                    </div>
+                        </PopoverContent>
+                      </Popover>
+                      <Input className="h-8 text-xs" placeholder="Note"
+                        value={editingItem.approval?.note || ""}
+                        onChange={(e) => setEditingItem({ ...editingItem, approval: { ...editingItem.approval, note: e.target.value, url: editingItem.approval?.url || "", provider: editingItem.approval?.provider || "local" } as any })}
+                      />
+                    </>
                   )}
                 </div>
-              </div>
 
-              <div className="space-y-4 border-t pt-4">
-                <h4 className="font-semibold">Note Image</h4>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4">
-                    <div className="flex-1">
-                      <Label htmlFor="noteImageFile" className="cursor-pointer">
-                        <div className="flex items-center gap-2 px-4 py-2 border border-dashed rounded-md hover:bg-primary hover:text-primary-foreground transition-colors">
-                          {uploadingNoteImage ? (
-                            <>
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                              <span>Uploading...</span>
-                            </>
-                          ) : (
-                            <>
-                              <Upload className="h-4 w-4" />
-                              <span>Upload Note Image</span>
-                            </>
-                          )}
-                        </div>
-                      </Label>
-                      <Input
-                        id="noteImageFile"
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0]
-                          if (file) handleImageUpload(file, 'noteImage')
-                        }}
-                        disabled={uploadingNoteImage}
-                      />
+                {/* Note Image */}
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground">Note Image</p>
+                  <Label htmlFor="noteImageFile" className="cursor-pointer block">
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 border border-dashed rounded text-xs hover:bg-primary hover:text-primary-foreground transition-colors">
+                      {uploadingNoteImage ? <><Loader2 className="h-3 w-3 animate-spin" /><span>Uploading...</span></> : <><Upload className="h-3 w-3" /><span>Upload</span></>}
                     </div>
-                  </div>
+                  </Label>
+                  <Input id="noteImageFile" type="file" accept="image/*" className="hidden"
+                    onChange={(e) => { const file = e.target.files?.[0]; if (file) handleImageUpload(file, 'noteImage') }}
+                    disabled={uploadingNoteImage}
+                  />
                   {editingItem.noteImage?.url && (
-                    <div className="space-y-2">
-                      <Label>Preview</Label>
-                      <div className="border rounded-lg p-2 bg-muted/50">
-                        <div className="flex flex-col items-center gap-2 p-4">
-                          <img
-                            src={`${API_BASE_URL}/public/${editingItem.noteImage.provider}/${editingItem.noteImage.url}`}
-                            alt="Note image preview"
-                            className="max-w-full max-h-64 object-contain rounded mx-auto"
-                          />
-                          <a
-                            href={`${API_BASE_URL}/public/${editingItem.noteImage.provider}/${editingItem.noteImage.url}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm text-blue-600 hover:underline"
-                          >
-                            Open in new tab
-                          </a>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="noteImageNote">Note</Label>
-                        <Input
-                          id="noteImageNote"
-                          value={editingItem.noteImage?.note || ""}
-                          onChange={(e) => setEditingItem({
-                            ...editingItem,
-                            noteImage: { ...editingItem.noteImage, note: e.target.value, url: editingItem.noteImage?.url || "", provider: editingItem.noteImage?.provider || "local" } as any
-                          })}
-                          placeholder="Optional note for note image"
-                        />
-                      </div>
-                    </div>
+                    <>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button className="block w-full hover:opacity-80 transition-opacity">
+                            <img src={`${API_BASE_URL}/public/${editingItem.noteImage.provider}/${editingItem.noteImage.url}`} alt="Note" className="w-full aspect-square object-cover rounded border" />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-2">
+                          <div className="space-y-1">
+                            <img src={`${API_BASE_URL}/public/${editingItem.noteImage.provider}/${editingItem.noteImage.url}`} alt="Note" className="max-w-sm max-h-96 object-contain rounded" />
+                            {editingItem.noteImage.note && <p className="text-xs text-muted-foreground">{editingItem.noteImage.note}</p>}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                      <Input className="h-8 text-xs" placeholder="Note"
+                        value={editingItem.noteImage?.note || ""}
+                        onChange={(e) => setEditingItem({ ...editingItem, noteImage: { ...editingItem.noteImage, note: e.target.value, url: editingItem.noteImage?.url || "", provider: editingItem.noteImage?.provider || "local" } as any })}
+                      />
+                    </>
                   )}
                 </div>
               </div>
@@ -1581,118 +1466,133 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
 
               <div className="space-y-2">
                 <Label htmlFor="sub-specification">Specification</Label>
-                <Textarea
+                <Input
                   id="sub-specification"
                   value={editingSubItem.spesification || ""}
                   onChange={(e) => setEditingSubItem({ ...editingSubItem, spesification: e.target.value })}
-                  rows={2}
+                  placeholder="Enter specification"
                 />
               </div>
 
-              {/* Image */}
-              <div className="space-y-4 border-t pt-4">
-                <h4 className="font-semibold">Image</h4>
-                <div className="flex items-center gap-4">
-                  <div className="flex-1">
-                    <Label htmlFor="sub-imageFile" className="cursor-pointer">
-                      <div className="flex items-center gap-2 px-4 py-2 border border-dashed rounded-md hover:bg-primary hover:text-primary-foreground transition-colors">
-                        {uploadingSubItemImage ? (
-                          <><Loader2 className="h-4 w-4 animate-spin" /><span>Uploading...</span></>
-                        ) : (
-                          <><Upload className="h-4 w-4" /><span>Upload Image</span></>
-                        )}
-                      </div>
-                    </Label>
-                    <Input id="sub-imageFile" type="file" accept="image/*" className="hidden"
-                      onChange={(e) => { const f = e.target.files?.[0]; if (f) handleSubItemImageUpload(f, "image") }}
-                      disabled={uploadingSubItemImage}
-                    />
-                  </div>
-                </div>
-                {editingSubItem.image?.url && (
-                  <div className="space-y-2">
-                    <Label>Preview</Label>
-                    <div className="border rounded-lg p-2 bg-muted/50 flex flex-col items-center gap-2">
-                      <img src={`${API_BASE_URL}/public/${editingSubItem.image.provider}/${editingSubItem.image.url}`} alt="preview" className="max-w-full max-h-48 object-contain rounded" />
-                      <a href={`${API_BASE_URL}/public/${editingSubItem.image.provider}/${editingSubItem.image.url}`} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">Open in new tab</a>
+              {/* Images */}
+              <div className="grid grid-cols-3 gap-3 border-t pt-4">
+                {/* Image */}
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground">Image</p>
+                  <Label htmlFor="sub-imageFile" className="cursor-pointer block">
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 border border-dashed rounded text-xs hover:bg-primary hover:text-primary-foreground transition-colors">
+                      {uploadingSubItemImage ? <><Loader2 className="h-3 w-3 animate-spin" /><span>Uploading...</span></> : <><Upload className="h-3 w-3" /><span>Upload</span></>}
                     </div>
-                    <Input placeholder="Optional image note" value={editingSubItem.image.note || ""}
-                      onChange={(e) => setEditingSubItem({ ...editingSubItem, image: { ...editingSubItem.image!, note: e.target.value } })}
-                    />
-                  </div>
-                )}
-              </div>
+                  </Label>
+                  <Input id="sub-imageFile" type="file" accept="image/*" className="hidden"
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handleSubItemImageUpload(f, "image") }}
+                    disabled={uploadingSubItemImage}
+                  />
+                  {editingSubItem.image?.url && (
+                    <>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button className="block w-full hover:opacity-80 transition-opacity">
+                            <img src={`${API_BASE_URL}/public/${editingSubItem.image.provider}/${editingSubItem.image.url}`} alt="Image" className="w-full aspect-square object-cover rounded border" />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-2">
+                          <div className="space-y-1">
+                            <img src={`${API_BASE_URL}/public/${editingSubItem.image.provider}/${editingSubItem.image.url}`} alt="Image" className="max-w-sm max-h-96 object-contain rounded" />
+                            {editingSubItem.image.note && <p className="text-xs text-muted-foreground">{editingSubItem.image.note}</p>}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                      <Input className="h-8 text-xs" placeholder="Note"
+                        value={editingSubItem.image.note || ""}
+                        onChange={(e) => setEditingSubItem({ ...editingSubItem, image: { ...editingSubItem.image!, note: e.target.value } })}
+                      />
+                    </>
+                  )}
+                </div>
 
-              {/* Approval */}
-              <div className="space-y-4 border-t pt-4">
-                <h4 className="font-semibold">Approval</h4>
-                <div className="flex items-center gap-4">
-                  <div className="flex-1">
-                    <Label htmlFor="sub-approvalFile" className="cursor-pointer">
-                      <div className="flex items-center gap-2 px-4 py-2 border border-dashed rounded-md hover:bg-primary hover:text-primary-foreground transition-colors">
-                        {uploadingSubItemApproval ? (
-                          <><Loader2 className="h-4 w-4 animate-spin" /><span>Uploading...</span></>
-                        ) : (
-                          <><Upload className="h-4 w-4" /><span>Upload Approval</span></>
-                        )}
-                      </div>
-                    </Label>
-                    <Input id="sub-approvalFile" type="file" accept="image/*,.pdf" className="hidden"
-                      onChange={(e) => { const f = e.target.files?.[0]; if (f) handleSubItemImageUpload(f, "approval") }}
-                      disabled={uploadingSubItemApproval}
-                    />
-                  </div>
-                </div>
-                {editingSubItem.approval?.url && (
-                  <div className="space-y-2">
-                    <Label>Preview</Label>
-                    <div className="border rounded-lg p-2 bg-muted/50 flex flex-col items-center gap-2">
-                      {editingSubItem.approval.url.endsWith(".pdf") ? (
-                        <><FileCheck className="h-12 w-12 text-green-600" /><a href={`${API_BASE_URL}/public/${editingSubItem.approval.provider}/${editingSubItem.approval.url}`} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">Open PDF</a></>
-                      ) : (
-                        <img src={`${API_BASE_URL}/public/${editingSubItem.approval.provider}/${editingSubItem.approval.url}`} alt="approval" className="max-w-full max-h-48 object-contain rounded" />
-                      )}
-                      <a href={`${API_BASE_URL}/public/${editingSubItem.approval.provider}/${editingSubItem.approval.url}`} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">Open in new tab</a>
+                {/* Approval */}
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground">Approval</p>
+                  <Label htmlFor="sub-approvalFile" className="cursor-pointer block">
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 border border-dashed rounded text-xs hover:bg-primary hover:text-primary-foreground transition-colors">
+                      {uploadingSubItemApproval ? <><Loader2 className="h-3 w-3 animate-spin" /><span>Uploading...</span></> : <><Upload className="h-3 w-3" /><span>Upload</span></>}
                     </div>
-                    <Input placeholder="Optional approval note" value={editingSubItem.approval.note || ""}
-                      onChange={(e) => setEditingSubItem({ ...editingSubItem, approval: { ...editingSubItem.approval!, note: e.target.value } })}
-                    />
-                  </div>
-                )}
-              </div>
+                  </Label>
+                  <Input id="sub-approvalFile" type="file" accept="image/*,.pdf" className="hidden"
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handleSubItemImageUpload(f, "approval") }}
+                    disabled={uploadingSubItemApproval}
+                  />
+                  {editingSubItem.approval?.url && (
+                    <>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          {editingSubItem.approval.url.endsWith(".pdf") ? (
+                            <button className="block w-full hover:opacity-80 transition-opacity">
+                              <div className="w-full aspect-square flex items-center justify-center rounded border bg-muted"><FileCheck className="h-6 w-6 text-green-600" /></div>
+                            </button>
+                          ) : (
+                            <button className="block w-full hover:opacity-80 transition-opacity">
+                              <img src={`${API_BASE_URL}/public/${editingSubItem.approval.provider}/${editingSubItem.approval.url}`} alt="Approval" className="w-full aspect-square object-cover rounded border" />
+                            </button>
+                          )}
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-2">
+                          <div className="space-y-1">
+                            {editingSubItem.approval.url.endsWith(".pdf") ? (
+                              <div className="flex flex-col items-center gap-2 p-4">
+                                <FileCheck className="h-12 w-12 text-green-600" />
+                                <a href={`${API_BASE_URL}/public/${editingSubItem.approval.provider}/${editingSubItem.approval.url}`} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">Open PDF</a>
+                              </div>
+                            ) : (
+                              <img src={`${API_BASE_URL}/public/${editingSubItem.approval.provider}/${editingSubItem.approval.url}`} alt="Approval" className="max-w-sm max-h-96 object-contain rounded" />
+                            )}
+                            {editingSubItem.approval.note && <p className="text-xs text-muted-foreground">{editingSubItem.approval.note}</p>}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                      <Input className="h-8 text-xs" placeholder="Note"
+                        value={editingSubItem.approval.note || ""}
+                        onChange={(e) => setEditingSubItem({ ...editingSubItem, approval: { ...editingSubItem.approval!, note: e.target.value } })}
+                      />
+                    </>
+                  )}
+                </div>
 
-              {/* Note Image */}
-              <div className="space-y-4 border-t pt-4">
-                <h4 className="font-semibold">Note Image</h4>
-                <div className="flex items-center gap-4">
-                  <div className="flex-1">
-                    <Label htmlFor="sub-noteImageFile" className="cursor-pointer">
-                      <div className="flex items-center gap-2 px-4 py-2 border border-dashed rounded-md hover:bg-primary hover:text-primary-foreground transition-colors">
-                        {uploadingSubItemNoteImage ? (
-                          <><Loader2 className="h-4 w-4 animate-spin" /><span>Uploading...</span></>
-                        ) : (
-                          <><Upload className="h-4 w-4" /><span>Upload Note Image</span></>
-                        )}
-                      </div>
-                    </Label>
-                    <Input id="sub-noteImageFile" type="file" accept="image/*" className="hidden"
-                      onChange={(e) => { const f = e.target.files?.[0]; if (f) handleSubItemImageUpload(f, "noteImage") }}
-                      disabled={uploadingSubItemNoteImage}
-                    />
-                  </div>
-                </div>
-                {editingSubItem.noteImage?.url && (
-                  <div className="space-y-2">
-                    <Label>Preview</Label>
-                    <div className="border rounded-lg p-2 bg-muted/50 flex flex-col items-center gap-2">
-                      <img src={`${API_BASE_URL}/public/${editingSubItem.noteImage.provider}/${editingSubItem.noteImage.url}`} alt="note" className="max-w-full max-h-48 object-contain rounded" />
-                      <a href={`${API_BASE_URL}/public/${editingSubItem.noteImage.provider}/${editingSubItem.noteImage.url}`} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">Open in new tab</a>
+                {/* Note Image */}
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground">Note Image</p>
+                  <Label htmlFor="sub-noteImageFile" className="cursor-pointer block">
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 border border-dashed rounded text-xs hover:bg-primary hover:text-primary-foreground transition-colors">
+                      {uploadingSubItemNoteImage ? <><Loader2 className="h-3 w-3 animate-spin" /><span>Uploading...</span></> : <><Upload className="h-3 w-3" /><span>Upload</span></>}
                     </div>
-                    <Input placeholder="Optional note image note" value={editingSubItem.noteImage.note || ""}
-                      onChange={(e) => setEditingSubItem({ ...editingSubItem, noteImage: { ...editingSubItem.noteImage!, note: e.target.value } })}
-                    />
-                  </div>
-                )}
+                  </Label>
+                  <Input id="sub-noteImageFile" type="file" accept="image/*" className="hidden"
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handleSubItemImageUpload(f, "noteImage") }}
+                    disabled={uploadingSubItemNoteImage}
+                  />
+                  {editingSubItem.noteImage?.url && (
+                    <>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button className="block w-full hover:opacity-80 transition-opacity">
+                            <img src={`${API_BASE_URL}/public/${editingSubItem.noteImage.provider}/${editingSubItem.noteImage.url}`} alt="Note" className="w-full aspect-square object-cover rounded border" />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-2">
+                          <div className="space-y-1">
+                            <img src={`${API_BASE_URL}/public/${editingSubItem.noteImage.provider}/${editingSubItem.noteImage.url}`} alt="Note" className="max-w-sm max-h-96 object-contain rounded" />
+                            {editingSubItem.noteImage.note && <p className="text-xs text-muted-foreground">{editingSubItem.noteImage.note}</p>}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                      <Input className="h-8 text-xs" placeholder="Note"
+                        value={editingSubItem.noteImage.note || ""}
+                        onChange={(e) => setEditingSubItem({ ...editingSubItem, noteImage: { ...editingSubItem.noteImage!, note: e.target.value } })}
+                      />
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           )}

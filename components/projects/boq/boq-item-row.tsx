@@ -6,7 +6,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { ProductSearchPopover } from "@/components/product-search-popover"
-import { Pencil, Trash2, Check, X, MessageSquare } from "lucide-react"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+import { Pencil, Trash2, Check, X, MessageSquare, ChevronsUpDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { ProductItem } from "@/lib/boq-presets"
 
@@ -19,6 +21,7 @@ interface BoqItemRowProps {
   isActiveEdit: boolean
   boqType: "main" | "additional"
   formatCurrency: (value: number) => string
+  mainBoqItems?: ProductItem[]
   onEditStart: () => void
   onLiveUpdate: (updated: ProductItem) => void
   onConfirm: (updated: ProductItem) => void
@@ -45,6 +48,7 @@ export function BoqItemRow({
   isActiveEdit,
   boqType,
   formatCurrency,
+  mainBoqItems,
   onEditStart,
   onLiveUpdate,
   onConfirm,
@@ -55,12 +59,15 @@ export function BoqItemRow({
 }: BoqItemRowProps) {
   // Local draft state for edit mode
   const [draft, setDraft] = useState<ProductItem>(item)
+  const [itemSource, setItemSource] = useState<"catalog" | "mainBoq">("mainBoq")
+  const [mainBoqPickerOpen, setMainBoqPickerOpen] = useState(false)
   const qtyRef = useRef<HTMLInputElement | null>(null)
 
   // Sync draft from latest item ONLY when edit mode opens (isActiveEdit: false → true)
   useEffect(() => {
     if (isActiveEdit) {
       setDraft({ ...item })
+      setItemSource("mainBoq")
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActiveEdit])
@@ -83,9 +90,12 @@ export function BoqItemRow({
     return (
       <tr className="border-b transition-colors hover:bg-muted/30 group">
         <td className="py-2 px-3 text-sm text-muted-foreground w-8 text-center">{index + 1}</td>
-        <td className="py-2 px-3 text-sm max-w-[220px]">
+        <td className="py-2 px-3 text-sm">
           <div className="line-clamp-2 leading-snug font-medium">
             {item.name || <span className="text-muted-foreground italic">—</span>}
+            {item.note && (
+              <p className="text-xs text-muted-foreground mt-1 italic">{item.note}</p>
+            )}
           </div>
         </td>
         <td className="py-2 px-3 text-sm text-muted-foreground">
@@ -100,7 +110,7 @@ export function BoqItemRow({
         <td className="py-2 px-3 text-sm tabular-nums whitespace-nowrap">
           {formatCurrency(item.price)}
         </td>
-        <td className="py-2 px-3 text-sm w-8 text-center">
+        {/* <td className="py-2 px-3 text-sm w-8 text-center">
           {hasNote ? (
             <span title={item.note} className="text-muted-foreground cursor-help">
               <MessageSquare className="h-3.5 w-3.5" />
@@ -108,7 +118,7 @@ export function BoqItemRow({
           ) : (
             <span className="text-muted-foreground opacity-30">—</span>
           )}
-        </td>
+        </td> */}
         <td className="py-2 px-3 w-20">
           <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <Button
@@ -148,32 +158,114 @@ export function BoqItemRow({
               <Label className="text-xs mb-1 block">
                 Product Name <span className="text-red-500">*</span>
               </Label>
-              <ProductSearchPopover
-                selectedProductName={draft.name}
-                onSelect={(product) => {
-                  const updated = {
-                    ...draft,
-                    name: product.name,
-                    unit: product.unit || draft.unit,
-                    price: product.sellingPrice ?? draft.price,
-                    productId: product._id,
-                    brand: product.brand || draft.brand || "",
-                  }
-                  setDraft(updated)
-                  onLiveUpdate(updated) // live-sync to parent
-                  setTimeout(() => qtyRef.current?.focus(), 100)
-                }}
-                onCreateNew={() => {
-                  onSetPendingProductSelection(
-                    categoryIndex !== undefined
-                      ? { type: sectionKey, categoryIndex, productIndex: index }
-                      : { type: sectionKey, productIndex: index }
-                  )
-                  onSetCreateProductDialogOpen(true)
-                }}
-                formatCurrency={formatCurrency}
-                className="w-full"
-              />
+              {/* Source toggle — only for additional BOQ when main BOQ items exist */}
+              {boqType === "additional" && mainBoqItems && mainBoqItems.length > 0 && (
+                <div className="flex rounded-md border text-xs overflow-hidden mb-2">
+                  <button
+                    type="button"
+                    className={cn(
+                      "flex-1 py-1 px-3 transition-colors border-l",
+                      itemSource === "mainBoq"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-background hover:bg-muted"
+                    )}
+                    onClick={() => setItemSource("mainBoq")}
+                  >
+                    From Main BOQ
+                  </button>
+                  <button
+                    type="button"
+                    className={cn(
+                      "flex-1 py-1 px-3 transition-colors",
+                      itemSource === "catalog"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-background hover:bg-muted"
+                    )}
+                    onClick={() => setItemSource("catalog")}
+                  >
+                    Product Catalog
+                  </button>
+                </div>
+              )}
+              {itemSource === "mainBoq" && boqType === "additional" && mainBoqItems && mainBoqItems.length > 0 ? (
+                <Popover open={mainBoqPickerOpen} onOpenChange={setMainBoqPickerOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-between font-normal" type="button">
+                      <span className={cn("truncate", !draft.name && "text-muted-foreground")}>
+                        {draft.name || "Select item from main BOQ..."}
+                      </span>
+                      <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50 ml-2" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[400px] p-0" align="start" side="bottom">
+                    <Command>
+                      <CommandInput placeholder="Search items..." />
+                      <CommandList>
+                        <CommandEmpty>No matching items.</CommandEmpty>
+                        <CommandGroup>
+                          {mainBoqItems.map((boqItem, i) => (
+                            <CommandItem
+                              key={i}
+                              value={`${(boqItem as any)._section ?? ""} ${(boqItem as any)._category ?? ""} ${boqItem.name}`}
+                              onSelect={() => {
+                                const updated = {
+                                  ...draft,
+                                  name: boqItem.name,
+                                  unit: boqItem.unit,
+                                  price: boqItem.price,
+                                  brand: boqItem.brand || draft.brand || "",
+                                  productId: boqItem.productId,
+                                  qty: 0,
+                                }
+                                setDraft(updated)
+                                onLiveUpdate(updated)
+                                setMainBoqPickerOpen(false)
+                                setTimeout(() => qtyRef.current?.focus(), 100)
+                              }}
+                            >
+                              <div className="flex flex-col w-full">
+                                <span className="font-medium">{boqItem.name}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {(boqItem as any)._section}
+                                  {(boqItem as any)._category ? ` / ${(boqItem as any)._category}` : ""}
+                                  {" · "}{boqItem.unit}{" · "}{formatCurrency(boqItem.price)}
+                                </span>
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              ) : (
+                <ProductSearchPopover
+                  selectedProductName={draft.name}
+                  onSelect={(product) => {
+                    const updated = {
+                      ...draft,
+                      name: product.name,
+                      unit: product.unit || draft.unit,
+                      price: product.sellingPrice ?? draft.price,
+                      productId: product._id,
+                      brand: product.brand || draft.brand || "",
+                    }
+                    setDraft(updated)
+                    onLiveUpdate(updated) // live-sync to parent
+                    setTimeout(() => qtyRef.current?.focus(), 100)
+                  }}
+                  onCreateNew={() => {
+                    onSetPendingProductSelection(
+                      categoryIndex !== undefined
+                        ? { type: sectionKey, categoryIndex, productIndex: index }
+                        : { type: sectionKey, productIndex: index }
+                    )
+                    onSetCreateProductDialogOpen(true)
+                  }}
+                  formatCurrency={formatCurrency}
+                  className="w-full"
+                />
+              )}
             </div>
 
             {/* Row 1: Brand, Location, Qty, Unit, Price */}

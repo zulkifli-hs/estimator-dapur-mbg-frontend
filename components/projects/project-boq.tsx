@@ -1185,6 +1185,36 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
 
   const mainBOQ = boqItems.find((boq) => boq.number === 1)
   const additionalBOQs = boqItems.filter((boq) => boq.number > 1)
+  // Flat list of all named items in the main BOQ — used as a source for additional BOQ item selection
+  const mainBoqItems: ProductItem[] = mainBOQ
+    ? [
+        ...(mainBOQ.preliminary || []).map((item: any) => ({
+          ...item,
+          _section: "I. Preliminary",
+        })),
+        ...(mainBOQ.fittingOut || []).flatMap((c: any) =>
+          (c.products || []).map((p: any) => ({
+            ...p,
+            _section: "II. Fitting Out",
+            _category: c.name || undefined,
+          }))
+        ),
+        ...(mainBOQ.furnitureWork || []).flatMap((c: any) =>
+          (c.products || []).map((p: any) => ({
+            ...p,
+            _section: "III. Furniture Work",
+            _category: c.name || undefined,
+          }))
+        ),
+        ...(mainBOQ.mechanicalElectrical || []).flatMap((c: any) =>
+          (c.products || []).map((p: any) => ({
+            ...p,
+            _section: "IV. MEP",
+            _category: c.name || undefined,
+          }))
+        ),
+      ].filter((item: any) => item.name)
+    : []
 
   useEffect(() => {
     const tabFromQuery = searchParams.get("tab")
@@ -1488,6 +1518,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         createProductDialogOpen={createProductDialogOpen}
         invalidFields={invalidFields}
         formatCurrency={formatCurrency}
+        mainBoqItems={mainBoqItems}
         onCancel={handleCancel}
         onSubmit={handleCreateMainBOQ}
         onSetCreateProductDialogOpen={setCreateProductDialogOpen}

@@ -43,8 +43,23 @@ import { AdditionalBoqActions } from "@/components/projects/boq/additional-boq-a
 import { BoqTable } from "@/components/projects/boq/boq-table"
 import { BoqRecap } from "@/components/projects/boq/boq-recap"
 import { BoqEditForm } from "@/components/projects/boq/boq-edit-form"
+import {
+  type BOQCategory,
+  type ProductItem,
+  initFittingOutCategories,
+  initMEPCategories,
+  mergeFittingOutWithPresets,
+  mergeMEPWithPresets,
+} from "@/lib/boq-presets"
 
-interface ProductItem {
+interface Category extends BOQCategory {}
+
+interface ProjectBOQProps {
+  projectId: string
+}
+
+interface PreliminaryItem {
+  _id?: string
   name: string
   qty: number
   unit: string
@@ -56,15 +71,6 @@ interface ProductItem {
   tags?: string[]
   startDate?: string
   endDate?: string
-}
-
-interface Category {
-  name: string
-  products: ProductItem[]
-}
-
-interface ProjectBOQProps {
-  projectId: string
 }
 
 export function ProjectBOQ({ projectId }: ProjectBOQProps) {
@@ -136,6 +142,19 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   // Track invalid field keys for highlighting (e.g. "preliminary-0-qty")
   const [invalidFields, setInvalidFields] = useState<Set<string>>(new Set())
 
+  // Track unsaved changes for sticky bottom bar and beforeunload
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+
+  // Refs that always hold the latest state — used by async handlers to avoid stale closures
+  const preliminaryRef = useRef(preliminary)
+  const fittingOutRef = useRef(fittingOut)
+  const furnitureWorkRef = useRef(furnitureWork)
+  const mechanicalElectricalRef = useRef(mechanicalElectrical)
+  useEffect(() => { preliminaryRef.current = preliminary }, [preliminary])
+  useEffect(() => { fittingOutRef.current = fittingOut }, [fittingOut])
+  useEffect(() => { furnitureWorkRef.current = furnitureWork }, [furnitureWork])
+  useEffect(() => { mechanicalElectricalRef.current = mechanicalElectrical }, [mechanicalElectrical])
+
   // Approval request states
   const [showApprovalModal, setShowApprovalModal] = useState(false)
   const [approvalEmails, setApprovalEmails] = useState<Array<{ email: string; label: string }>>([])
@@ -197,45 +216,29 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     if (editingBOQ) {
       console.log("[v0] Setting form data for editing BOQ:", editingBOQ)
       setPreliminary(editingBOQ.preliminary || [])
-      setFittingOut(
-        editingBOQ.fittingOut?.map((category: any) => ({
-          ...category,
-          products:
-            category.products?.map((product: any) => ({
-              ...product,
-              startDate: product.startDate ? new Date(product.startDate).toISOString().split("T")[0] : "",
-              endDate: product.endDate ? new Date(product.endDate).toISOString().split("T")[0] : "",
-            })) || [],
-        })) || [],
-      )
+      // Merge backend data with presets for FO and MEP
+      setFittingOut(mergeFittingOutWithPresets(editingBOQ.fittingOut || []))
       setFurnitureWork(
-        editingBOQ.furnitureWork?.map((category: any) => ({
+        (editingBOQ.furnitureWork || []).map((category: any) => ({
           ...category,
+          isPreset: false,
           products:
             category.products?.map((product: any) => ({
               ...product,
               startDate: product.startDate ? new Date(product.startDate).toISOString().split("T")[0] : "",
               endDate: product.endDate ? new Date(product.endDate).toISOString().split("T")[0] : "",
             })) || [],
-        })) || [],
+        })),
       )
-      setMechanicalElectrical(
-        editingBOQ.mechanicalElectrical?.map((category: any) => ({
-          ...category,
-          products:
-            category.products?.map((product: any) => ({
-              ...product,
-              startDate: product.startDate ? new Date(product.startDate).toISOString().split("T")[0] : "",
-              endDate: product.endDate ? new Date(product.endDate).toISOString().split("T")[0] : "",
-            })) || [],
-        })) || [],
-      )
+      setMechanicalElectrical(mergeMEPWithPresets(editingBOQ.mechanicalElectrical || []))
+      setHasUnsavedChanges(false)
     } else if (creationMode === "blank" && !editingBOQ) {
       console.log("[v0] Resetting form for new BOQ")
       setPreliminary([])
-      setFittingOut([])
+      setFittingOut(initFittingOutCategories())
       setFurnitureWork([])
-      setMechanicalElectrical([])
+      setMechanicalElectrical(initMEPCategories())
+      setHasUnsavedChanges(false)
     }
   }, [editingBOQ, creationMode])
 
@@ -270,6 +273,17 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
     fetchProducts()
     fetchProject()
   }, [projectId])
+
+  // Warn user before leaving with unsaved BOQ changes
+  useEffect(() => {
+    if (!hasUnsavedChanges) return
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ""
+    }
+    window.addEventListener("beforeunload", handleBeforeUnload)
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload)
+  }, [hasUnsavedChanges])
 
   const calculateBOQBudget = (boq: any): number => {
     let budget = 0
@@ -365,269 +379,188 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   // Helper function for highlighting search query in product names
 
   // Functions for selecting products in the creation form
-  const selectPreliminaryProduct = (index: number, product: any) => {
-    const newPreliminary = [...preliminary]
-    newPreliminary[index] = {
-      name: product.name,
-      qty: newPreliminary[index].qty || 0,
-      unit: product.unit,
-      price: product.sellingPrice,
-      productId: product._id,
-      brand: product.brand || "",
-      tags: product.tags || [],
-      startDate: newPreliminary[index].startDate || "", // Preserve existing dates
-      endDate: newPreliminary[index].endDate || "", // Preserve existing dates
-    }
-    setPreliminary(newPreliminary)
-    setOpenPopovers({ ...openPopovers, [`preliminary-${index}`]: false })
-    setTimeout(() => {
-      preliminaryQtyRefs.current[index]?.focus()
-    }, 100)
-  }
-
-  const selectFittingOutProduct = (categoryIndex: number, productIndex: number, product: any) => {
-    const newFittingOut = [...fittingOut]
-    newFittingOut[categoryIndex].products[productIndex] = {
-      name: product.name,
-      qty: newFittingOut[categoryIndex].products[productIndex].qty || 0,
-      unit: product.unit,
-      price: product.sellingPrice,
-      productId: product._id,
-      brand: product.brand || "",
-      tags: product.tags || [],
-      startDate: newFittingOut[categoryIndex].products[productIndex].startDate || "", // Preserve existing dates
-      endDate: newFittingOut[categoryIndex].products[productIndex].endDate || "", // Preserve existing dates
-    }
-    setFittingOut(newFittingOut)
-    setOpenPopovers({ ...openPopovers, [`fittingOut-${categoryIndex}-${productIndex}`]: false })
-    setTimeout(() => {
-      fittingOutQtyRefs.current[`${categoryIndex}-${productIndex}`]?.focus()
-    }, 100)
-  }
-
-  const selectFurnitureWorkProduct = (categoryIndex: number, productIndex: number, product: any) => {
-    const newFurnitureWork = [...furnitureWork]
-    newFurnitureWork[categoryIndex].products[productIndex] = {
-      name: product.name,
-      qty: newFurnitureWork[categoryIndex].products[productIndex].qty || 0,
-      unit: product.unit,
-      price: product.sellingPrice,
-      productId: product._id,
-      brand: product.brand || "",
-      tags: product.tags || [],
-      startDate: newFurnitureWork[categoryIndex].products[productIndex].startDate || "", // Preserve existing dates
-      endDate: newFurnitureWork[categoryIndex].products[productIndex].endDate || "", // Preserve existing dates
-    }
-    setFurnitureWork(newFurnitureWork)
-    setOpenPopovers({ ...openPopovers, [`furnitureWork-${categoryIndex}-${productIndex}`]: false })
-    setTimeout(() => {
-      furnitureWorkQtyRefs.current[`${categoryIndex}-${productIndex}`]?.focus()
-    }, 100)
-  }
-
-  // Functions for updating form fields
-  const updatePreliminaryItem = (index: number, field: string, value: any) => {
-    const newPreliminary = [...preliminary]
-    newPreliminary[index] = { ...newPreliminary[index], [field]: value }
-    setPreliminary(newPreliminary)
-  }
-
-  interface PreliminaryItem {
-    _id?: string
-    name: string
-    qty: number
-    unit: string
-    price: number
-    productId?: string
-    location?: string
-    brand?: string
-    note?: string
-    tags?: string[]
-    startDate?: string // Added startDate
-    endDate?: string // Added endDate
-  }
-
+  // No longer used (product selection now handled inside BoqItemRow draft only)
+  const selectPreliminaryProduct = (_index: number, _product: any) => {}
+  const selectFittingOutProduct = (_categoryIndex: number, _productIndex: number, _product: any) => {}
+  const selectFurnitureWorkProduct = (_categoryIndex: number, _productIndex: number, _product: any) => {}
+  const selectMechanicalElectricalProduct = (_categoryIndex: number, _productIndex: number, _product: any) => {}
 
   // Preliminary functions
   const addPreliminaryItem = () => {
-    setPreliminary([...preliminary, { name: "", qty: 0, unit: "", price: 0, tags: [], startDate: "", endDate: "" }])
+    setPreliminary((prev) => [...prev, { name: "", qty: 0, unit: "", price: 0, tags: [], startDate: "", endDate: "" }])
   }
 
   const removePreliminaryItem = (index: number) => {
-    if (preliminary.length > 1) {
-      setPreliminary(preliminary.filter((_, i) => i !== index))
-    } else {
-      setPreliminary([{ name: "", qty: 0, unit: "", price: 0, tags: [], startDate: "", endDate: "" }])
-    }
+    setPreliminary((prev) =>
+      prev.length > 1
+        ? prev.filter((_, i) => i !== index)
+        : [{ name: "", qty: 0, unit: "", price: 0, tags: [], startDate: "", endDate: "" }]
+    )
   }
 
   // Fitting Out functions
   const addFittingOutCategory = () => {
-    setFittingOut([...fittingOut, { name: "", products: [{ name: "", qty: 0, unit: "", price: 0, tags: [], startDate: "", endDate: "" }] }])
+    setFittingOut((prev) => [...prev, { name: "", isPreset: false, products: [] }])
+    setHasUnsavedChanges(true)
   }
 
   const removeFittingOutCategory = (categoryIndex: number) => {
-    if (fittingOut.length > 1) {
-      setFittingOut(fittingOut.filter((_, i) => i !== categoryIndex))
-    } else {
-      // Clear the single category instead of removing it if it's the last one
-      setFittingOut([{ name: "", products: [{ name: "", qty: 0, unit: "", price: 0, tags: [], startDate: "", endDate: "" }] }])
-    }
-  }
-
-  const updateFurnitureWorkCategory = (categoryIndex: number, name: string) => {
-    const newFurnitureWork = [...furnitureWork]
-    newFurnitureWork[categoryIndex].name = name
-    setFurnitureWork(newFurnitureWork)
+    setFittingOut((prev) => prev.filter((_, i) => i !== categoryIndex))
+    setHasUnsavedChanges(true)
   }
 
   const updateFittingOutCategory = (categoryIndex: number, value: string) => {
-    const newFittingOut = [...fittingOut]
-    newFittingOut[categoryIndex].name = value
-    setFittingOut(newFittingOut)
+    setFittingOut((prev) =>
+      prev.map((cat, i) => i !== categoryIndex ? cat : { ...cat, name: value })
+    )
   }
 
   const addFittingOutProduct = (categoryIndex: number) => {
-    const newFittingOut = [...fittingOut]
-    newFittingOut[categoryIndex].products.push({ name: "", qty: 0, unit: "", price: 0, tags: [], startDate: "", endDate: "" })
-    setFittingOut(newFittingOut)
+    setFittingOut((prev) =>
+      prev.map((cat, i) =>
+        i !== categoryIndex ? cat : {
+          ...cat,
+          products: [...cat.products, { name: "", qty: 0, unit: "", price: 0, tags: [], startDate: "", endDate: "" }],
+        }
+      )
+    )
   }
 
   const removeFittingOutProduct = (categoryIndex: number, productIndex: number) => {
-    const newFittingOut = [...fittingOut]
-    if (newFittingOut[categoryIndex].products.length > 1) {
-      newFittingOut[categoryIndex].products = newFittingOut[categoryIndex].products.filter((_, i) => i !== productIndex)
-      setFittingOut(newFittingOut)
-    } else {
-      newFittingOut[categoryIndex].products = [{ name: "", qty: 0, unit: "", price: 0, startDate: "", endDate: "" }]
-      setFittingOut(newFittingOut)
-    }
+    setFittingOut((prev) =>
+      prev.map((cat, i) => {
+        if (i !== categoryIndex) return cat
+        const filtered = cat.products.filter((_, pi) => pi !== productIndex)
+        return {
+          ...cat,
+          products: filtered.length > 0 ? filtered : [{ name: "", qty: 0, unit: "", price: 0, startDate: "", endDate: "" }],
+        }
+      })
+    )
   }
 
-  const updateFittingOutProduct = (categoryIndex: number, productIndex: number, field: string, value: any) => {
-    const newFittingOut = [...fittingOut]
-    newFittingOut[categoryIndex].products[productIndex] = {
-      ...newFittingOut[categoryIndex].products[productIndex],
-      [field]: value,
-    }
-    setFittingOut(newFittingOut)
-  }
-
-  const updateFurnitureWorkProduct = (categoryIndex: number, productIndex: number, field: string, value: any) => {
-    const newFurnitureWork = [...furnitureWork]
-    newFurnitureWork[categoryIndex].products[productIndex] = {
-      ...newFurnitureWork[categoryIndex].products[productIndex],
-      [field]: value,
-    }
-    setFurnitureWork(newFurnitureWork)
+  // Furniture Work functions
+  const updateFurnitureWorkCategory = (categoryIndex: number, name: string) => {
+    setFurnitureWork((prev) =>
+      prev.map((cat, i) => i !== categoryIndex ? cat : { ...cat, name })
+    )
   }
 
   const addFurnitureWorkProduct = (categoryIndex: number) => {
-    const newFurnitureWork = [...furnitureWork]
-    newFurnitureWork[categoryIndex].products.push({ name: "", qty: 0, unit: "", price: 0, tags: [], startDate: "", endDate: "" })
-    setFurnitureWork(newFurnitureWork)
+    setFurnitureWork((prev) =>
+      prev.map((cat, i) =>
+        i !== categoryIndex ? cat : {
+          ...cat,
+          products: [...cat.products, { name: "", qty: 0, unit: "", price: 0, tags: [], startDate: "", endDate: "" }],
+        }
+      )
+    )
   }
 
   const removeFurnitureWorkProduct = (categoryIndex: number, productIndex: number) => {
-    const newFurnitureWork = [...furnitureWork]
-    if (newFurnitureWork[categoryIndex].products.length > 1) {
-      newFurnitureWork[categoryIndex].products = newFurnitureWork[categoryIndex].products.filter(
-        (_, i) => i !== productIndex,
-      )
-      setFurnitureWork(newFurnitureWork)
-    } else {
-      // Clear the single product instead of removing it if it's the last one in the category
-      newFurnitureWork[categoryIndex].products = [{ name: "", qty: 0, unit: "", price: 0, tags: [], startDate: "", endDate: "" }]
-      setFurnitureWork(newFurnitureWork)
-    }
+    setFurnitureWork((prev) =>
+      prev.map((cat, i) => {
+        if (i !== categoryIndex) return cat
+        const filtered = cat.products.filter((_, pi) => pi !== productIndex)
+        return {
+          ...cat,
+          products: filtered.length > 0 ? filtered : [{ name: "", qty: 0, unit: "", price: 0, tags: [], startDate: "", endDate: "" }],
+        }
+      })
+    )
   }
 
   const addFurnitureWorkCategory = () => {
-    setFurnitureWork([
-      ...furnitureWork,
-      { name: "", products: [{ name: "", qty: 0, unit: "", price: 0, tags: [], startDate: "", endDate: "" }] },
-    ])
+    setFurnitureWork((prev) => [...prev, { name: "", isPreset: false, products: [] }])
+    setHasUnsavedChanges(true)
   }
 
   const removeFurnitureWorkCategory = (categoryIndex: number) => {
-    if (furnitureWork.length > 1) {
-      setFurnitureWork(furnitureWork.filter((_, i) => i !== categoryIndex))
-    } else {
-      // Clear the single category instead of removing it if it's the last one
-      setFurnitureWork([{ name: "", products: [{ name: "", qty: 0, unit: "", price: 0, tags: [], startDate: "", endDate: "" }] }])
-    }
+    setFurnitureWork((prev) => prev.filter((_, i) => i !== categoryIndex))
+    setHasUnsavedChanges(true)
   }
 
-  // Mechanical / Electrical / Plumbing functions
-  const selectMechanicalElectricalProduct = (categoryIndex: number, productIndex: number, product: any) => {
-    const newMechanicalElectrical = [...mechanicalElectrical]
-    newMechanicalElectrical[categoryIndex].products[productIndex] = {
-      name: product.name,
-      qty: newMechanicalElectrical[categoryIndex].products[productIndex].qty || 0,
-      unit: product.unit,
-      price: product.sellingPrice,
-      productId: product._id,
-      brand: product.brand || "",
-      tags: product.tags || [],
-      startDate: newMechanicalElectrical[categoryIndex].products[productIndex].startDate || "", // Preserve existing dates
-      endDate: newMechanicalElectrical[categoryIndex].products[productIndex].endDate || "", // Preserve existing dates
-    }
-    setMechanicalElectrical(newMechanicalElectrical)
-    setOpenPopovers({ ...openPopovers, [`mechanicalElectrical-${categoryIndex}-${productIndex}`]: false })
-    setTimeout(() => {
-      mechanicalElectricalQtyRefs.current[`${categoryIndex}-${productIndex}`]?.focus()
-    }, 100)
-  }
-
+  // Mechanical / Electrical functions
   const updateMechanicalElectricalCategory = (categoryIndex: number, name: string) => {
-    const newMechanicalElectrical = [...mechanicalElectrical]
-    newMechanicalElectrical[categoryIndex].name = name
-    setMechanicalElectrical(newMechanicalElectrical)
-  }
-
-  const updateMechanicalElectricalProduct = (categoryIndex: number, productIndex: number, field: string, value: any) => {
-    const newMechanicalElectrical = [...mechanicalElectrical]
-    newMechanicalElectrical[categoryIndex].products[productIndex] = {
-      ...newMechanicalElectrical[categoryIndex].products[productIndex],
-      [field]: value,
-    }
-    setMechanicalElectrical(newMechanicalElectrical)
+    setMechanicalElectrical((prev) =>
+      prev.map((cat, i) => i !== categoryIndex ? cat : { ...cat, name })
+    )
   }
 
   const addMechanicalElectricalProduct = (categoryIndex: number) => {
-    const newMechanicalElectrical = [...mechanicalElectrical]
-    newMechanicalElectrical[categoryIndex].products.push({ name: "", qty: 0, unit: "", price: 0, tags: [], startDate: "", endDate: "" })
-    setMechanicalElectrical(newMechanicalElectrical)
+    setMechanicalElectrical((prev) =>
+      prev.map((cat, i) =>
+        i !== categoryIndex ? cat : {
+          ...cat,
+          products: [...cat.products, { name: "", qty: 0, unit: "", price: 0, tags: [], startDate: "", endDate: "" }],
+        }
+      )
+    )
   }
 
   const removeMechanicalElectricalProduct = (categoryIndex: number, productIndex: number) => {
-    const newMechanicalElectrical = [...mechanicalElectrical]
-    if (newMechanicalElectrical[categoryIndex].products.length > 1) {
-      newMechanicalElectrical[categoryIndex].products = newMechanicalElectrical[categoryIndex].products.filter(
-        (_, i) => i !== productIndex,
-      )
-      setMechanicalElectrical(newMechanicalElectrical)
-    } else {
-      // Clear the single product instead of removing it if it's the last one in the category
-      newMechanicalElectrical[categoryIndex].products = [{ name: "", qty: 0, unit: "", price: 0, tags: [], startDate: "", endDate: "" }]
-      setMechanicalElectrical(newMechanicalElectrical)
-    }
+    setMechanicalElectrical((prev) =>
+      prev.map((cat, i) => {
+        if (i !== categoryIndex) return cat
+        const filtered = cat.products.filter((_, pi) => pi !== productIndex)
+        return {
+          ...cat,
+          products: filtered.length > 0 ? filtered : [{ name: "", qty: 0, unit: "", price: 0, tags: [], startDate: "", endDate: "" }],
+        }
+      })
+    )
   }
 
   const addMechanicalElectricalCategory = () => {
-    setMechanicalElectrical([
-      ...mechanicalElectrical,
-      { name: "", products: [{ name: "", qty: 0, unit: "", price: 0, tags: [], startDate: "", endDate: "" }] },
-    ])
+    setMechanicalElectrical((prev) => [...prev, { name: "", isPreset: false, products: [] }])
+    setHasUnsavedChanges(true)
   }
 
   const removeMechanicalElectricalCategory = (categoryIndex: number) => {
-    if (mechanicalElectrical.length > 1) {
-      setMechanicalElectrical(mechanicalElectrical.filter((_, i) => i !== categoryIndex))
-    } else {
-      // Clear the single category instead of removing it if it's the last one
-      setMechanicalElectrical([{ name: "", products: [{ name: "", qty: 0, unit: "", price: 0, tags: [], startDate: "", endDate: "" }] }])
-    }
+    setMechanicalElectrical((prev) => prev.filter((_, i) => i !== categoryIndex))
+    setHasUnsavedChanges(true)
+  }
+
+  // ── Full-item replace handlers — called on ✓ confirm in BoqItemRow ──────────
+  const replacePreliminaryItem = (index: number, item: ProductItem) => {
+    setPreliminary((prev) => prev.map((p, i) => i !== index ? p : { ...item }))
+    setHasUnsavedChanges(true)
+  }
+
+  const replaceFittingOutProduct = (categoryIndex: number, productIndex: number, item: ProductItem) => {
+    setFittingOut((prev) =>
+      prev.map((cat, ci) =>
+        ci !== categoryIndex ? cat : {
+          ...cat,
+          products: cat.products.map((p, pi) => pi !== productIndex ? p : { ...item }),
+        }
+      )
+    )
+    setHasUnsavedChanges(true)
+  }
+
+  const replaceFurnitureWorkProduct = (categoryIndex: number, productIndex: number, item: ProductItem) => {
+    setFurnitureWork((prev) =>
+      prev.map((cat, ci) =>
+        ci !== categoryIndex ? cat : {
+          ...cat,
+          products: cat.products.map((p, pi) => pi !== productIndex ? p : { ...item }),
+        }
+      )
+    )
+    setHasUnsavedChanges(true)
+  }
+
+  const replaceMechanicalElectricalProduct = (categoryIndex: number, productIndex: number, item: ProductItem) => {
+    setMechanicalElectrical((prev) =>
+      prev.map((cat, ci) =>
+        ci !== categoryIndex ? cat : {
+          ...cat,
+          products: cat.products.map((p, pi) => pi !== productIndex ? p : { ...item }),
+        }
+      )
+    )
+    setHasUnsavedChanges(true)
   }
 
   // Handlers for creating BOQ
@@ -697,19 +630,19 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         }
       }
 
-      // Validate all sections
-      preliminary.forEach((item, idx) => validateItem(item, "Preliminary", `preliminary-${idx}`))
-      fittingOut.forEach((cat, catIdx) =>
+      // Validate all sections (read from refs to avoid stale closures)
+      preliminaryRef.current.forEach((item, idx) => validateItem(item, "Preliminary", `preliminary-${idx}`))
+      fittingOutRef.current.forEach((cat, catIdx) =>
         cat.products.forEach((product, prodIdx) =>
           validateItem(product, "Fitting Out", `fittingOut-${catIdx}-${prodIdx}`, cat.name)
         )
       )
-      furnitureWork.forEach((cat, catIdx) =>
+      furnitureWorkRef.current.forEach((cat, catIdx) =>
         cat.products.forEach((product, prodIdx) =>
           validateItem(product, "Furniture Work", `furnitureWork-${catIdx}-${prodIdx}`, cat.name)
         )
       )
-      mechanicalElectrical.forEach((cat, catIdx) =>
+      mechanicalElectricalRef.current.forEach((cat, catIdx) =>
         cat.products.forEach((product, prodIdx) =>
           validateItem(product, "Mechanical/Electrical", `mechanicalElectrical-${catIdx}-${prodIdx}`, cat.name)
         )
@@ -730,8 +663,8 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         return
       }
 
-      // Filter preliminary items
-      const filteredPreliminary = preliminary
+      // Filter preliminary items (read from refs to get latest state)
+      const filteredPreliminary = preliminaryRef.current
         .filter((item) => item.name && (isMainBOQ ? item.qty > 0 : item.qty !== 0))
         .map((item) => normalizeItemDates({
           _id: (item as any)._id || undefined,
@@ -748,7 +681,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
           endDate: item.endDate || undefined,
         }))
 
-      const filteredFittingOut = fittingOut
+      const filteredFittingOut = fittingOutRef.current
         .map((category) => ({
           _id: (category as any)._id || undefined,
           name: category.name,
@@ -771,7 +704,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         }))
         .filter((category) => category.name && category.products.length > 0)
 
-      const filteredFurnitureWork = furnitureWork
+      const filteredFurnitureWork = furnitureWorkRef.current
         .map((category) => ({
           _id: (category as any)._id || undefined,
           name: category.name,
@@ -794,7 +727,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
         }))
         .filter((category) => category.name && category.products.length > 0)
 
-      const filteredMechanicalElectrical = mechanicalElectrical
+      const filteredMechanicalElectrical = mechanicalElectricalRef.current
         .map((category) => ({
           _id: (category as any)._id || undefined,
           name: category.name,
@@ -861,10 +794,11 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
       setBOQType("main") // Reset to main
       setIsCreatingAdditional(false)
       setPreliminary([])
-      setFittingOut([])
+      setFittingOut(initFittingOutCategories())
       setFurnitureWork([])
-      setMechanicalElectrical([])
+      setMechanicalElectrical(initMEPCategories())
       setInvalidFields(new Set())
+      setHasUnsavedChanges(false)
       fetchBOQ() // Use renamed function
     } catch (error: any) {
       toast({
@@ -1251,6 +1185,36 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
 
   const mainBOQ = boqItems.find((boq) => boq.number === 1)
   const additionalBOQs = boqItems.filter((boq) => boq.number > 1)
+  // Flat list of all named items in the main BOQ — used as a source for additional BOQ item selection
+  const mainBoqItems: ProductItem[] = mainBOQ
+    ? [
+        ...(mainBOQ.preliminary || []).map((item: any) => ({
+          ...item,
+          _section: "I. Preliminary",
+        })),
+        ...(mainBOQ.fittingOut || []).flatMap((c: any) =>
+          (c.products || []).map((p: any) => ({
+            ...p,
+            _section: "II. Fitting Out",
+            _category: c.name || undefined,
+          }))
+        ),
+        ...(mainBOQ.furnitureWork || []).flatMap((c: any) =>
+          (c.products || []).map((p: any) => ({
+            ...p,
+            _section: "III. Furniture Work",
+            _category: c.name || undefined,
+          }))
+        ),
+        ...(mainBOQ.mechanicalElectrical || []).flatMap((c: any) =>
+          (c.products || []).map((p: any) => ({
+            ...p,
+            _section: "IV. MEP",
+            _category: c.name || undefined,
+          }))
+        ),
+      ].filter((item: any) => item.name)
+    : []
 
   useEffect(() => {
     const tabFromQuery = searchParams.get("tab")
@@ -1527,64 +1491,69 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   }
 
   if ((editingBOQ && creationMode === "blank") || (!mainBOQ && creationMode === "blank") || (boqType === "additional" && creationMode === "blank")) {
+    const handleCancel = () => {
+      setCreationMode(null)
+      setEditingBOQ(null)
+      setBOQType("main")
+      setInvalidFields(new Set())
+      setHasUnsavedChanges(false)
+      if (boqType === "additional") {
+        setActiveTab("additional")
+      }
+      setPreliminary([])
+      setFittingOut(initFittingOutCategories())
+      setFurnitureWork([])
+      setMechanicalElectrical(initMEPCategories())
+    }
     return (
       <BoqEditForm
         editingBOQ={editingBOQ}
         boqType={boqType}
         loading={loading}
+        hasUnsavedChanges={hasUnsavedChanges}
         preliminary={preliminary}
         fittingOut={fittingOut}
         furnitureWork={furnitureWork}
         mechanicalElectrical={mechanicalElectrical}
         createProductDialogOpen={createProductDialogOpen}
-        preliminaryQtyRefs={preliminaryQtyRefs}
-        fittingOutQtyRefs={fittingOutQtyRefs}
-        furnitureWorkQtyRefs={furnitureWorkQtyRefs}
-        mechanicalElectricalQtyRefs={mechanicalElectricalQtyRefs}
         invalidFields={invalidFields}
-        onCancel={() => {
-          setCreationMode(null)
-          setEditingBOQ(null)
-          setBOQType("main")
-          setInvalidFields(new Set())
-          if (boqType === "additional") {
-            setActiveTab("additional")
-          }
-          setPreliminary([])
-          setFittingOut([])
-          setFurnitureWork([])
-        }}
+        formatCurrency={formatCurrency}
+        mainBoqItems={mainBoqItems}
+        onCancel={handleCancel}
         onSubmit={handleCreateMainBOQ}
         onSetCreateProductDialogOpen={setCreateProductDialogOpen}
         onSetPendingProductSelection={setPendingProductSelection}
-        onSelectPreliminaryProduct={selectPreliminaryProduct}
-        onSelectFittingOutProduct={selectFittingOutProduct}
-        onSelectFurnitureWorkProduct={selectFurnitureWorkProduct}
-        onSelectMechanicalElectricalProduct={selectMechanicalElectricalProduct}
-        onRemovePreliminaryItem={removePreliminaryItem}
-        onUpdatePreliminaryItem={updatePreliminaryItem}
-        onAddPreliminaryItem={addPreliminaryItem}
-        onUpdateFittingOutCategory={updateFittingOutCategory}
-        onRemoveFittingOutCategory={removeFittingOutCategory}
-        onRemoveFittingOutProduct={removeFittingOutProduct}
-        onUpdateFittingOutProduct={updateFittingOutProduct}
-        onAddFittingOutProduct={addFittingOutProduct}
-        onAddFittingOutCategory={addFittingOutCategory}
-        onUpdateFurnitureWorkCategory={updateFurnitureWorkCategory}
-        onRemoveFurnitureWorkCategory={removeFurnitureWorkCategory}
-        onRemoveFurnitureWorkProduct={removeFurnitureWorkProduct}
-        onUpdateFurnitureWorkProduct={updateFurnitureWorkProduct}
-        onAddFurnitureWorkProduct={addFurnitureWorkProduct}
-        onAddFurnitureWorkCategory={addFurnitureWorkCategory}
-        onUpdateMechanicalElectricalCategory={updateMechanicalElectricalCategory}
-        onRemoveMechanicalElectricalCategory={removeMechanicalElectricalCategory}
-        onRemoveMechanicalElectricalProduct={removeMechanicalElectricalProduct}
-        onUpdateMechanicalElectricalProduct={updateMechanicalElectricalProduct}
-        onAddMechanicalElectricalProduct={addMechanicalElectricalProduct}
-        onAddMechanicalElectricalCategory={addMechanicalElectricalCategory}
         uploadProductPhoto={uploadProductPhoto}
         onProductCreated={handleProductCreated}
-        formatCurrency={formatCurrency}
+        // Preliminary
+        onAddPreliminaryItem={addPreliminaryItem}
+        onUpdatePreliminaryItem={(idx, updated) => replacePreliminaryItem(idx, updated)}
+        onRemovePreliminaryItem={removePreliminaryItem}
+        onSelectPreliminaryProduct={selectPreliminaryProduct}
+        // Fitting Out
+        onAddFittingOutCategory={addFittingOutCategory}
+        onRemoveFittingOutCategory={removeFittingOutCategory}
+        onUpdateFittingOutCategoryName={updateFittingOutCategory}
+        onAddFittingOutProduct={addFittingOutProduct}
+        onRemoveFittingOutProduct={removeFittingOutProduct}
+        onUpdateFittingOutProduct={replaceFittingOutProduct}
+        onSelectFittingOutProduct={selectFittingOutProduct}
+        // Furniture Work
+        onAddFurnitureWorkCategory={addFurnitureWorkCategory}
+        onRemoveFurnitureWorkCategory={removeFurnitureWorkCategory}
+        onUpdateFurnitureWorkCategoryName={updateFurnitureWorkCategory}
+        onAddFurnitureWorkProduct={addFurnitureWorkProduct}
+        onRemoveFurnitureWorkProduct={removeFurnitureWorkProduct}
+        onUpdateFurnitureWorkProduct={replaceFurnitureWorkProduct}
+        onSelectFurnitureWorkProduct={selectFurnitureWorkProduct}
+        // MEP
+        onAddMechanicalElectricalCategory={addMechanicalElectricalCategory}
+        onRemoveMechanicalElectricalCategory={removeMechanicalElectricalCategory}
+        onUpdateMechanicalElectricalCategoryName={updateMechanicalElectricalCategory}
+        onAddMechanicalElectricalProduct={addMechanicalElectricalProduct}
+        onRemoveMechanicalElectricalProduct={removeMechanicalElectricalProduct}
+        onUpdateMechanicalElectricalProduct={replaceMechanicalElectricalProduct}
+        onSelectMechanicalElectricalProduct={selectMechanicalElectricalProduct}
       />
     )
   }

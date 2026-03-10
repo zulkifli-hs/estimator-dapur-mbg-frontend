@@ -285,12 +285,13 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
   }, [weeks])
 
   // State
-  const [showDays, setShowDays] = useState(false)
-  const [showInlineCurve, setShowInlineCurve] = useState(false)
+  const [showDays, setShowDays] = useState(true)
+  const [showInlineCurve, setShowInlineCurve] = useState(true)
 
   // Refs for body-overlay S-Curve
   const tbodyRef = useRef<HTMLTableSectionElement>(null)
   const firstWeekThRef = useRef<HTMLTableCellElement>(null)
+  const firstItemRowRef = useRef<HTMLTableRowElement>(null)
   const tableWrapperRef = useRef<HTMLDivElement>(null)
   const [overlayRect, setOverlayRect] = useState<{
     top: number; left: number; width: number; height: number
@@ -298,15 +299,17 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
 
   useEffect(() => {
     const update = () => {
-      if (!tbodyRef.current || !firstWeekThRef.current || !tableWrapperRef.current) return
+      if (!tbodyRef.current || !firstWeekThRef.current || !tableWrapperRef.current || !firstItemRowRef.current) return
       const bodyRect = tbodyRef.current.getBoundingClientRect()
       const thRect = firstWeekThRef.current.getBoundingClientRect()
       const wrapRect = tableWrapperRef.current.getBoundingClientRect()
+      const firstItemRect = firstItemRowRef.current.getBoundingClientRect()
+      // Anchor SVG from the first item row top to the bottom of tbody
       setOverlayRect({
-        top: bodyRect.top - wrapRect.top,
+        top: firstItemRect.top - wrapRect.top,
         left: thRect.left - wrapRect.left,
         width: bodyRect.right - thRect.left,
-        height: bodyRect.height,
+        height: bodyRect.bottom - firstItemRect.top,
       })
     }
     update()
@@ -332,6 +335,7 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
 
   // Running item counter (mutated during render — intentional for sequential numbering)
   let itemNo = 0
+  let firstItemRefSet = false
   // Map each item to its index in flatItems for weekWeights lookup
   const itemIndexMap = new Map<SCurveItem, number>()
   flatItems.forEach((item, idx) => itemIndexMap.set(item, idx))
@@ -339,70 +343,10 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
   return (
     <div className="space-y-6">
       {/* ═══════════════════════════════════════════════════════════════
-          CHART — full width on top
-      ════════════════════════════════════════════════════════════════ */}
-      {hasDates && (
-        <div className="rounded-lg border bg-muted/20 p-4">
-          <h3 className="text-sm font-semibold mb-0.5">S-Curve – Planned</h3>
-          <p className="text-xs text-muted-foreground mb-4">Cumulative planned weight per week (%)</p>
-          <ResponsiveContainer width="100%" height={320}>
-            <ComposedChart data={chartData} margin={{ top: 8, right: 24, left: 0, bottom: 64 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis
-                dataKey="week"
-                tick={{ fontSize: 10 }}
-                angle={-45}
-                textAnchor="end"
-                interval={0}
-                height={72}
-              />
-              <YAxis
-                domain={[0, 100]}
-                tickFormatter={(v) => `${v}%`}
-                tick={{ fontSize: 10 }}
-                width={44}
-              />
-              <Tooltip
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                formatter={(value: any, name: any) =>
-                  [
-                    value != null ? `${Number(value).toFixed(2)}%` : "-",
-                    name === "planned" ? "Cumulative" : "Weekly",
-                  ] as any
-                }
-                contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid hsl(var(--border))" }}
-              />
-              <Legend
-                formatter={(value) => (value === "planned" ? "Cumulative S-Curve" : "Weekly Weight")}
-                wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
-              />
-              <Area
-                type="monotone"
-                dataKey="weekly"
-                fill="hsl(var(--primary) / 0.12)"
-                stroke="hsl(var(--primary) / 0.35)"
-                strokeWidth={1}
-                dot={false}
-              />
-              <Line
-                type="monotone"
-                dataKey="planned"
-                stroke="hsl(var(--primary))"
-                strokeWidth={2.5}
-                dot={{ r: 4, fill: "hsl(var(--primary))", stroke: "#fff", strokeWidth: 1.5 }}
-                activeDot={{ r: 6, stroke: "hsl(var(--primary))", strokeWidth: 2, fill: "#fff" }}
-                connectNulls
-              />
-            </ComposedChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-
-      {/* ═══════════════════════════════════════════════════════════════
           TABLE — full width below chart
       ════════════════════════════════════════════════════════════════ */}
       {hasDates && (
-        <div className="flex items-center justify-end gap-4 flex-wrap">
+        <div className="flex items-center justify-start gap-4 flex-wrap">
           <div className="flex items-center gap-2">
             <Switch id="show-inline-curve" checked={showInlineCurve} onCheckedChange={setShowInlineCurve} className="cursor-pointer" />
             <Label htmlFor="show-inline-curve" className="text-xs cursor-pointer select-none leading-none mb-0">
@@ -518,8 +462,14 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
                       {items.map((item) => {
                         itemNo++
                         const idx = itemIndexMap.get(item) ?? 0
+                        const isFirst = !firstItemRefSet
+                        if (isFirst) firstItemRefSet = true
                         return (
-                          <tr key={`item-${section}-${subsection}-${idx}`} className="hover:bg-muted/30">
+                          <tr
+                            key={`item-${section}-${subsection}-${idx}`}
+                            ref={isFirst ? firstItemRowRef : undefined}
+                            className="hover:bg-muted/30"
+                          >
                             <td className="border border-border px-2 py-1 text-center text-muted-foreground">
                               {itemNo}
                             </td>

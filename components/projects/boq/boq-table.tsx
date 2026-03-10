@@ -121,7 +121,10 @@ export function BoqTable({
                     <TableCell className="font-medium pl-8 pr-4">{itemNumber++}</TableCell>
                     <TableCell className="whitespace-normal wrap-break-word px-4">
                       {item.name}
-                      {showNote && item.note && (
+                      {/* {showNote && item.note && (
+                        <p className="text-xs text-muted-foreground mt-1 italic">{item.note}</p>
+                      )} */}
+                      {item.note && (
                         <p className="text-xs text-muted-foreground mt-1 italic">{item.note}</p>
                       )}
                     </TableCell>

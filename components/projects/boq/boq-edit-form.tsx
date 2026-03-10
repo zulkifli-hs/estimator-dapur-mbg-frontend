@@ -46,6 +46,7 @@ export interface BoqEditFormProps {
   createProductDialogOpen: boolean
   invalidFields: Set<string>
   formatCurrency: (value: number) => string
+  mainBoqItems?: ProductItem[]
 
   onCancel: () => void
   onSubmit: () => void
@@ -119,6 +120,7 @@ export function BoqEditForm({
   onSetPendingProductSelection,
   uploadProductPhoto,
   onProductCreated,
+  mainBoqItems,
   onAddPreliminaryItem,
   onUpdatePreliminaryItem,
   onRemovePreliminaryItem,
@@ -226,6 +228,7 @@ export function BoqEditForm({
               onSetPendingProductSelection={onSetPendingProductSelection}
               onSetCreateProductDialogOpen={onSetCreateProductDialogOpen}
               onProductCreated={onProductCreated}
+              mainBoqItems={mainBoqItems}
             />
           </TabsContent>
 
@@ -248,6 +251,7 @@ export function BoqEditForm({
               onSetPendingProductSelection={onSetPendingProductSelection}
               onSetCreateProductDialogOpen={onSetCreateProductDialogOpen}
               onProductCreated={onProductCreated}
+              mainBoqItems={mainBoqItems}
             />
           </TabsContent>
 
@@ -270,6 +274,7 @@ export function BoqEditForm({
               onSetPendingProductSelection={onSetPendingProductSelection}
               onSetCreateProductDialogOpen={onSetCreateProductDialogOpen}
               onProductCreated={onProductCreated}
+              mainBoqItems={mainBoqItems}
             />
           </TabsContent>
 
@@ -292,6 +297,7 @@ export function BoqEditForm({
               onSetPendingProductSelection={onSetPendingProductSelection}
               onSetCreateProductDialogOpen={onSetCreateProductDialogOpen}
               onProductCreated={onProductCreated}
+              mainBoqItems={mainBoqItems}
             />
           </TabsContent>
         </Tabs>

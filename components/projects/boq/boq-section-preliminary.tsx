@@ -21,6 +21,7 @@ interface BoqSectionPreliminaryProps {
   onSetPendingProductSelection: (sel: any) => void
   onSetCreateProductDialogOpen: (open: boolean) => void
   onProductCreated: (newProduct: any) => void
+  mainBoqItems?: ProductItem[]
 }
 
 export function BoqSectionPreliminary({
@@ -37,6 +38,7 @@ export function BoqSectionPreliminary({
   onSetPendingProductSelection,
   onSetCreateProductDialogOpen,
   onProductCreated,
+  mainBoqItems,
 }: BoqSectionPreliminaryProps) {
   const [activeEditIndex, setActiveEditIndex] = useState<number | null>(null)
 
@@ -71,7 +73,7 @@ export function BoqSectionPreliminary({
                 <th className="py-2 px-3 text-left">Location</th>
                 <th className="py-2 px-3 text-left">Qty · Unit</th>
                 <th className="py-2 px-3 text-left">Price</th>
-                <th className="py-2 px-3 text-center w-8">Note</th>
+                {/* <th className="py-2 px-3 text-center w-8">Note</th> */}
                 <th className="py-2 px-3 w-20" />
               </tr>
             </thead>
@@ -93,6 +95,7 @@ export function BoqSectionPreliminary({
                   onSelectProduct={(product) => onSelectProduct(index, product)}
                   onSetPendingProductSelection={onSetPendingProductSelection}
                   onSetCreateProductDialogOpen={onSetCreateProductDialogOpen}
+                  mainBoqItems={mainBoqItems}
                 />
               ))}
             </tbody>

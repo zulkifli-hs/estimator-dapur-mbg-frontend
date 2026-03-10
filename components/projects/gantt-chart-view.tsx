@@ -177,19 +177,19 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
     "Fitting Out": {
       bar: "bg-purple-500",
       categoryHeader: "bg-purple-100 text-purple-900",
-      subcategoryHeader: "bg-purple-50 text-purple-800",
+      subcategoryHeader: "h-6 bg-purple-50 text-purple-800",
       hoverColor: "rgba(168, 85, 247, 0.15)",
     },
     "Furniture Work": {
       bar: "bg-green-500",
       categoryHeader: "bg-green-100 text-green-900",
-      subcategoryHeader: "bg-green-50 text-green-800",
+      subcategoryHeader: "h-6 bg-green-50 text-green-800",
       hoverColor: "rgba(34, 197, 94, 0.15)",
     },
     "Mechanical / Electrical / Plumbing": {
       bar: "bg-amber-500",
       categoryHeader: "bg-amber-100 text-amber-900",
-      subcategoryHeader: "bg-amber-50 text-amber-800",
+      subcategoryHeader: "h-6 bg-amber-50 text-amber-800",
       hoverColor: "rgba(245, 158, 11, 0.15)",
     },
   }
@@ -344,7 +344,7 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
                       <div key={`${category}-${subcategory}`} className="border-b last:border-b-0">
                         <div
                           className={cn(
-                            "h-5 flex items-center px-3 text-[11px] font-medium border-b",
+                            "h-5 flex items-center px-3 text-[11px] font-medium border-b leading-none",
                             getCategoryStyle(category).subcategoryHeader,
                           )}
                         >

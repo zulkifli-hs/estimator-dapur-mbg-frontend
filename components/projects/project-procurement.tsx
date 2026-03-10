@@ -698,9 +698,21 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
                       {/* Item */}
                       <TableCell className="font-medium whitespace-normal">{item.name || "-"}</TableCell>
                       {/* Qty */}
-                      <TableCell className="text-center text-sm">{item.qty ?? "-"}</TableCell>
+                      <TableCell className="text-center text-sm font-medium">
+                        {item.qty != null ? (
+                          <span className={
+                            item._boqNumber === 1
+                              ? "text-blue-600"
+                              : item.qty < 0
+                                ? "text-red-600"
+                                : "text-green-600"
+                          }>
+                            {item._boqNumber !== 1 && item.qty > 0 ? `+${item.qty}` : item.qty}
+                          </span>
+                        ) : "-"}
+                      </TableCell>
                       {/* Finishing */}
-                      <TableCell className="text-sm">{item.finishing || "-"}</TableCell>
+                      <TableCell className={`text-sm ${!item.finishing ? "text-center" : ""}`}>{item.finishing || "-"}</TableCell>
                       {/* Brand/Type/Code/Specification */}
                       <TableCell className="whitespace-normal align-top">
                         <div className="space-y-0.5 text-xs">
@@ -855,9 +867,9 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
                               </div>
                             </TableCell>
                             {/* Qty — empty for sub-items */}
-                            <TableCell />
+                            <TableCell className="text-center">-</TableCell>
                             {/* Finishing */}
-                            <TableCell className="text-sm">{subItem.finishing || "-"}</TableCell>
+                            <TableCell className={`text-sm ${!subItem.finishing ? "text-center" : ""}`}>{subItem.finishing || "-"}</TableCell>
                             {/* Brand/Type/Code/Specification */}
                             <TableCell className="whitespace-normal align-top">
                               <div className="space-y-0.5 text-xs">

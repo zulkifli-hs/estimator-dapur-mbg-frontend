@@ -109,7 +109,7 @@ export function BoqSectionCategory({
   const activeCategory = categories[activeCategoryIndex] ?? null
 
   return (
-    <div className="flex gap-0 border rounded-md overflow-hidden min-h-[420px]">
+    <div className="flex gap-0 border rounded-md overflow-hidden min-h-105">
       {/* ── Sidebar ─────────────────────────────────────────────────── */}
       <div className="w-56 shrink-0 border-r bg-muted/20 flex flex-col">
         <ScrollArea className="flex-1">

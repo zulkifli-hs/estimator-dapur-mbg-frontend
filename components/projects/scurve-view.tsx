@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import {
   ComposedChart,
   Area,
@@ -13,6 +13,8 @@ import {
   ResponsiveContainer,
 } from "recharts"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -135,7 +137,7 @@ function overlapDays(itemStart: Date, itemEnd: Date, weekStart: Date, weekEnd: D
   const start = Math.max(itemStart.getTime(), weekStart.getTime())
   const end = Math.min(itemEnd.getTime(), weekEnd.getTime())
   if (start > end) return 0
-  return Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1
+  return Math.round((end - start) / (1000 * 60 * 60 * 24))
 }
 
 function formatNumber(n: number): string {
@@ -222,14 +224,30 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
     return generateWeeks(minDate, maxDate)
   }, [flatItems])
 
-  // ── 4. Weight per week matrix (indexed by flatItems order) ────────────
-  const weekWeights = useMemo<number[][]>(() => {
-    return flatItems.map((item) => {
-      if (!item.startDate || !item.endDate || weeks.length === 0) return new Array(weeks.length).fill(0)
-      const totalOverlap = weeks.reduce((s, w) => s + overlapDays(item.startDate!, item.endDate!, w.start, w.end), 0)
-      if (totalOverlap === 0) return new Array(weeks.length).fill(0)
-      return weeks.map((w) => (overlapDays(item.startDate!, item.endDate!, w.start, w.end) / totalOverlap) * item.weight)
+  // ── 4. Weight per week matrix + overlap-days matrix ──────────────────
+  const { weekWeights, weekOverlapDays } = useMemo<{
+    weekWeights: number[][]
+    weekOverlapDays: number[][]
+  }>(() => {
+    const weights: number[][] = []
+    const days: number[][] = []
+    flatItems.forEach((item) => {
+      const weightRow: number[] = []
+      const daysRow: number[] = []
+      if (!item.startDate || !item.endDate || weeks.length === 0) {
+        weeks.forEach(() => { weightRow.push(0); daysRow.push(0) })
+      } else {
+        const totalOverlap = weeks.reduce((s, w) => s + overlapDays(item.startDate!, item.endDate!, w.start, w.end), 0)
+        weeks.forEach((w) => {
+          const d = overlapDays(item.startDate!, item.endDate!, w.start, w.end)
+          weightRow.push(totalOverlap === 0 ? 0 : (d / totalOverlap) * item.weight)
+          daysRow.push(d)
+        })
+      }
+      weights.push(weightRow)
+      days.push(daysRow)
     })
+    return { weekWeights: weights, weekOverlapDays: days }
   }, [flatItems, weeks])
 
   // ── 5. Column totals & cumulative ─────────────────────────────────────
@@ -266,7 +284,10 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
     return result
   }, [weeks])
 
-  // Fixed column count (No | Task | Start | Finish | Durasi | Harga | Bobot)
+  // State
+  const [showDays, setShowDays] = useState(false)
+
+  // Fixed column count (No | Task | Start | Finish | Duration | Price | Weight)
   const FIXED_COLS = 7
 
   // ── No data ───────────────────────────────────────────────────────────
@@ -293,8 +314,8 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
       ════════════════════════════════════════════════════════════════ */}
       {hasDates && (
         <div className="rounded-lg border bg-muted/20 p-4">
-          <h3 className="text-sm font-semibold mb-0.5">Kurva S – Rencana</h3>
-          <p className="text-xs text-muted-foreground mb-4">Bobot kumulatif rencana per minggu (%)</p>
+          <h3 className="text-sm font-semibold mb-0.5">S-Curve – Planned</h3>
+          <p className="text-xs text-muted-foreground mb-4">Cumulative planned weight per week (%)</p>
           <ResponsiveContainer width="100%" height={320}>
             <ComposedChart data={chartData} margin={{ top: 8, right: 24, left: 0, bottom: 64 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -317,13 +338,13 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
                 formatter={(value: any, name: any) =>
                   [
                     value != null ? `${Number(value).toFixed(2)}%` : "-",
-                    name === "planned" ? "Kumulatif" : "Mingguan",
+                    name === "planned" ? "Cumulative" : "Weekly",
                   ] as any
                 }
                 contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid hsl(var(--border))" }}
               />
               <Legend
-                formatter={(value) => (value === "planned" ? "Kumulatif S-Curve" : "Bobot Mingguan")}
+                formatter={(value) => (value === "planned" ? "Cumulative S-Curve" : "Weekly Weight")}
                 wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
               />
               <Area
@@ -339,8 +360,9 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
                 dataKey="planned"
                 stroke="hsl(var(--primary))"
                 strokeWidth={2.5}
-                dot={{ r: 3, fill: "hsl(var(--primary))" }}
-                activeDot={{ r: 5 }}
+                dot={{ r: 4, fill: "hsl(var(--primary))", stroke: "#fff", strokeWidth: 1.5 }}
+                activeDot={{ r: 6, stroke: "hsl(var(--primary))", strokeWidth: 2, fill: "#fff" }}
+                connectNulls
               />
             </ComposedChart>
           </ResponsiveContainer>
@@ -350,6 +372,14 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
       {/* ═══════════════════════════════════════════════════════════════
           TABLE — full width below chart
       ════════════════════════════════════════════════════════════════ */}
+      {hasDates && (
+        <div className="flex items-center justify-end gap-2">
+          <Switch id="show-days" checked={showDays} onCheckedChange={setShowDays} />
+          <Label htmlFor="show-days" className="text-xs cursor-pointer select-none">
+            Show active days per week
+          </Label>
+        </div>
+      )}
       <div className="overflow-x-auto rounded-lg border">
         <table className="min-w-full text-xs border-collapse">
           <thead className="sticky top-0 z-10">
@@ -361,7 +391,7 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
                     No
                   </th>
                   <th className="border border-border bg-muted px-2 py-1.5 text-left font-semibold min-w-48" rowSpan={2}>
-                    Task / Pekerjaan
+                    Task / Work Item
                   </th>
                   <th className="border border-border bg-muted px-2 py-1.5 text-center font-semibold whitespace-nowrap" rowSpan={2}>
                     Start
@@ -370,13 +400,13 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
                     Finish
                   </th>
                   <th className="border border-border bg-muted px-2 py-1.5 text-center font-semibold whitespace-nowrap" rowSpan={2}>
-                    Durasi (hr)
+                    Duration (days)
                   </th>
                   <th className="border border-border bg-muted px-2 py-1.5 text-right font-semibold whitespace-nowrap" rowSpan={2}>
-                    Harga (IDR)
+                    Price (IDR)
                   </th>
                   <th className="border border-border bg-muted px-2 py-1.5 text-center font-semibold whitespace-nowrap" rowSpan={2}>
-                    Bobot (%)
+                    Weight (%)
                   </th>
                   {monthGroups.map((mg) => (
                     <th
@@ -403,12 +433,12 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
             ) : (
               <tr>
                 <th className="border border-border bg-muted px-2 py-1.5 text-center font-semibold">No</th>
-                <th className="border border-border bg-muted px-2 py-1.5 text-left font-semibold min-w-48">Task / Pekerjaan</th>
+                <th className="border border-border bg-muted px-2 py-1.5 text-left font-semibold min-w-48">Task / Work Item</th>
                 <th className="border border-border bg-muted px-2 py-1.5 text-center font-semibold">Start</th>
                 <th className="border border-border bg-muted px-2 py-1.5 text-center font-semibold">Finish</th>
-                <th className="border border-border bg-muted px-2 py-1.5 text-center font-semibold">Durasi (hr)</th>
-                <th className="border border-border bg-muted px-2 py-1.5 text-right font-semibold">Harga (IDR)</th>
-                <th className="border border-border bg-muted px-2 py-1.5 text-center font-semibold">Bobot (%)</th>
+                <th className="border border-border bg-muted px-2 py-1.5 text-center font-semibold">Duration (days)</th>
+                <th className="border border-border bg-muted px-2 py-1.5 text-right font-semibold">Price (IDR)</th>
+                <th className="border border-border bg-muted px-2 py-1.5 text-center font-semibold">Weight (%)</th>
               </tr>
             )}
           </thead>
@@ -472,9 +502,17 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
                             </td>
                             {weeks.map((_, wi) => {
                               const val = weekWeights[idx]?.[wi] ?? 0
+                              const days = weekOverlapDays[idx]?.[wi] ?? 0
                               return (
                                 <td key={wi} className="border border-border px-1 py-1 text-center">
-                                  {val > 0 ? val.toFixed(2) : ""}
+                                  {val > 0 ? (
+                                    <div className="flex flex-col items-center leading-tight">
+                                      <span>{val.toFixed(2)}</span>
+                                      {showDays && (
+                                        <span className="text-[9px] text-muted-foreground font-normal">{days}d</span>
+                                      )}
+                                    </div>
+                                  ) : null}
                                 </td>
                               )
                             })}
@@ -492,7 +530,7 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
             <tfoot>
               <tr className="bg-muted/60 font-semibold">
                 <td colSpan={FIXED_COLS} className="border border-border px-2 py-1.5 text-right">
-                  Total / Minggu (%)
+                  Total / Week (%)
                 </td>
                 {weekTotals.map((t, wi) => (
                   <td key={wi} className="border border-border px-1 py-1.5 text-center">
@@ -502,7 +540,7 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
               </tr>
               <tr className="bg-primary/10 font-bold text-primary">
                 <td colSpan={FIXED_COLS} className="border border-border px-2 py-1.5 text-right">
-                  Kumulatif / S-Curve (%)
+                  Cumulative / S-Curve (%)
                 </td>
                 {cumulativeWeights.map((c, wi) => (
                   <td key={wi} className="border border-border px-1 py-1.5 text-center">
@@ -516,7 +554,7 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
 
         {!hasDates && (
           <p className="text-xs text-muted-foreground p-3">
-            * Item tidak memiliki tanggal — distribusi timeline tidak dapat ditampilkan. Tambahkan startDate &amp; endDate melalui Gantt Chart.
+            * Items have no dates — timeline distribution cannot be displayed. Add startDate &amp; endDate via the Gantt Chart.
           </p>
         )}
       </div>

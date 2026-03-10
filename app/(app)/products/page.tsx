@@ -47,7 +47,7 @@ const tagOptions = [
   { value: "Vendor", label: "Vendor" },
   { value: "MEP", label: "MEP" },
   { value: "Workshop", label: "Workshop" },
-  { value: "internal", label: "internal" },
+  { value: "internal", label: "Internal" },
   { value: "custom", label: "Custom" },
 ] as const
 

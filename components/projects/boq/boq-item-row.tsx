@@ -197,7 +197,7 @@ export function BoqItemRow({
                       <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50 ml-2" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[400px] p-0" align="start" side="bottom">
+                  <PopoverContent className="w-100 p-0" align="start" side="bottom">
                     <Command>
                       <CommandInput placeholder="Search items..." />
                       <CommandList>

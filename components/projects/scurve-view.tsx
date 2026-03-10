@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, useRef, useEffect } from "react"
 import {
   ComposedChart,
   Area,
@@ -288,6 +288,34 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
   const [showDays, setShowDays] = useState(false)
   const [showInlineCurve, setShowInlineCurve] = useState(false)
 
+  // Refs for body-overlay S-Curve
+  const tbodyRef = useRef<HTMLTableSectionElement>(null)
+  const firstWeekThRef = useRef<HTMLTableCellElement>(null)
+  const tableWrapperRef = useRef<HTMLDivElement>(null)
+  const [overlayRect, setOverlayRect] = useState<{
+    top: number; left: number; width: number; height: number
+  } | null>(null)
+
+  useEffect(() => {
+    const update = () => {
+      if (!tbodyRef.current || !firstWeekThRef.current || !tableWrapperRef.current) return
+      const bodyRect = tbodyRef.current.getBoundingClientRect()
+      const thRect = firstWeekThRef.current.getBoundingClientRect()
+      const wrapRect = tableWrapperRef.current.getBoundingClientRect()
+      setOverlayRect({
+        top: bodyRect.top - wrapRect.top,
+        left: thRect.left - wrapRect.left,
+        width: bodyRect.right - thRect.left,
+        height: bodyRect.height,
+      })
+    }
+    update()
+    const ro = new ResizeObserver(update)
+    if (tbodyRef.current) ro.observe(tbodyRef.current)
+    if (tableWrapperRef.current) ro.observe(tableWrapperRef.current)
+    return () => ro.disconnect()
+  }, [weeks, groups, showInlineCurve])
+
   // Fixed column count (No | Task | Start | Finish | Duration | Price | Weight)
   const FIXED_COLS = 7
 
@@ -390,6 +418,7 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
         </div>
       )}
       <div className="overflow-x-auto rounded-lg border">
+        <div ref={tableWrapperRef} className="relative inline-block min-w-full">
         <table className="min-w-full text-xs border-collapse">
           <thead>
             {hasDates ? (
@@ -429,9 +458,10 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
                 </tr>
                 {/* Row 2: week labels */}
                 <tr>
-                  {weeks.map((w) => (
+                  {weeks.map((w, wi) => (
                     <th
                       key={w.key}
+                      ref={wi === 0 ? firstWeekThRef : undefined}
                       className="border border-border bg-muted/60 px-1 py-1 text-center font-medium whitespace-nowrap min-w-13"
                     >
                       {w.label}
@@ -452,7 +482,7 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
             )}
           </thead>
 
-          <tbody>
+          <tbody ref={tbodyRef}>
             {groups.map(({ section, subsections }) => {
               const style = getCategoryStyle(section)
               // If only one subsection and name matches section (Preliminary), skip sub-header
@@ -557,71 +587,66 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
                   </td>
                 ))}
               </tr>
-              {/* S-Curve visual row — inline SVG spanning all week columns */}
-              {showInlineCurve && (
-              <tr>
-                <td
-                  colSpan={FIXED_COLS}
-                  className="border border-border px-2 py-1 text-right text-[10px] font-semibold text-primary"
-                >
-                  S-Curve
-                </td>
-                <td colSpan={weeks.length} className="border border-border p-0">
-                  <svg
-                    width="100%"
-                    height="60"
-                    viewBox={`0 0 ${weeks.length * 52} 60`}
-                    preserveAspectRatio="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <defs>
-                      <linearGradient id="scurve-area-grad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="hsl(221.2,83.2%,53.3%)" stopOpacity="0.25" />
-                        <stop offset="100%" stopColor="hsl(221.2,83.2%,53.3%)" stopOpacity="0.02" />
-                      </linearGradient>
-                    </defs>
-                    {/* Area fill below the curve */}
-                    <path
-                      d={[
-                        `M ${0.5 * 52} 58`,
-                        ...cumulativeWeights.map(
-                          (c, i) => `L ${(i + 0.5) * 52} ${((100 - c) / 100) * 54 + 3}`,
-                        ),
-                        `L ${(weeks.length - 0.5) * 52} 58`,
-                        "Z",
-                      ].join(" ")}
-                      fill="url(#scurve-area-grad)"
-                    />
-                    {/* Connecting line */}
-                    <polyline
-                      points={cumulativeWeights
-                        .map((c, i) => `${(i + 0.5) * 52},${((100 - c) / 100) * 54 + 3}`)
-                        .join(" ")}
-                      fill="none"
-                      stroke="hsl(221.2,83.2%,53.3%)"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    {/* Dots at each week */}
-                    {cumulativeWeights.map((c, i) => (
-                      <circle
-                        key={i}
-                        cx={(i + 0.5) * 52}
-                        cy={((100 - c) / 100) * 54 + 3}
-                        r="3.5"
-                        fill="hsl(221.2,83.2%,53.3%)"
-                        stroke="white"
-                        strokeWidth="1.5"
-                      />
-                    ))}
-                  </svg>
-                </td>
-              </tr>
-              )}
             </tfoot>
           )}
         </table>
+
+        {/* Body overlay S-Curve — absolutely positioned over tbody weekly columns */}
+        {showInlineCurve && overlayRect && weeks.length > 0 && (
+          <svg
+            style={{
+              position: "absolute",
+              top: overlayRect.top,
+              left: overlayRect.left,
+              width: overlayRect.width,
+              height: overlayRect.height,
+              pointerEvents: "none",
+              zIndex: 5,
+              overflow: "visible",
+            }}
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <defs>
+              <linearGradient id="body-scurve-grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="hsl(221.2,83.2%,53.3%)" stopOpacity="0.18" />
+                <stop offset="100%" stopColor="hsl(221.2,83.2%,53.3%)" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            <path
+              d={[
+                `M ${(0.5 / weeks.length) * overlayRect.width} ${overlayRect.height}`,
+                ...cumulativeWeights.map(
+                  (c, i) => `L ${((i + 0.5) / weeks.length) * overlayRect.width} ${overlayRect.height * (1 - c / 100)}`
+                ),
+                `L ${((weeks.length - 0.5) / weeks.length) * overlayRect.width} ${overlayRect.height}`,
+                "Z",
+              ].join(" ")}
+              fill="url(#body-scurve-grad)"
+            />
+            <polyline
+              points={cumulativeWeights
+                .map((c, i) => `${((i + 0.5) / weeks.length) * overlayRect.width},${overlayRect.height * (1 - c / 100)}`)
+                .join(" ")}
+              fill="none"
+              stroke="hsl(221.2,83.2%,53.3%)"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            {cumulativeWeights.map((c, i) => (
+              <circle
+                key={i}
+                cx={((i + 0.5) / weeks.length) * overlayRect.width}
+                cy={overlayRect.height * (1 - c / 100)}
+                r="3"
+                fill="hsl(221.2,83.2%,53.3%)"
+                stroke="white"
+                strokeWidth="1.5"
+              />
+            ))}
+          </svg>
+        )}
+        </div>
 
         {!hasDates && (
           <p className="text-xs text-muted-foreground p-3">

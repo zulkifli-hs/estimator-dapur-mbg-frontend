@@ -286,6 +286,7 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
 
   // State
   const [showDays, setShowDays] = useState(false)
+  const [showInlineCurve, setShowInlineCurve] = useState(false)
 
   // Fixed column count (No | Task | Start | Finish | Duration | Price | Weight)
   const FIXED_COLS = 7
@@ -373,16 +374,24 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
           TABLE — full width below chart
       ════════════════════════════════════════════════════════════════ */}
       {hasDates && (
-        <div className="flex items-center justify-end gap-2">
-          <Switch id="show-days" checked={showDays} onCheckedChange={setShowDays} />
-          <Label htmlFor="show-days" className="text-xs cursor-pointer select-none">
-            Show active days per week
-          </Label>
+        <div className="flex items-center justify-end gap-4 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Switch id="show-inline-curve" checked={showInlineCurve} onCheckedChange={setShowInlineCurve} className="cursor-pointer" />
+            <Label htmlFor="show-inline-curve" className="text-xs cursor-pointer select-none leading-none mb-0">
+              Show inline S-Curve
+            </Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch id="show-days" checked={showDays} onCheckedChange={setShowDays} className="cursor-pointer" />
+            <Label htmlFor="show-days" className="text-xs cursor-pointer select-none leading-none mb-0">
+              Show active days per week
+            </Label>
+          </div>
         </div>
       )}
       <div className="overflow-x-auto rounded-lg border">
         <table className="min-w-full text-xs border-collapse">
-          <thead className="sticky top-0 z-10">
+          <thead>
             {hasDates ? (
               <>
                 {/* Row 1: fixed-col labels (rowSpan 2) + month groups */}
@@ -548,6 +557,68 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
                   </td>
                 ))}
               </tr>
+              {/* S-Curve visual row — inline SVG spanning all week columns */}
+              {showInlineCurve && (
+              <tr>
+                <td
+                  colSpan={FIXED_COLS}
+                  className="border border-border px-2 py-1 text-right text-[10px] font-semibold text-primary"
+                >
+                  S-Curve
+                </td>
+                <td colSpan={weeks.length} className="border border-border p-0">
+                  <svg
+                    width="100%"
+                    height="60"
+                    viewBox={`0 0 ${weeks.length * 52} 60`}
+                    preserveAspectRatio="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <defs>
+                      <linearGradient id="scurve-area-grad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="hsl(221.2,83.2%,53.3%)" stopOpacity="0.25" />
+                        <stop offset="100%" stopColor="hsl(221.2,83.2%,53.3%)" stopOpacity="0.02" />
+                      </linearGradient>
+                    </defs>
+                    {/* Area fill below the curve */}
+                    <path
+                      d={[
+                        `M ${0.5 * 52} 58`,
+                        ...cumulativeWeights.map(
+                          (c, i) => `L ${(i + 0.5) * 52} ${((100 - c) / 100) * 54 + 3}`,
+                        ),
+                        `L ${(weeks.length - 0.5) * 52} 58`,
+                        "Z",
+                      ].join(" ")}
+                      fill="url(#scurve-area-grad)"
+                    />
+                    {/* Connecting line */}
+                    <polyline
+                      points={cumulativeWeights
+                        .map((c, i) => `${(i + 0.5) * 52},${((100 - c) / 100) * 54 + 3}`)
+                        .join(" ")}
+                      fill="none"
+                      stroke="hsl(221.2,83.2%,53.3%)"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    {/* Dots at each week */}
+                    {cumulativeWeights.map((c, i) => (
+                      <circle
+                        key={i}
+                        cx={(i + 0.5) * 52}
+                        cy={((100 - c) / 100) * 54 + 3}
+                        r="3.5"
+                        fill="hsl(221.2,83.2%,53.3%)"
+                        stroke="white"
+                        strokeWidth="1.5"
+                      />
+                    ))}
+                  </svg>
+                </td>
+              </tr>
+              )}
             </tfoot>
           )}
         </table>

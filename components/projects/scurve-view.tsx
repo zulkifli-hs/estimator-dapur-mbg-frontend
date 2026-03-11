@@ -1,28 +1,17 @@
 "use client"
 
 import { useMemo, useState, useRef, useEffect } from "react"
-import {
-  ComposedChart,
-  Area,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
+import { FileDown, Loader2 } from "lucide-react"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface SCurveItem {
   name: string
-  /** main section, e.g. "Preliminary", "Fitting Out", "Furniture Work", "MEP" */
   section: string
-  /** sub-section / category name within the section */
   subsection: string
   startDate: Date | null
   endDate: Date | null
@@ -46,7 +35,7 @@ interface Week {
   end: Date
 }
 
-// ─── Category colour palette (mirrors gantt-chart-view) ───────────────────────
+// ─── Category colour palette ──────────────────────────────────────────────────
 
 const CATEGORY_STYLES: Record<
   string,
@@ -149,14 +138,91 @@ function formatDate(d: Date | null): string {
   return d.toLocaleDateString("id-ID", { day: "2-digit", month: "2-digit", year: "numeric" })
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// ─── Bottom S-Curve SVG ───────────────────────────────────────────────────────
+// Rendered as a real DOM child inside a tfoot <td>.
+// Because it lives in the normal document flow, html2canvas captures it at the
+// correct position with zero offset drift — regardless of container scroll or
+// width changes made during export.
+
+interface BottomSCurveSvgProps {
+  cumulativeWeights: number[]
+  weekCount: number
+}
+
+function BottomSCurveSvg({ cumulativeWeights, weekCount }: BottomSCurveSvgProps) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [size, setSize] = useState<{ width: number; height: number } | null>(null)
+
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const update = () => setSize({ width: el.offsetWidth, height: el.offsetHeight })
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
+  const cx = (i: number, w: number) => ((i + 0.5) / weekCount) * w
+  const cy = (c: number, h: number) => h * (1 - c / 100)
+
+  return (
+    <div ref={containerRef} style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+      {size && size.width > 0 && size.height > 0 && (
+        <svg
+          width={size.width}
+          height={size.height}
+          style={{ display: "block", overflow: "visible" }}
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <defs>
+            <linearGradient id="bottom-scurve-grad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="hsl(221.2,83.2%,53.3%)" stopOpacity="0.22" />
+              <stop offset="100%" stopColor="hsl(221.2,83.2%,53.3%)" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <path
+            d={[
+              `M ${cx(0, size.width)} ${size.height}`,
+              ...cumulativeWeights.map((c, i) => `L ${cx(i, size.width)} ${cy(c, size.height)}`),
+              `L ${cx(weekCount - 1, size.width)} ${size.height}`,
+              "Z",
+            ].join(" ")}
+            fill="url(#bottom-scurve-grad)"
+          />
+          <polyline
+            points={cumulativeWeights.map((c, i) => `${cx(i, size.width)},${cy(c, size.height)}`).join(" ")}
+            fill="none"
+            stroke="hsl(221.2,83.2%,53.3%)"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          {cumulativeWeights.map((c, i) => (
+            <circle
+              key={i}
+              cx={cx(i, size.width)}
+              cy={cy(c, size.height)}
+              r="3"
+              fill="hsl(221.2,83.2%,53.3%)"
+              stroke="white"
+              strokeWidth="1.5"
+            />
+          ))}
+        </svg>
+      )}
+    </div>
+  )
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
 
 interface SCurveViewProps {
   mainBOQ: any
 }
 
 export function SCurveView({ mainBOQ }: SCurveViewProps) {
-  // ── 1. Build flat item list ────────────────────────────────────────────
+  // ── 1. Flat item list ─────────────────────────────────────────────────
   const flatItems = useMemo<SCurveItem[]>(() => {
     if (!mainBOQ) return []
     const result: SCurveItem[] = []
@@ -172,35 +238,28 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
       result.push({ name: raw.name, section, subsection, startDate: start, endDate: end, durationDays, totalPrice, weight: 0 })
     }
 
-    if (Array.isArray(mainBOQ.preliminary)) {
+    if (Array.isArray(mainBOQ.preliminary))
       mainBOQ.preliminary.forEach((item: any) => push(item, "Preliminary", "Preliminary"))
-    }
-    if (Array.isArray(mainBOQ.fittingOut)) {
-      mainBOQ.fittingOut.forEach((cat: any) => {
-        ;(cat.products || []).forEach((p: any) => push(p, "Fitting Out", cat.name))
-      })
-    }
-    if (Array.isArray(mainBOQ.furnitureWork)) {
-      mainBOQ.furnitureWork.forEach((cat: any) => {
-        ;(cat.products || []).forEach((p: any) => push(p, "Furniture Work", cat.name))
-      })
-    }
-    if (Array.isArray(mainBOQ.mechanicalElectrical)) {
-      mainBOQ.mechanicalElectrical.forEach((cat: any) => {
-        ;(cat.products || []).forEach((p: any) => push(p, "MEP", cat.name))
-      })
-    }
+    if (Array.isArray(mainBOQ.fittingOut))
+      mainBOQ.fittingOut.forEach((cat: any) =>
+        (cat.products || []).forEach((p: any) => push(p, "Fitting Out", cat.name))
+      )
+    if (Array.isArray(mainBOQ.furnitureWork))
+      mainBOQ.furnitureWork.forEach((cat: any) =>
+        (cat.products || []).forEach((p: any) => push(p, "Furniture Work", cat.name))
+      )
+    if (Array.isArray(mainBOQ.mechanicalElectrical))
+      mainBOQ.mechanicalElectrical.forEach((cat: any) =>
+        (cat.products || []).forEach((p: any) => push(p, "MEP", cat.name))
+      )
 
-    // Assign weights
     const totalBudget = result.reduce((s, i) => s + i.totalPrice, 0)
-    if (totalBudget > 0) {
-      result.forEach((i) => { i.weight = (i.totalPrice / totalBudget) * 100 })
-    }
+    if (totalBudget > 0) result.forEach((i) => { i.weight = (i.totalPrice / totalBudget) * 100 })
 
     return result
   }, [mainBOQ])
 
-  // ── 2. Grouped structure for table rendering ───────────────────────────
+  // ── 2. Grouped structure ───────────────────────────────────────────────
   const groups = useMemo<SCurveGroup[]>(() => {
     const sectionMap = new Map<string, Map<string, SCurveItem[]>>()
     flatItems.forEach((item) => {
@@ -215,7 +274,7 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
     }))
   }, [flatItems])
 
-  // ── 3. Generate weeks ─────────────────────────────────────────────────
+  // ── 3. Weeks ──────────────────────────────────────────────────────────
   const weeks = useMemo<Week[]>(() => {
     const datedItems = flatItems.filter((i) => i.startDate && i.endDate)
     if (datedItems.length === 0) return []
@@ -224,11 +283,8 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
     return generateWeeks(minDate, maxDate)
   }, [flatItems])
 
-  // ── 4. Weight per week matrix + overlap-days matrix ──────────────────
-  const { weekWeights, weekOverlapDays } = useMemo<{
-    weekWeights: number[][]
-    weekOverlapDays: number[][]
-  }>(() => {
+  // ── 4. Weight + overlap-days matrices ─────────────────────────────────
+  const { weekWeights, weekOverlapDays } = useMemo(() => {
     const weights: number[][] = []
     const days: number[][] = []
     flatItems.forEach((item) => {
@@ -237,7 +293,9 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
       if (!item.startDate || !item.endDate || weeks.length === 0) {
         weeks.forEach(() => { weightRow.push(0); daysRow.push(0) })
       } else {
-        const totalOverlap = weeks.reduce((s, w) => s + overlapDays(item.startDate!, item.endDate!, w.start, w.end), 0)
+        const totalOverlap = weeks.reduce(
+          (s, w) => s + overlapDays(item.startDate!, item.endDate!, w.start, w.end), 0
+        )
         weeks.forEach((w) => {
           const d = overlapDays(item.startDate!, item.endDate!, w.start, w.end)
           weightRow.push(totalOverlap === 0 ? 0 : (d / totalOverlap) * item.weight)
@@ -250,7 +308,7 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
     return { weekWeights: weights, weekOverlapDays: days }
   }, [flatItems, weeks])
 
-  // ── 5. Column totals & cumulative ─────────────────────────────────────
+  // ── 5. Totals & cumulative ─────────────────────────────────────────────
   const weekTotals = useMemo<number[]>(
     () => weeks.map((_, wi) => flatItems.reduce((s, _, ii) => s + (weekWeights[ii]?.[wi] ?? 0), 0)),
     [flatItems, weeks, weekWeights],
@@ -261,18 +319,7 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
     return weekTotals.map((t) => { cum += t; return cum })
   }, [weekTotals])
 
-  // ── 6. Chart data ─────────────────────────────────────────────────────
-  const chartData = useMemo(
-    () =>
-      weeks.map((w, i) => ({
-        week: w.label,
-        planned: parseFloat(cumulativeWeights[i].toFixed(2)),
-        weekly: parseFloat(weekTotals[i].toFixed(2)),
-      })),
-    [weeks, cumulativeWeights, weekTotals],
-  )
-
-  // ── Month groups for merged header ────────────────────────────────────
+  // ── Month groups ──────────────────────────────────────────────────────
   const monthGroups = useMemo(() => {
     const result: { label: string; count: number }[] = []
     weeks.forEach((w) => {
@@ -284,45 +331,123 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
     return result
   }, [weeks])
 
-  // State
-  const [showDays, setShowDays] = useState(true)
-  const [showInlineCurve, setShowInlineCurve] = useState(true)
+  // ── State ─────────────────────────────────────────────────────────────
+  const [showDays,         setShowDays        ] = useState(true)
+  // Overlay: floating SVG above the tbody rows (visual on-screen)
+  const [showOverlayCurve, setShowOverlayCurve] = useState(true)
+  // Bottom: dedicated tfoot row — always accurate in PDF export
+  const [showBottomCurve,  setShowBottomCurve ] = useState(true)
+  const [exportingPdf,     setExportingPdf    ] = useState(false)
 
-  // Refs for body-overlay S-Curve
-  const tbodyRef = useRef<HTMLTableSectionElement>(null)
-  const firstWeekThRef = useRef<HTMLTableCellElement>(null)
+  // ── Refs for overlay measurement ──────────────────────────────────────
+  const tbodyRef        = useRef<HTMLTableSectionElement>(null)
+  const firstWeekThRef  = useRef<HTMLTableCellElement>(null)
   const firstItemRowRef = useRef<HTMLTableRowElement>(null)
   const tableWrapperRef = useRef<HTMLDivElement>(null)
+  const exportContainerRef = useRef<HTMLDivElement>(null)
+  const overlaySvgRef   = useRef<SVGSVGElement>(null)
+
   const [overlayRect, setOverlayRect] = useState<{
     top: number; left: number; width: number; height: number
   } | null>(null)
 
+  const updateOverlayRect = () => {
+    if (!tbodyRef.current || !firstWeekThRef.current || !tableWrapperRef.current || !firstItemRowRef.current) return
+    const tableEl           = tbodyRef.current.parentElement as HTMLTableElement
+    const thOffsetLeft      = firstWeekThRef.current.offsetLeft
+    const tableOffsetLeft   = tableEl.offsetLeft
+    const tableOffsetTop    = tableEl.offsetTop
+    const tbodyOffsetTop    = tbodyRef.current.offsetTop
+    const firstRowOffsetTop = firstItemRowRef.current.offsetTop
+    setOverlayRect({
+      top:    tableOffsetTop + tbodyOffsetTop + firstRowOffsetTop,
+      left:   tableOffsetLeft + thOffsetLeft,
+      width:  tableEl.offsetWidth - thOffsetLeft,
+      height: tbodyRef.current.offsetHeight - firstRowOffsetTop,
+    })
+  }
+
   useEffect(() => {
-    const update = () => {
-      if (!tbodyRef.current || !firstWeekThRef.current || !tableWrapperRef.current || !firstItemRowRef.current) return
-      const bodyRect = tbodyRef.current.getBoundingClientRect()
-      const thRect = firstWeekThRef.current.getBoundingClientRect()
-      const wrapRect = tableWrapperRef.current.getBoundingClientRect()
-      const firstItemRect = firstItemRowRef.current.getBoundingClientRect()
-      // Anchor SVG from the first item row top to the bottom of tbody
-      setOverlayRect({
-        top: firstItemRect.top - wrapRect.top,
-        left: thRect.left - wrapRect.left,
-        width: bodyRect.right - thRect.left,
-        height: bodyRect.bottom - firstItemRect.top,
-      })
-    }
-    update()
-    const ro = new ResizeObserver(update)
-    if (tbodyRef.current) ro.observe(tbodyRef.current)
+    updateOverlayRect()
+    const ro = new ResizeObserver(updateOverlayRect)
+    if (tbodyRef.current)      ro.observe(tbodyRef.current)
     if (tableWrapperRef.current) ro.observe(tableWrapperRef.current)
     return () => ro.disconnect()
-  }, [weeks, groups, showInlineCurve])
+  }, [weeks, groups, showOverlayCurve, showBottomCurve])
 
-  // Fixed column count (No | Task | Start | Finish | Duration | Price | Weight)
-  const FIXED_COLS = 7
+  // ── PDF Export ────────────────────────────────────────────────────────
+  // 1. Hide the overlay SVG (floating absolute — drifts during capture)
+  // 2. Force-show the bottom S-Curve row (real DOM child — always accurate)
+  // 3. Capture → restore both back to user's chosen state
+  const exportSCurvePdf = async () => {
+    if (!exportContainerRef.current) return
+    setExportingPdf(true)
 
-  // ── No data ───────────────────────────────────────────────────────────
+    const containerEl    = exportContainerRef.current
+    const origOverflow   = containerEl.style.overflow
+    const origWidth      = containerEl.style.width
+    const origScrollLeft = containerEl.scrollLeft
+
+    // Hide overlay SVG for export
+    if (overlaySvgRef.current) overlaySvgRef.current.style.visibility = "hidden"
+    // Force bottom curve visible (even if user has it off)
+    const bottomWasHidden = !showBottomCurve
+    if (bottomWasHidden) setShowBottomCurve(true)
+
+    try {
+      const html2canvas = (await import('html2canvas-pro')).default
+      const { jsPDF }   = await import('jspdf')
+
+      const trueContentWidth = containerEl.scrollWidth
+      containerEl.scrollLeft = 0
+      containerEl.style.overflow = 'visible'
+      containerEl.style.width    = `${trueContentWidth}px`
+
+      // Wait for React re-render of bottom curve row + browser paint
+      await new Promise<void>((r) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 150)))
+      )
+
+      const canvas = await html2canvas(containerEl, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        width:       containerEl.offsetWidth,
+        height:      containerEl.offsetHeight,
+        windowWidth: containerEl.offsetWidth,
+        scrollX: 0,
+        scrollY: 0,
+      })
+
+      const imgData = canvas.toDataURL('image/png')
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a3' })
+
+      const pageW = pdf.internal.pageSize.getWidth()
+      const pageH = pdf.internal.pageSize.getHeight()
+      const ratio = canvas.width / canvas.height
+      let imgW = pageW - 20
+      let imgH = imgW / ratio
+      if (imgH > pageH - 20) { imgH = pageH - 20; imgW = imgH * ratio }
+
+      pdf.addImage(imgData, 'PNG', (pageW - imgW) / 2, (pageH - imgH) / 2, imgW, imgH)
+      pdf.save('s-curve.pdf')
+    } catch (err) {
+      console.error('Failed to export S-Curve PDF:', err)
+    } finally {
+      containerEl.style.overflow  = origOverflow
+      containerEl.style.width     = origWidth
+      containerEl.scrollLeft      = origScrollLeft
+      if (overlaySvgRef.current) overlaySvgRef.current.style.visibility = ""
+      if (bottomWasHidden) setShowBottomCurve(false)
+      setExportingPdf(false)
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  const FIXED_COLS            = 7
+  const BOTTOM_CURVE_HEIGHT   = 240
+
   if (flatItems.length === 0) {
     return (
       <Alert>
@@ -333,269 +458,263 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
 
   const hasDates = weeks.length > 0
 
-  // Running item counter (mutated during render — intentional for sequential numbering)
   let itemNo = 0
   let firstItemRefSet = false
-  // Map each item to its index in flatItems for weekWeights lookup
   const itemIndexMap = new Map<SCurveItem, number>()
   flatItems.forEach((item, idx) => itemIndexMap.set(item, idx))
 
   return (
     <div className="space-y-6">
-      {/* ═══════════════════════════════════════════════════════════════
-          TABLE — full width below chart
-      ════════════════════════════════════════════════════════════════ */}
+      {/* ── Controls ─────────────────────────────────────────────────── */}
       {hasDates && (
-        <div className="flex items-center justify-start gap-4 flex-wrap">
-          <div className="flex items-center gap-2">
-            <Switch id="show-inline-curve" checked={showInlineCurve} onCheckedChange={setShowInlineCurve} className="cursor-pointer" />
-            <Label htmlFor="show-inline-curve" className="text-xs cursor-pointer select-none leading-none mb-0">
-              Show inline S-Curve
-            </Label>
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Switch id="show-overlay" checked={showOverlayCurve} onCheckedChange={setShowOverlayCurve} className="cursor-pointer" />
+              <Label htmlFor="show-overlay" className="text-xs cursor-pointer select-none leading-none mb-0">
+                Show inline S-Curve
+              </Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch id="show-bottom" checked={showBottomCurve} onCheckedChange={setShowBottomCurve} className="cursor-pointer" />
+              <Label htmlFor="show-bottom" className="text-xs cursor-pointer select-none leading-none mb-0">
+                Show S-Curve in table footer
+              </Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch id="show-days" checked={showDays} onCheckedChange={setShowDays} className="cursor-pointer" />
+              <Label htmlFor="show-days" className="text-xs cursor-pointer select-none leading-none mb-0">
+                Show active days per week
+              </Label>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Switch id="show-days" checked={showDays} onCheckedChange={setShowDays} className="cursor-pointer" />
-            <Label htmlFor="show-days" className="text-xs cursor-pointer select-none leading-none mb-0">
-              Show active days per week
-            </Label>
+          <div className="flex flex-col items-end gap-1">
+            <Button variant="outline" size="sm" onClick={exportSCurvePdf} disabled={exportingPdf}>
+              {exportingPdf
+                ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Exporting...</>
+                : <><FileDown className="h-4 w-4 mr-2" />Export PDF</>
+              }
+            </Button>
+            <p className="text-[10px] text-primary text-right">
+              PDF export only supports the S-Curve in the table footer, not the inline overlay.
+            </p>
           </div>
         </div>
       )}
-      <div className="overflow-x-auto rounded-lg border">
+
+      {/* ── Table ────────────────────────────────────────────────────── */}
+      <div ref={exportContainerRef} className="overflow-x-auto rounded-lg border">
+        {/* position:relative wrapper — anchor for the overlay SVG */}
         <div ref={tableWrapperRef} className="relative inline-block min-w-full">
-        <table className="min-w-full text-xs border-collapse">
-          <thead>
-            {hasDates ? (
-              <>
-                {/* Row 1: fixed-col labels (rowSpan 2) + month groups */}
-                <tr>
-                  <th className="border border-border bg-muted px-2 py-1.5 text-center font-semibold whitespace-nowrap" rowSpan={2}>
-                    No
-                  </th>
-                  <th className="border border-border bg-muted px-2 py-1.5 text-left font-semibold min-w-48" rowSpan={2}>
-                    Task / Work Item
-                  </th>
-                  <th className="border border-border bg-muted px-2 py-1.5 text-center font-semibold whitespace-nowrap" rowSpan={2}>
-                    Start
-                  </th>
-                  <th className="border border-border bg-muted px-2 py-1.5 text-center font-semibold whitespace-nowrap" rowSpan={2}>
-                    Finish
-                  </th>
-                  <th className="border border-border bg-muted px-2 py-1.5 text-center font-semibold whitespace-nowrap" rowSpan={2}>
-                    Duration (days)
-                  </th>
-                  <th className="border border-border bg-muted px-2 py-1.5 text-right font-semibold whitespace-nowrap" rowSpan={2}>
-                    Price (IDR)
-                  </th>
-                  <th className="border border-border bg-muted px-2 py-1.5 text-center font-semibold whitespace-nowrap" rowSpan={2}>
-                    Weight (%)
-                  </th>
-                  {monthGroups.map((mg) => (
-                    <th
-                      key={mg.label}
-                      colSpan={mg.count}
-                      className="border border-border bg-primary/10 px-2 py-1.5 text-center font-semibold text-primary whitespace-nowrap"
-                    >
-                      {mg.label}
-                    </th>
-                  ))}
-                </tr>
-                {/* Row 2: week labels */}
-                <tr>
-                  {weeks.map((w, wi) => (
-                    <th
-                      key={w.key}
-                      ref={wi === 0 ? firstWeekThRef : undefined}
-                      className="border border-border bg-muted/60 px-1 py-1 text-center font-medium whitespace-nowrap min-w-13"
-                    >
-                      {w.label}
-                    </th>
-                  ))}
-                </tr>
-              </>
-            ) : (
-              <tr>
-                <th className="border border-border bg-muted px-2 py-1.5 text-center font-semibold">No</th>
-                <th className="border border-border bg-muted px-2 py-1.5 text-left font-semibold min-w-48">Task / Work Item</th>
-                <th className="border border-border bg-muted px-2 py-1.5 text-center font-semibold">Start</th>
-                <th className="border border-border bg-muted px-2 py-1.5 text-center font-semibold">Finish</th>
-                <th className="border border-border bg-muted px-2 py-1.5 text-center font-semibold">Duration (days)</th>
-                <th className="border border-border bg-muted px-2 py-1.5 text-right font-semibold">Price (IDR)</th>
-                <th className="border border-border bg-muted px-2 py-1.5 text-center font-semibold">Weight (%)</th>
-              </tr>
-            )}
-          </thead>
-
-          <tbody ref={tbodyRef}>
-            {groups.map(({ section, subsections }) => {
-              const style = getCategoryStyle(section)
-              // If only one subsection and name matches section (Preliminary), skip sub-header
-              const isFlat = subsections.length === 1 && subsections[0].subsection === section
-
-              return (
+          <table className="min-w-full text-xs border-collapse">
+            <thead>
+              {hasDates ? (
                 <>
-                  {/* Section header row */}
-                  <tr key={`section-${section}`}>
+                  <tr>
+                    <th className="border border-border bg-muted px-2 py-1.5 text-center font-semibold whitespace-nowrap" rowSpan={2}>No</th>
+                    <th className="border border-border bg-muted px-2 py-1.5 text-left font-semibold min-w-48" rowSpan={2}>Task / Work Item</th>
+                    <th className="border border-border bg-muted px-2 py-1.5 text-center font-semibold whitespace-nowrap" rowSpan={2}>Start</th>
+                    <th className="border border-border bg-muted px-2 py-1.5 text-center font-semibold whitespace-nowrap" rowSpan={2}>Finish</th>
+                    <th className="border border-border bg-muted px-2 py-1.5 text-center font-semibold whitespace-nowrap" rowSpan={2}>Duration (days)</th>
+                    <th className="border border-border bg-muted px-2 py-1.5 text-right font-semibold whitespace-nowrap" rowSpan={2}>Price (IDR)</th>
+                    <th className="border border-border bg-muted px-2 py-1.5 text-center font-semibold whitespace-nowrap" rowSpan={2}>Weight (%)</th>
+                    {monthGroups.map((mg) => (
+                      <th key={mg.label} colSpan={mg.count}
+                        className="border border-border bg-primary/10 px-2 py-1.5 text-center font-semibold text-primary whitespace-nowrap">
+                        {mg.label}
+                      </th>
+                    ))}
+                  </tr>
+                  <tr>
+                    {weeks.map((w, wi) => (
+                      <th key={w.key}
+                        ref={wi === 0 ? firstWeekThRef : undefined}
+                        className="border border-border bg-muted/60 px-1 py-1 text-center font-medium whitespace-nowrap min-w-13">
+                        {w.label}
+                      </th>
+                    ))}
+                  </tr>
+                </>
+              ) : (
+                <tr>
+                  <th className="border border-border bg-muted px-2 py-1.5 text-center font-semibold">No</th>
+                  <th className="border border-border bg-muted px-2 py-1.5 text-left font-semibold min-w-48">Task / Work Item</th>
+                  <th className="border border-border bg-muted px-2 py-1.5 text-center font-semibold">Start</th>
+                  <th className="border border-border bg-muted px-2 py-1.5 text-center font-semibold">Finish</th>
+                  <th className="border border-border bg-muted px-2 py-1.5 text-center font-semibold">Duration (days)</th>
+                  <th className="border border-border bg-muted px-2 py-1.5 text-right font-semibold">Price (IDR)</th>
+                  <th className="border border-border bg-muted px-2 py-1.5 text-center font-semibold">Weight (%)</th>
+                </tr>
+              )}
+            </thead>
+
+            <tbody ref={tbodyRef}>
+              {groups.map(({ section, subsections }) => {
+                const style = getCategoryStyle(section)
+                const isFlat = subsections.length === 1 && subsections[0].subsection === section
+                return (
+                  <>
+                    <tr key={`section-${section}`}>
+                      <td colSpan={FIXED_COLS + weeks.length}
+                        className={`border border-border px-3 py-1 font-bold text-xs uppercase tracking-wide ${style.sectionHeader}`}>
+                        {section}
+                      </td>
+                    </tr>
+                    {subsections.map(({ subsection, items }) => (
+                      <>
+                        {!isFlat && (
+                          <tr key={`sub-${section}-${subsection}`}>
+                            <td colSpan={FIXED_COLS + weeks.length}
+                              className={`border border-border px-5 py-0.5 font-semibold text-[11px] ${style.subsectionHeader}`}>
+                              {subsection}
+                            </td>
+                          </tr>
+                        )}
+                        {items.map((item) => {
+                          itemNo++
+                          const idx = itemIndexMap.get(item) ?? 0
+                          const isFirst = !firstItemRefSet
+                          if (isFirst) firstItemRefSet = true
+                          return (
+                            <tr key={`item-${section}-${subsection}-${idx}`}
+                              ref={isFirst ? firstItemRowRef : undefined}
+                              className="hover:bg-muted/30">
+                              <td className="border border-border px-2 py-1 text-center text-muted-foreground">{itemNo}</td>
+                              <td className="border border-border px-2 py-1 font-medium">{item.name}</td>
+                              <td className="border border-border px-2 py-1 text-center whitespace-nowrap">{formatDate(item.startDate)}</td>
+                              <td className="border border-border px-2 py-1 text-center whitespace-nowrap">{formatDate(item.endDate)}</td>
+                              <td className="border border-border px-2 py-1 text-center">{item.durationDays > 0 ? item.durationDays : "-"}</td>
+                              <td className="border border-border px-2 py-1 text-right whitespace-nowrap">{formatNumber(item.totalPrice)}</td>
+                              <td className="border border-border px-2 py-1 text-center font-semibold">{item.weight.toFixed(2)}%</td>
+                              {weeks.map((_, wi) => {
+                                const val  = weekWeights[idx]?.[wi] ?? 0
+                                const days = weekOverlapDays[idx]?.[wi] ?? 0
+                                return (
+                                  <td key={wi} className="border border-border px-1 py-1 text-center">
+                                    {val > 0 ? (
+                                      <div className="flex flex-col items-center leading-tight">
+                                        <span>{val.toFixed(2)}</span>
+                                        {showDays && <span className="text-[9px] text-muted-foreground font-normal">{days}d</span>}
+                                      </div>
+                                    ) : null}
+                                  </td>
+                                )
+                              })}
+                            </tr>
+                          )
+                        })}
+                      </>
+                    ))}
+                  </>
+                )
+              })}
+            </tbody>
+
+            {hasDates && (
+              <tfoot>
+                <tr className="bg-muted/60 font-semibold">
+                  <td colSpan={FIXED_COLS} className="border border-border px-2 py-1.5 text-right">
+                    Total / Week (%)
+                  </td>
+                  {weekTotals.map((t, wi) => (
+                    <td key={wi} className="border border-border px-1 py-1.5 text-center">{t.toFixed(2)}</td>
+                  ))}
+                </tr>
+                <tr className="bg-primary/10 font-bold text-primary">
+                  <td colSpan={FIXED_COLS} className="border border-border px-2 py-1.5 text-right">
+                    Cumulative(%)
+                  </td>
+                  {cumulativeWeights.map((c, wi) => (
+                    <td key={wi} className="border border-border px-1 py-1.5 text-center">{c.toFixed(2)}</td>
+                  ))}
+                </tr>
+
+                {/* ── Bottom S-Curve row ─────────────────────────────────────
+                    Toggle: showBottomCurve (also force-shown during PDF export).
+                    SVG is a real DOM child → zero offset drift in html2canvas.
+                ──────────────────────────────────────────────────────────── */}
+                {showBottomCurve && (
+                  <tr>
                     <td
-                      colSpan={FIXED_COLS + weeks.length}
-                      className={`border border-border px-3 py-1 font-bold text-xs uppercase tracking-wide ${style.sectionHeader}`}
+                      colSpan={FIXED_COLS}
+                      className="border border-border bg-background px-2 text-right text-[hsl(221.2,83.2%,53.3%)] font-bold align-middle"
+                      style={{ height: BOTTOM_CURVE_HEIGHT }}
                     >
-                      {section}
+                      S-Curve
+                    </td>
+                    <td
+                      colSpan={weeks.length}
+                      className="border border-border bg-background p-0"
+                      style={{ height: BOTTOM_CURVE_HEIGHT, position: "relative" }}
+                    >
+                      <BottomSCurveSvg cumulativeWeights={cumulativeWeights} weekCount={weeks.length} />
                     </td>
                   </tr>
+                )}
+              </tfoot>
+            )}
+          </table>
 
-                  {subsections.map(({ subsection, items }) => (
-                    <>
-                      {/* Subsection header row */}
-                      {!isFlat && (
-                        <tr key={`sub-${section}-${subsection}`}>
-                          <td
-                            colSpan={FIXED_COLS + weeks.length}
-                            className={`border border-border px-5 py-0.5 font-semibold text-[11px] ${style.subsectionHeader}`}
-                          >
-                            {subsection}
-                          </td>
-                        </tr>
-                      )}
-
-                      {/* Item rows */}
-                      {items.map((item) => {
-                        itemNo++
-                        const idx = itemIndexMap.get(item) ?? 0
-                        const isFirst = !firstItemRefSet
-                        if (isFirst) firstItemRefSet = true
-                        return (
-                          <tr
-                            key={`item-${section}-${subsection}-${idx}`}
-                            ref={isFirst ? firstItemRowRef : undefined}
-                            className="hover:bg-muted/30"
-                          >
-                            <td className="border border-border px-2 py-1 text-center text-muted-foreground">
-                              {itemNo}
-                            </td>
-                            <td className="border border-border px-2 py-1 font-medium">{item.name}</td>
-                            <td className="border border-border px-2 py-1 text-center whitespace-nowrap">
-                              {formatDate(item.startDate)}
-                            </td>
-                            <td className="border border-border px-2 py-1 text-center whitespace-nowrap">
-                              {formatDate(item.endDate)}
-                            </td>
-                            <td className="border border-border px-2 py-1 text-center">
-                              {item.durationDays > 0 ? item.durationDays : "-"}
-                            </td>
-                            <td className="border border-border px-2 py-1 text-right whitespace-nowrap">
-                              {formatNumber(item.totalPrice)}
-                            </td>
-                            <td className="border border-border px-2 py-1 text-center font-semibold">
-                              {item.weight.toFixed(2)}%
-                            </td>
-                            {weeks.map((_, wi) => {
-                              const val = weekWeights[idx]?.[wi] ?? 0
-                              const days = weekOverlapDays[idx]?.[wi] ?? 0
-                              return (
-                                <td key={wi} className="border border-border px-1 py-1 text-center">
-                                  {val > 0 ? (
-                                    <div className="flex flex-col items-center leading-tight">
-                                      <span>{val.toFixed(2)}</span>
-                                      {showDays && (
-                                        <span className="text-[9px] text-muted-foreground font-normal">{days}d</span>
-                                      )}
-                                    </div>
-                                  ) : null}
-                                </td>
-                              )
-                            })}
-                          </tr>
-                        )
-                      })}
-                    </>
-                  ))}
-                </>
-              )
-            })}
-          </tbody>
-
-          {hasDates && (
-            <tfoot>
-              <tr className="bg-muted/60 font-semibold">
-                <td colSpan={FIXED_COLS} className="border border-border px-2 py-1.5 text-right">
-                  Total / Week (%)
-                </td>
-                {weekTotals.map((t, wi) => (
-                  <td key={wi} className="border border-border px-1 py-1.5 text-center">
-                    {t.toFixed(2)}
-                  </td>
-                ))}
-              </tr>
-              <tr className="bg-primary/10 font-bold text-primary">
-                <td colSpan={FIXED_COLS} className="border border-border px-2 py-1.5 text-right">
-                  Cumulative / S-Curve (%)
-                </td>
-                {cumulativeWeights.map((c, wi) => (
-                  <td key={wi} className="border border-border px-1 py-1.5 text-center">
-                    {c.toFixed(2)}
-                  </td>
-                ))}
-              </tr>
-            </tfoot>
-          )}
-        </table>
-
-        {/* Body overlay S-Curve — absolutely positioned over tbody weekly columns */}
-        {showInlineCurve && overlayRect && weeks.length > 0 && (
-          <svg
-            style={{
-              position: "absolute",
-              top: overlayRect.top,
-              left: overlayRect.left,
-              width: overlayRect.width,
-              height: overlayRect.height,
-              pointerEvents: "none",
-              zIndex: 5,
-              overflow: "visible",
-            }}
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <defs>
-              <linearGradient id="body-scurve-grad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="hsl(221.2,83.2%,53.3%)" stopOpacity="0.18" />
-                <stop offset="100%" stopColor="hsl(221.2,83.2%,53.3%)" stopOpacity="0" />
-              </linearGradient>
-            </defs>
-            <path
-              d={[
-                `M ${(0.5 / weeks.length) * overlayRect.width} ${overlayRect.height}`,
-                ...cumulativeWeights.map(
-                  (c, i) => `L ${((i + 0.5) / weeks.length) * overlayRect.width} ${overlayRect.height * (1 - c / 100)}`
-                ),
-                `L ${((weeks.length - 0.5) / weeks.length) * overlayRect.width} ${overlayRect.height}`,
-                "Z",
-              ].join(" ")}
-              fill="url(#body-scurve-grad)"
-            />
-            <polyline
-              points={cumulativeWeights
-                .map((c, i) => `${((i + 0.5) / weeks.length) * overlayRect.width},${overlayRect.height * (1 - c / 100)}`)
-                .join(" ")}
-              fill="none"
-              stroke="hsl(221.2,83.2%,53.3%)"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            {cumulativeWeights.map((c, i) => (
-              <circle
-                key={i}
-                cx={((i + 0.5) / weeks.length) * overlayRect.width}
-                cy={overlayRect.height * (1 - c / 100)}
-                r="3"
-                fill="hsl(221.2,83.2%,53.3%)"
-                stroke="white"
-                strokeWidth="1.5"
+          {/* ── Overlay S-Curve ──────────────────────────────────────────
+              Floating absolute SVG drawn above tbody rows.
+              Looks great on screen; hidden during PDF export via ref
+              (.style.visibility = "hidden") to prevent offset drift.
+          ──────────────────────────────────────────────────────────────── */}
+          {showOverlayCurve && overlayRect && weeks.length > 0 && (
+            <svg
+              ref={overlaySvgRef}
+              style={{
+                position: "absolute",
+                top:    overlayRect.top,
+                left:   overlayRect.left,
+                width:  overlayRect.width,
+                height: overlayRect.height,
+                pointerEvents: "none",
+                zIndex: 5,
+                overflow: "visible",
+              }}
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <defs>
+                <linearGradient id="overlay-scurve-grad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="hsl(221.2,83.2%,53.3%)" stopOpacity="0.18" />
+                  <stop offset="100%" stopColor="hsl(221.2,83.2%,53.3%)" stopOpacity="0" />
+                </linearGradient>
+              </defs>
+              <path
+                d={[
+                  `M ${(0.5 / weeks.length) * overlayRect.width} ${overlayRect.height}`,
+                  ...cumulativeWeights.map(
+                    (c, i) => `L ${((i + 0.5) / weeks.length) * overlayRect.width} ${overlayRect.height * (1 - c / 100)}`
+                  ),
+                  `L ${((weeks.length - 0.5) / weeks.length) * overlayRect.width} ${overlayRect.height}`,
+                  "Z",
+                ].join(" ")}
+                fill="url(#overlay-scurve-grad)"
               />
-            ))}
-          </svg>
-        )}
+              <polyline
+                points={cumulativeWeights
+                  .map((c, i) => `${((i + 0.5) / weeks.length) * overlayRect.width},${overlayRect.height * (1 - c / 100)}`)
+                  .join(" ")}
+                fill="none"
+                stroke="hsl(221.2,83.2%,53.3%)"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              {cumulativeWeights.map((c, i) => (
+                <circle
+                  key={i}
+                  cx={((i + 0.5) / weeks.length) * overlayRect.width}
+                  cy={overlayRect.height * (1 - c / 100)}
+                  r="3"
+                  fill="hsl(221.2,83.2%,53.3%)"
+                  stroke="white"
+                  strokeWidth="1.5"
+                />
+              ))}
+            </svg>
+          )}
         </div>
 
         {!hasDates && (

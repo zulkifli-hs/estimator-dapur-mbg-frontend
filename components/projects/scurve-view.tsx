@@ -308,15 +308,20 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
   useEffect(() => {
     const update = () => {
       if (!tbodyRef.current || !firstWeekThRef.current || !tableWrapperRef.current || !firstItemRowRef.current) return
-      const bodyRect = tbodyRef.current.getBoundingClientRect()
-      const thRect = firstWeekThRef.current.getBoundingClientRect()
-      const wrapRect = tableWrapperRef.current.getBoundingClientRect()
-      const firstItemRect = firstItemRowRef.current.getBoundingClientRect()
+      // Use offsetTop/offsetLeft (pure layout values) instead of
+      // getBoundingClientRect() so the on-screen measurement matches
+      // exactly what the export function computes.
+      const tableEl         = tbodyRef.current.parentElement as HTMLTableElement
+      const thOffsetLeft    = firstWeekThRef.current.offsetLeft
+      const tableOffsetLeft = tableEl.offsetLeft
+      const tableOffsetTop  = tableEl.offsetTop
+      const tbodyOffsetTop  = tbodyRef.current.offsetTop
+      const firstRowOffsetTop = firstItemRowRef.current.offsetTop
       setOverlayRect({
-        top: firstItemRect.top - wrapRect.top,
-        left: thRect.left - wrapRect.left,
-        width: bodyRect.right - thRect.left,
-        height: bodyRect.bottom - firstItemRect.top,
+        top:    tableOffsetTop + tbodyOffsetTop + firstRowOffsetTop,
+        left:   tableOffsetLeft + thOffsetLeft,
+        width:  tableEl.offsetWidth - thOffsetLeft,
+        height: tbodyRef.current.offsetHeight - firstRowOffsetTop,
       })
     }
     update()
@@ -334,6 +339,8 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
     const origOverflow   = containerEl.style.overflow
     const origWidth      = containerEl.style.width
     const origScrollLeft = containerEl.scrollLeft
+    // Save original overlayRect so we can restore it after export
+    const origOverlayRect = overlayRect
 
     try {
       const html2canvas = (await import('html2canvas-pro')).default
@@ -344,33 +351,60 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
       const trueContentWidth = containerEl.scrollWidth
 
       // ── 2. Reset scroll → expand container to full table width ─────────
-      //    • scrollLeft = 0  →  getBoundingClientRect() values inside the
-      //      ResizeObserver callback will have x=0 as the table's left edge,
-      //      so all computed differences (left, width) are correct.
-      //    • Setting overflow:visible + explicit pixel width makes
-      //      tableWrapperRef (min-w-full) grow to the full table size.
-      //      ResizeObserver fires  →  React re-runs setOverlayRect()  →
-      //      React re-renders the SVG with the correct expanded overlayRect.
-      //      This is the same getBoundingClientRect-diff logic that already
-      //      works correctly on screen — no manual SVG mutation needed.
       containerEl.scrollLeft = 0
       containerEl.style.overflow = 'visible'
       containerEl.style.width = `${trueContentWidth}px`
 
-      // ── 3. Wait for the full React update cycle to complete ────────────
-      //    rAF #1 → layout committed
-      //    rAF #2 → ResizeObserver callback fires, React setState queued
-      //    500ms  → React re-render + browser paint fully settled
+      // ── 3. Wait one frame so the browser commits the new layout ────────
+      await new Promise<void>((r) => requestAnimationFrame(() => r()))
+
+      // ── 4. Explicitly compute the new overlayRect after expansion ───────
+      //    Use offsetTop/offsetLeft (pure layout values, scroll-independent)
+      //    instead of getBoundingClientRect() (viewport-relative, broken when
+      //    expanding the container shifts the page layout horizontally).
+      //
+      //    offsetParent chains in Chrome for table internals:
+      //      th.offsetParent  = <table>  → th.offsetLeft = column x in table
+      //      tbody.offsetParent = <table> → tbody.offsetTop = thead height
+      //      tr.offsetParent  = <tbody>  → tr.offsetTop  = rows above in tbody
+      //      table.offsetParent = tableWrapperRef (position:relative)
+      //        → table.offsetLeft/Top = 0 (no margin/padding on wrapper)
+      if (
+        tbodyRef.current &&
+        firstWeekThRef.current &&
+        tableWrapperRef.current &&
+        firstItemRowRef.current
+      ) {
+        const tableEl     = tbodyRef.current.parentElement as HTMLTableElement
+        const thOffsetLeft  = firstWeekThRef.current.offsetLeft   // within <table>
+        const tableOffsetLeft = tableEl.offsetLeft                 // within wrapper (≈ 0)
+        const tableOffsetTop  = tableEl.offsetTop                  // within wrapper (≈ 0)
+        const tbodyOffsetTop  = tbodyRef.current.offsetTop         // within <table> = thead height
+        const firstRowOffsetTop = firstItemRowRef.current.offsetTop // within <tbody>
+
+        setOverlayRect({
+          // Distance from wrapper top to first item row
+          top:    tableOffsetTop + tbodyOffsetTop + firstRowOffsetTop,
+          // Distance from wrapper left to first week column
+          left:   tableOffsetLeft + thOffsetLeft,
+          // From first week column to right edge of table
+          width:  tableEl.offsetWidth - thOffsetLeft,
+          // From first item row to bottom of tbody
+          height: tbodyRef.current.offsetHeight - firstRowOffsetTop,
+        })
+      }
+
+      // ── 5. Wait for React to re-render the SVG with the new overlayRect ─
+      //    rAF #1 → React flushes the setState above and commits to DOM
+      //    rAF #2 → browser paints the updated SVG
+      //    100ms  → safety margin
       await new Promise<void>((r) =>
-        requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 500)))
+        requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 100)))
       )
 
-      // ── 4. Capture exportContainerRef directly ─────────────────────────
-      //    • controlsRef (toggles + Export PDF button) is a SIBLING of
-      //      exportContainerRef inside exportRootRef — NOT a child — so it
-      //      is excluded from the capture automatically. No hiding needed.
-      //    • svgOverlayRef IS inside exportContainerRef → tableWrapperRef,
-      //      already re-rendered by React at the correct expanded coordinates.
+      // ── 6. Capture exportContainerRef directly ─────────────────────────
+      //    controlsRef (toggles + Export button) is a SIBLING of
+      //    exportContainerRef — not a child — so it is excluded automatically.
       const fullWidth  = containerEl.offsetWidth
       const fullHeight = containerEl.offsetHeight
 
@@ -406,10 +440,11 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
     } catch (error) {
       console.error('Failed to export S-Curve PDF:', error)
     } finally {
-      // Always restore layout — runs whether export succeeded or threw
+      // Always restore layout and overlayRect — runs even if export threw
       containerEl.style.overflow  = origOverflow
       containerEl.style.width     = origWidth
       containerEl.scrollLeft      = origScrollLeft
+      setOverlayRect(origOverlayRect)
       setExportingPdf(false)
     }
   }

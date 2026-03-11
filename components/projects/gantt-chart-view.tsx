@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, useRef, forwardRef, useImperativeHandle } from "react"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Label } from "@/components/ui/label"
@@ -43,7 +43,12 @@ interface GroupedCategory {
   subcategories: SubcategoryGroup[]
 }
 
-export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
+export interface GanttChartViewRef {
+  exportPdf: () => Promise<void>
+}
+
+export const GanttChartView = forwardRef<GanttChartViewRef, GanttChartViewProps>(
+  function GanttChartView({ tasks, onUpdateTask }, ref) {
   const { toast } = useToast()
   const [hoveredTaskId, setHoveredTaskId] = useState<string | null>(null)
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
@@ -52,6 +57,87 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
   const [editDependOn, setEditDependOn] = useState<string>("none")
   const [saving, setSaving] = useState(false)
   const DAY_WIDTH = 36 // pixels per day
+
+  // Refs for PDF export
+  const ganttRootRef = useRef<HTMLDivElement>(null)
+  const overflowContainerRef = useRef<HTMLDivElement>(null)
+  const timelineScrollRef = useRef<HTMLDivElement>(null)
+  const actionColumnRef = useRef<HTMLDivElement>(null)
+
+  const exportGanttPdf = async () => {
+    if (!ganttRootRef.current || !timelineScrollRef.current || !overflowContainerRef.current) return
+    try {
+      const html2canvas = (await import('html2canvas-pro')).default
+      const { jsPDF } = await import('jspdf')
+
+      const timelineEl = timelineScrollRef.current
+      const containerEl = overflowContainerRef.current
+
+      // Save original styles
+      const origTimelineOverflow = timelineEl.style.overflow
+      const origTimelineWidth = timelineEl.style.width
+      const origContainerOverflow = containerEl.style.overflow
+
+      // Hide Action column so it doesn't appear in the PDF
+      const actionColEl = actionColumnRef.current
+      if (actionColEl) actionColEl.style.display = 'none'
+
+      // Expand to reveal full scrollable width
+      timelineEl.style.overflow = 'visible'
+      timelineEl.style.width = `${timelineEl.scrollWidth}px`
+      containerEl.style.overflow = 'visible'
+
+      // Allow browser to reflow
+      await new Promise<void>((r) => setTimeout(r, 150))
+
+      // Capture full scroll dimensions (not clipped offsetWidth)
+      const fullWidth = ganttRootRef.current!.scrollWidth
+      const fullHeight = ganttRootRef.current!.scrollHeight
+
+      const canvas = await html2canvas(ganttRootRef.current!, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        width: fullWidth,
+        height: fullHeight,
+        windowWidth: fullWidth,
+        scrollX: 0,
+        scrollY: 0,
+      })
+
+      // Restore styles
+      timelineEl.style.overflow = origTimelineOverflow
+      timelineEl.style.width = origTimelineWidth
+      containerEl.style.overflow = origContainerOverflow
+      if (actionColEl) actionColEl.style.display = ''
+
+      const imgData = canvas.toDataURL('image/png')
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a3' })
+
+      const pageWidth = pdf.internal.pageSize.getWidth()
+      const pageHeight = pdf.internal.pageSize.getHeight()
+      const ratio = canvas.width / canvas.height
+      let imgWidth = pageWidth - 20
+      let imgHeight = imgWidth / ratio
+      if (imgHeight > pageHeight - 20) {
+        imgHeight = pageHeight - 20
+        imgWidth = imgHeight * ratio
+      }
+      const x = (pageWidth - imgWidth) / 2
+      const y = (pageHeight - imgHeight) / 2
+
+      pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight)
+      pdf.save('gantt-chart.pdf')
+    } catch (error) {
+      // Restore on error too
+      if (actionColumnRef.current) actionColumnRef.current.style.display = ''
+      console.error('Failed to export Gantt Chart PDF:', error)
+      throw error
+    }
+  }
+
+  useImperativeHandle(ref, () => ({ exportPdf: exportGanttPdf }))
 
   const { startDate, endDate, totalDays, monthHeaders } = useMemo(() => {
     const tasksWithDates = tasks.filter(t => t.startDate && t.endDate)
@@ -316,8 +402,8 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
   , [tasks, taskRowMap])
 
   return (
-    <div className="space-y-4">
-      <div className="border rounded-lg overflow-hidden">
+    <div ref={ganttRootRef} className="space-y-4">
+      <div ref={overflowContainerRef} className="border rounded-lg overflow-hidden">
         <div className="flex">
           {/* Sticky Left Panel - Task Name + Action */}
           <div className="flex shrink-0 border-r bg-background z-10">
@@ -392,7 +478,7 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
             </div>
 
             {/* Action Column */}
-            <div className="w-14">
+            <div ref={actionColumnRef} className="w-14">
               {/* Header */}
               <div className="h-11 flex items-center justify-center px-1 font-semibold border-b bg-muted/50 text-xs">
                 Action
@@ -546,7 +632,7 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
           </div>
 
           {/* Scrollable Timeline */}
-          <div className="flex-1 overflow-x-auto">
+          <div ref={timelineScrollRef} className="flex-1 overflow-x-auto">
             <div style={{ width: `${totalDays * DAY_WIDTH}px` }}>
               {/* Timeline Header - Fixed height to match task names header */}
               <div className="border-b bg-muted/50">
@@ -712,7 +798,7 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-6 pt-4 border-t">
+      <div className="flex items-center gap-6 pt-4 border-t flex-wrap">
         <p className="text-sm font-semibold text-muted-foreground">Legend:</p>
         {Object.entries(categoryStyles).map(([category, style]) => (
           <div key={category} className="flex items-center gap-2">
@@ -723,4 +809,4 @@ export function GanttChartView({ tasks, onUpdateTask }: GanttChartViewProps) {
       </div>
     </div>
   )
-}
+})

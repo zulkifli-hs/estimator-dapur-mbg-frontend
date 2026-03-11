@@ -663,7 +663,7 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
       )
     }
 
-    const totalCols = settings?.showTags ? 10 : 9
+    const totalCols = settings?.showTags ? 11 : 10
 
     return (
       <>
@@ -673,7 +673,7 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
               {/* Row 1: group headers */}
               <TableRow>
                 <TableHead rowSpan={2} className="w-12 align-middle">No</TableHead>
-                <TableHead colSpan={3} className="text-center font-bold border-b">Material</TableHead>
+                <TableHead colSpan={4} className="text-center font-bold border-b">Material</TableHead>
                 {settings?.showTags && <TableHead rowSpan={2} className="align-middle">Tags</TableHead>}
                 <TableHead rowSpan={2} className="min-w-36 align-middle">Application</TableHead>
                 <TableHead rowSpan={2} className="text-center align-middle">Image Material</TableHead>
@@ -684,6 +684,7 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
               {/* Row 2: Material sub-headers */}
               <TableRow>
                 <TableHead className="min-w-48">Item</TableHead>
+                <TableHead className="w-16 text-center">Qty</TableHead>
                 <TableHead className="min-w-32">Finishing</TableHead>
                 <TableHead className="min-w-48">Brand/Type/Code/Specification</TableHead>
               </TableRow>
@@ -696,8 +697,22 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
                       <TableCell className="text-center">{index + 1}</TableCell>
                       {/* Item */}
                       <TableCell className="font-medium whitespace-normal">{item.name || "-"}</TableCell>
+                      {/* Qty */}
+                      <TableCell className="text-center text-sm font-medium">
+                        {item.qty != null ? (
+                          <span className={
+                            item._boqNumber === 1
+                              ? "text-blue-600"
+                              : item.qty < 0
+                                ? "text-red-600"
+                                : "text-green-600"
+                          }>
+                            {item._boqNumber !== 1 && item.qty > 0 ? `+${item.qty}` : item.qty}
+                          </span>
+                        ) : "-"}
+                      </TableCell>
                       {/* Finishing */}
-                      <TableCell className="text-sm">{item.finishing || "-"}</TableCell>
+                      <TableCell className={`text-sm ${!item.finishing ? "text-center" : ""}`}>{item.finishing || "-"}</TableCell>
                       {/* Brand/Type/Code/Specification */}
                       <TableCell className="whitespace-normal align-top">
                         <div className="space-y-0.5 text-xs">
@@ -851,8 +866,10 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
                                 <span>{subItem.name || "-"}</span>
                               </div>
                             </TableCell>
+                            {/* Qty — empty for sub-items */}
+                            <TableCell className="text-center">-</TableCell>
                             {/* Finishing */}
-                            <TableCell className="text-sm">{subItem.finishing || "-"}</TableCell>
+                            <TableCell className={`text-sm ${!subItem.finishing ? "text-center" : ""}`}>{subItem.finishing || "-"}</TableCell>
                             {/* Brand/Type/Code/Specification */}
                             <TableCell className="whitespace-normal align-top">
                               <div className="space-y-0.5 text-xs">

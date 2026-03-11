@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ImageIcon, TrendingUp, Edit, Plus, X, Download, Eye, MoreVertical, Maximize2 } from 'lucide-react'
+import { ImageIcon, TrendingUp, Edit, Plus, X, Download, Eye, MoreVertical, Maximize2, FileDown } from 'lucide-react'
 import { FullscreenBoqDialog } from "@/components/projects/boq/fullscreen-boq-dialog"
 import {
   DropdownMenu,
@@ -18,13 +18,13 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { boqApi } from "@/lib/api/boq"
 import { albumsApi } from "@/lib/api/albums"
 // import { GanttChartEditor } from "./gantt-chart-editor"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { GanttChartView } from "./gantt-chart-view"
+import { GanttChartView, GanttChartViewRef } from "./gantt-chart-view"
 import { SCurveView } from "./scurve-view"
 import { CreateAlbumDialog } from "./create-album-dialog"
 import { AlbumDetailDialog } from "./album-detail-dialog"
@@ -67,6 +67,8 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
   const [exportingPdf, setExportingPdf] = useState<string | null>(null)
   const [previewPdf, setPreviewPdf] = useState<{ url: string; name: string } | null>(null)
   const [ganttFullscreen, setGanttFullscreen] = useState(false)
+  const [exportingGanttPdf, setExportingGanttPdf] = useState(false)
+  const ganttViewRef = useRef<GanttChartViewRef>(null)
   const { toast } = useToast()
 
   const tabs = [
@@ -625,10 +627,32 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
                   <CardDescription>Project timeline from Main BOQ</CardDescription>
                 </div>
                 {mainBOQ && !loading && (
-                  <Button variant="outline" size="sm" onClick={() => setGanttFullscreen(true)}>
-                    <Maximize2 className="h-4 w-4 mr-2" />
-                    Full Screen
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={exportingGanttPdf}
+                      onClick={async () => {
+                        setExportingGanttPdf(true)
+                        try {
+                          await ganttViewRef.current?.exportPdf()
+                        } finally {
+                          setExportingGanttPdf(false)
+                        }
+                      }}
+                    >
+                      {exportingGanttPdf ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <FileDown className="h-4 w-4 mr-2" />
+                      )}
+                      {exportingGanttPdf ? 'Exporting...' : 'Export PDF'}
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setGanttFullscreen(true)}>
+                      <Maximize2 className="h-4 w-4 mr-2" />
+                      Full Screen
+                    </Button>
+                  </div>
                 )}
               </div>
             </CardHeader>
@@ -644,7 +668,7 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
                   </AlertDescription>
                 </Alert>
               ) : (
-                <GanttChartView tasks={ganttTasks} onUpdateTask={handleUpdateGanttTask} />
+                <GanttChartView ref={ganttViewRef} tasks={ganttTasks} onUpdateTask={handleUpdateGanttTask} />
               )}
             </CardContent>
           </Card>
@@ -784,7 +808,9 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
           <Card>
             <CardHeader>
               <CardTitle>S Curve</CardTitle>
-              <CardDescription>Bobot rencana per minggu &amp; kurva kumulatif berdasarkan Main BOQ</CardDescription>
+              <CardDescription>
+                Visual representation of project progress based on Main BOQ timelines
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {loading ? (

@@ -13,8 +13,10 @@ import {
   ResponsiveContainer,
 } from "recharts"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
+import { FileDown, Loader2 } from "lucide-react"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -287,12 +289,18 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
   // State
   const [showDays, setShowDays] = useState(true)
   const [showInlineCurve, setShowInlineCurve] = useState(true)
+  const [exportingPdf, setExportingPdf] = useState(false)
 
   // Refs for body-overlay S-Curve
   const tbodyRef = useRef<HTMLTableSectionElement>(null)
   const firstWeekThRef = useRef<HTMLTableCellElement>(null)
   const firstItemRowRef = useRef<HTMLTableRowElement>(null)
   const tableWrapperRef = useRef<HTMLDivElement>(null)
+  const exportRootRef = useRef<HTMLDivElement>(null)
+  const exportContainerRef = useRef<HTMLDivElement>(null)
+  const controlsRef = useRef<HTMLDivElement>(null)
+  const svgOverlayRef = useRef<SVGSVGElement>(null)
+
   const [overlayRect, setOverlayRect] = useState<{
     top: number; left: number; width: number; height: number
   } | null>(null)
@@ -304,7 +312,6 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
       const thRect = firstWeekThRef.current.getBoundingClientRect()
       const wrapRect = tableWrapperRef.current.getBoundingClientRect()
       const firstItemRect = firstItemRowRef.current.getBoundingClientRect()
-      // Anchor SVG from the first item row top to the bottom of tbody
       setOverlayRect({
         top: firstItemRect.top - wrapRect.top,
         left: thRect.left - wrapRect.left,
@@ -318,6 +325,94 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
     if (tableWrapperRef.current) ro.observe(tableWrapperRef.current)
     return () => ro.disconnect()
   }, [weeks, groups, showInlineCurve])
+
+  const exportSCurvePdf = async () => {
+    if (!exportContainerRef.current) return
+    setExportingPdf(true)
+
+    const containerEl = exportContainerRef.current
+    const origOverflow   = containerEl.style.overflow
+    const origWidth      = containerEl.style.width
+    const origScrollLeft = containerEl.scrollLeft
+
+    try {
+      const html2canvas = (await import('html2canvas-pro')).default
+      const { jsPDF } = await import('jspdf')
+
+      // ── 1. Measure full content width BEFORE changing overflow ─────────
+      //    Once overflow becomes "visible", scrollWidth collapses to clientWidth.
+      const trueContentWidth = containerEl.scrollWidth
+
+      // ── 2. Reset scroll → expand container to full table width ─────────
+      //    • scrollLeft = 0  →  getBoundingClientRect() values inside the
+      //      ResizeObserver callback will have x=0 as the table's left edge,
+      //      so all computed differences (left, width) are correct.
+      //    • Setting overflow:visible + explicit pixel width makes
+      //      tableWrapperRef (min-w-full) grow to the full table size.
+      //      ResizeObserver fires  →  React re-runs setOverlayRect()  →
+      //      React re-renders the SVG with the correct expanded overlayRect.
+      //      This is the same getBoundingClientRect-diff logic that already
+      //      works correctly on screen — no manual SVG mutation needed.
+      containerEl.scrollLeft = 0
+      containerEl.style.overflow = 'visible'
+      containerEl.style.width = `${trueContentWidth}px`
+
+      // ── 3. Wait for the full React update cycle to complete ────────────
+      //    rAF #1 → layout committed
+      //    rAF #2 → ResizeObserver callback fires, React setState queued
+      //    500ms  → React re-render + browser paint fully settled
+      await new Promise<void>((r) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 500)))
+      )
+
+      // ── 4. Capture exportContainerRef directly ─────────────────────────
+      //    • controlsRef (toggles + Export PDF button) is a SIBLING of
+      //      exportContainerRef inside exportRootRef — NOT a child — so it
+      //      is excluded from the capture automatically. No hiding needed.
+      //    • svgOverlayRef IS inside exportContainerRef → tableWrapperRef,
+      //      already re-rendered by React at the correct expanded coordinates.
+      const fullWidth  = containerEl.offsetWidth
+      const fullHeight = containerEl.offsetHeight
+
+      const canvas = await html2canvas(containerEl, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        width: fullWidth,
+        height: fullHeight,
+        windowWidth: fullWidth,
+        scrollX: 0,
+        scrollY: 0,
+      })
+
+      const imgData = canvas.toDataURL('image/png')
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a3' })
+
+      const pageWidth  = pdf.internal.pageSize.getWidth()
+      const pageHeight = pdf.internal.pageSize.getHeight()
+      const ratio = canvas.width / canvas.height
+      let imgWidth  = pageWidth  - 20
+      let imgHeight = imgWidth   / ratio
+      if (imgHeight > pageHeight - 20) {
+        imgHeight = pageHeight - 20
+        imgWidth  = imgHeight * ratio
+      }
+      const x = (pageWidth  - imgWidth)  / 2
+      const y = (pageHeight - imgHeight) / 2
+
+      pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight)
+      pdf.save('s-curve.pdf')
+    } catch (error) {
+      console.error('Failed to export S-Curve PDF:', error)
+    } finally {
+      // Always restore layout — runs whether export succeeded or threw
+      containerEl.style.overflow  = origOverflow
+      containerEl.style.width     = origWidth
+      containerEl.scrollLeft      = origScrollLeft
+      setExportingPdf(false)
+    }
+  }
 
   // Fixed column count (No | Task | Start | Finish | Duration | Price | Weight)
   const FIXED_COLS = 7
@@ -341,27 +436,42 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
   flatItems.forEach((item, idx) => itemIndexMap.set(item, idx))
 
   return (
-    <div className="space-y-6">
+    <div ref={exportRootRef} className="space-y-6">
       {/* ═══════════════════════════════════════════════════════════════
           TABLE — full width below chart
       ════════════════════════════════════════════════════════════════ */}
       {hasDates && (
-        <div className="flex items-center justify-start gap-4 flex-wrap">
-          <div className="flex items-center gap-2">
-            <Switch id="show-inline-curve" checked={showInlineCurve} onCheckedChange={setShowInlineCurve} className="cursor-pointer" />
-            <Label htmlFor="show-inline-curve" className="text-xs cursor-pointer select-none leading-none mb-0">
-              Show inline S-Curve
-            </Label>
+        <div ref={controlsRef} className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Switch id="show-inline-curve" checked={showInlineCurve} onCheckedChange={setShowInlineCurve} className="cursor-pointer" />
+              <Label htmlFor="show-inline-curve" className="text-xs cursor-pointer select-none leading-none mb-0">
+                Show inline S-Curve
+              </Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch id="show-days" checked={showDays} onCheckedChange={setShowDays} className="cursor-pointer" />
+              <Label htmlFor="show-days" className="text-xs cursor-pointer select-none leading-none mb-0">
+                Show active days per week
+              </Label>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Switch id="show-days" checked={showDays} onCheckedChange={setShowDays} className="cursor-pointer" />
-            <Label htmlFor="show-days" className="text-xs cursor-pointer select-none leading-none mb-0">
-              Show active days per week
-            </Label>
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportSCurvePdf}
+            disabled={exportingPdf}
+          >
+            {exportingPdf ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <FileDown className="h-4 w-4 mr-2" />
+            )}
+            {exportingPdf ? 'Exporting...' : 'Export PDF'}
+          </Button>
         </div>
       )}
-      <div className="overflow-x-auto rounded-lg border">
+      <div ref={exportContainerRef} className="overflow-x-auto rounded-lg border">
         <div ref={tableWrapperRef} className="relative inline-block min-w-full">
         <table className="min-w-full text-xs border-collapse">
           <thead>
@@ -544,6 +654,7 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
         {/* Body overlay S-Curve — absolutely positioned over tbody weekly columns */}
         {showInlineCurve && overlayRect && weeks.length > 0 && (
           <svg
+            ref={svgOverlayRef}
             style={{
               position: "absolute",
               top: overlayRect.top,

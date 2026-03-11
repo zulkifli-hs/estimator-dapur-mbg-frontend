@@ -808,7 +808,9 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
           <Card>
             <CardHeader>
               <CardTitle>S Curve</CardTitle>
-              <CardDescription>Bobot rencana per minggu &amp; kurva kumulatif berdasarkan Main BOQ</CardDescription>
+              <CardDescription>
+                Visual representation of project progress based on Main BOQ timelines
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {loading ? (

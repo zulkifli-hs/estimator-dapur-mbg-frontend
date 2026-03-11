@@ -336,7 +336,7 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
   // Overlay: floating SVG above the tbody rows (visual on-screen)
   const [showOverlayCurve, setShowOverlayCurve] = useState(true)
   // Bottom: dedicated tfoot row — always accurate in PDF export
-  const [showBottomCurve,  setShowBottomCurve ] = useState(false)
+  const [showBottomCurve,  setShowBottomCurve ] = useState(true)
   const [exportingPdf,     setExportingPdf    ] = useState(false)
 
   // ── Refs for overlay measurement ──────────────────────────────────────
@@ -446,7 +446,7 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
 
   // ─────────────────────────────────────────────────────────────────────
   const FIXED_COLS            = 7
-  const BOTTOM_CURVE_HEIGHT   = 160
+  const BOTTOM_CURVE_HEIGHT   = 240
 
   if (flatItems.length === 0) {
     return (
@@ -488,12 +488,17 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
               </Label>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={exportSCurvePdf} disabled={exportingPdf}>
-            {exportingPdf
-              ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Exporting...</>
-              : <><FileDown className="h-4 w-4 mr-2" />Export PDF</>
-            }
-          </Button>
+          <div className="flex flex-col items-end gap-1">
+            <Button variant="outline" size="sm" onClick={exportSCurvePdf} disabled={exportingPdf}>
+              {exportingPdf
+                ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Exporting...</>
+                : <><FileDown className="h-4 w-4 mr-2" />Export PDF</>
+              }
+            </Button>
+            <p className="text-[10px] text-primary text-right">
+              PDF export only supports the S-Curve in the table footer, not the inline overlay.
+            </p>
+          </div>
         </div>
       )}
 
@@ -617,7 +622,7 @@ export function SCurveView({ mainBOQ }: SCurveViewProps) {
                 </tr>
                 <tr className="bg-primary/10 font-bold text-primary">
                   <td colSpan={FIXED_COLS} className="border border-border px-2 py-1.5 text-right">
-                    Cumulative / S-Curve (%)
+                    Cumulative(%)
                   </td>
                   {cumulativeWeights.map((c, wi) => (
                     <td key={wi} className="border border-border px-1 py-1.5 text-center">{c.toFixed(2)}</td>

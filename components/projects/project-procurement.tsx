@@ -690,7 +690,7 @@ export function ProjectProcurement({ projectId }: ProjectProcurementProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {items.map((item, index) => {
+              {items.sort((a, b) => a.name.localeCompare(b.name)).map((item, index) => {
                 return (
                   <>
                     <TableRow key={`${item._source}-${item.name}-${index}`}>

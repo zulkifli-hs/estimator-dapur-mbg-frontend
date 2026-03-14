@@ -52,7 +52,7 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
   const [terminUploadLoading, setTerminUploadLoading] = useState<Record<string, { invoice?: boolean; tax?: boolean; slip?: boolean }>>({})
   const [terminTaxDeleting, setTerminTaxDeleting] = useState<Record<string, boolean>>({})
   const [taxDeleteConfirm, setTaxDeleteConfirm] = useState<{ terminId: string; taxIndex: number; taxName: string } | null>(null)
-  const [statusConfirm, setStatusConfirm] = useState<{ terminId: string; terminName: string; nextStatus: "Pending" | "Sent" } | null>(null)
+  const [statusConfirm, setStatusConfirm] = useState<{ terminId: string; terminName: string; nextStatus: "Pending" | "Paid" } | null>(null)
   const [statusUpdating, setStatusUpdating] = useState(false)
   const { toast } = useToast()
 
@@ -481,7 +481,7 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
                           </div>
                           <div className="flex flex-col items-end gap-2">
                             <Badge variant={getStatusBadgeVariant(termin.status)}>
-                              {termin.status || "Draft"}
+                              {termin.status === "Sent" ? "Paid" : termin.status || "Draft"}
                             </Badge>
                             <div className="flex items-center gap-2">
                               {termin.status === "Draft" && (
@@ -496,7 +496,7 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
                                     })
                                   }
                                 >
-                                  Set Pending
+                                  Set As "Draft Invoice Created, Pending Approval"
                                 </Button>
                               )}
                               {termin.status === "Pending" && (
@@ -507,11 +507,11 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
                                     setStatusConfirm({
                                       terminId: termin._id,
                                       terminName: termin.name || "Termin",
-                                      nextStatus: "Sent",
+                                      nextStatus: "Paid",
                                     })
                                   }
                                 >
-                                  Set Sent
+                                  Set As "Invoice Sent, Pending Payment"
                                 </Button>
                               )}
                             </div>

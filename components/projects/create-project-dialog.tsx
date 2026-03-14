@@ -587,7 +587,7 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess, editProject
 
           {/* Owner Company Info - Required */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-lg border-b pb-2">Owner Company *</h3>
+            <h3 className="font-semibold text-lg border-b pb-2">Winner Bidder Company *</h3>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="companyOwner.name">Company Name *</Label>
@@ -595,7 +595,7 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess, editProject
                   id="companyOwner.name"
                   value={formData.companyOwner.name}
                   onChange={(e) => handleChange("companyOwner.name", e.target.value)}
-                  placeholder="PT Gema Intermulia Sejahtera"
+                  placeholder="Input Winning Bidder Company"
                   required
                   disabled={loading}
                 />
@@ -607,7 +607,7 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess, editProject
                   id="companyOwner.code"
                   value={formData.companyOwner.code}
                   onChange={(e) => handleChange("companyOwner.code", e.target.value)}
-                  placeholder="GIS"
+                  placeholder="Code"
                   required
                   disabled={loading}
                 />
@@ -636,7 +636,7 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess, editProject
                       id="companyClient.name"
                       value={formData.companyClient.name}
                       onChange={(e) => handleChange("companyClient.name", e.target.value)}
-                      placeholder="PT Technology Media"
+                      placeholder="PT Bank Central Asia Tbk"
                       disabled={loading}
                     />
                   </div>

@@ -76,7 +76,7 @@ export default function LoginPage() {
 
         <div className="relative z-10 space-y-6 max-w-lg">
           <div className="space-y-4">
-            <h2 className="text-3xl font-bold">Welcome back to Gema AI</h2>
+            <h2 className="text-3xl font-bold">Welcome back to ID Build</h2>
             <p className="text-lg text-muted-foreground">
               Manage your interior design projects with precision. Access your dashboard to streamline estimates, track
               progress, and collaborate with your team.

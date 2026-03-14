@@ -488,7 +488,7 @@ export default function ProjectsPage() {
                   <TableCell>
                     <Link
                       href={`/projects/${project._id}`}
-                      className="font-medium hover:text-primary transition-colors whitespace-normal break-words max-w-[200px]"
+                      className="font-medium hover:text-primary transition-colors whitespace-normal wrap-break-word max-w-50"
                     >
                       {highlightText(project.name, debouncedSearchQuery)}
                     </Link>
@@ -514,7 +514,7 @@ export default function ProjectsPage() {
                   <TableCell>{project.building}</TableCell>
                   <TableCell>{project.floor}</TableCell>
                   <TableCell>{project.area} m²</TableCell>
-                  <TableCell className="whitespace-normal break-words max-w-[150px]">
+                  <TableCell className="whitespace-normal wrap-break-word max-w-37.5">
                     {project.companyClient?.name || "N/A"}
                   </TableCell>
                   <TableCell>{new Date(project.createdAt).toLocaleDateString()}</TableCell>

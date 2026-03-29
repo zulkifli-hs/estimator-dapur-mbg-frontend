@@ -54,7 +54,7 @@ function DropZone({
     >
       <Upload className="h-8 w-8 text-muted-foreground" />
       <p className="text-sm text-muted-foreground text-center">{label}</p>
-      <p className="text-xs text-muted-foreground/70">Hanya file PDF</p>
+      <p className="text-xs text-muted-foreground/70">PDF files only</p>
       <input
         ref={inputRef}
         type="file"
@@ -89,7 +89,7 @@ function MergeTab() {
 
   const handleMerge = async () => {
     if (files.length < 2) {
-      toast({ title: "Minimal 2 file PDF", variant: "destructive" })
+      toast({ title: "At least 2 PDF files required", variant: "destructive" })
       return
     }
     setLoading(true)
@@ -101,9 +101,9 @@ function MergeTab() {
           ? basenames.join("_")
           : basenames.slice(0, 3).join("_") + `_and_${basenames.length - 3}_more`
       downloadBlob(blob, `${nameStr}_merged.pdf`)
-      toast({ title: "Berhasil!", description: "File PDF berhasil digabung dan diunduh." })
+      toast({ title: "Success!", description: "PDF files have been merged and downloaded." })
     } catch (err: any) {
-      toast({ title: "Gagal Merge", description: err?.message ?? "Terjadi kesalahan.", variant: "destructive" })
+      toast({ title: "Merge Failed", description: err?.message ?? "An error occurred.", variant: "destructive" })
     } finally {
       setLoading(false)
     }
@@ -112,7 +112,7 @@ function MergeTab() {
   return (
     <div className="space-y-4">
       <DropZone
-        label="Klik atau drag & drop beberapa file PDF di sini"
+        label="Click or drag & drop multiple PDF files here"
         multiple
         onFiles={addFiles}
       />
@@ -159,11 +159,11 @@ function SplitTab() {
 
   const handleSplit = async () => {
     if (!file) {
-      toast({ title: "Pilih file PDF terlebih dahulu", variant: "destructive" })
+      toast({ title: "Please select a PDF file first", variant: "destructive" })
       return
     }
     if (mode === "range" && !ranges.trim()) {
-      toast({ title: "Masukkan range halaman", description: "Contoh: 1-3,4,5-7", variant: "destructive" })
+      toast({ title: "Enter page range", description: "Example: 1-3,4,5-7", variant: "destructive" })
       return
     }
     setLoading(true)
@@ -175,9 +175,9 @@ function SplitTab() {
           ? "_p" + ranges.trim().replace(/\s/g, "").replace(/,/g, "_p")
           : ""
       downloadBlob(blob, `${basename}_splitted${rangeSuffix}.zip`)
-      toast({ title: "Berhasil!", description: "Halaman PDF berhasil dipecah dan diunduh sebagai ZIP." })
+      toast({ title: "Success!", description: "PDF pages have been split and downloaded as a ZIP." })
     } catch (err: any) {
-      toast({ title: "Gagal Split", description: err?.message ?? "Terjadi kesalahan.", variant: "destructive" })
+      toast({ title: "Split Failed", description: err?.message ?? "An error occurred.", variant: "destructive" })
     } finally {
       setLoading(false)
     }
@@ -200,13 +200,13 @@ function SplitTab() {
         </div>
       ) : (
         <DropZone
-          label="Klik atau drag & drop satu file PDF di sini"
+          label="Click or drag & drop a single PDF file here"
           onFiles={([f]) => setFile(f)}
         />
       )}
 
       <div className="space-y-2">
-        <Label>Mode Split</Label>
+        <Label>Split Mode</Label>
         <div className="flex gap-2">
           <Button
             type="button"
@@ -214,7 +214,7 @@ function SplitTab() {
             variant={mode === "all" ? "default" : "outline"}
             onClick={() => setMode("all")}
           >
-            Per Halaman
+            Per Page
           </Button>
           <Button
             type="button"
@@ -222,22 +222,22 @@ function SplitTab() {
             variant={mode === "range" ? "default" : "outline"}
             onClick={() => setMode("range")}
           >
-            Berdasarkan Range
+            By Range
           </Button>
         </div>
       </div>
 
       {mode === "range" && (
         <div className="space-y-1">
-          <Label htmlFor="ranges">Range Halaman</Label>
+          <Label htmlFor="ranges">Page Range</Label>
           <Input
             id="ranges"
-            placeholder="Contoh: 1-3,4,5-7"
+            placeholder="Example: 1-3,4,5-7"
             value={ranges}
             onChange={(e) => setRanges(e.target.value)}
           />
           <p className="text-xs text-muted-foreground">
-            Gunakan koma untuk memisahkan range. Setiap range akan menjadi satu file PDF dalam ZIP.
+            Use commas to separate ranges. Each range will become one PDF file in the ZIP.
           </p>
         </div>
       )}
@@ -259,11 +259,11 @@ function SplitTab() {
 type CompressPreset = "auto" | "light" | "balanced" | "aggressive" | "maximum"
 
 const PRESETS: { value: CompressPreset; label: string; description: string; dpi?: string }[] = [
-  { value: "auto",       label: "Auto",      description: "Pilih otomatis tingkat terbaik (≥20% lebih kecil)" },
-  { value: "light",      label: "Ringan",    description: "250 dpi — kualitas hampir sama",     dpi: "250 dpi" },
-  { value: "balanced",   label: "Seimbang",  description: "150 dpi — kompresi baik",            dpi: "150 dpi" },
-  { value: "aggressive", label: "Agresif",   description: "96 dpi — ukuran lebih kecil",        dpi: "96 dpi" },
-  { value: "maximum",    label: "Maksimal",  description: "48 dpi — ukuran terkecil",           dpi: "48 dpi" },
+  { value: "auto",       label: "Auto",       description: "Automatically picks the best level (≥20% smaller)" },
+  { value: "light",      label: "Light",      description: "250 dpi — near-original quality",   dpi: "250 dpi" },
+  { value: "balanced",   label: "Balanced",   description: "150 dpi — good compression",        dpi: "150 dpi" },
+  { value: "aggressive", label: "Aggressive", description: "96 dpi — smaller file size",        dpi: "96 dpi" },
+  { value: "maximum",    label: "Maximum",    description: "48 dpi — smallest file size",       dpi: "48 dpi" },
 ]
 
 function CompressTab() {
@@ -277,7 +277,7 @@ function CompressTab() {
 
   const handleCompress = async () => {
     if (!file) {
-      toast({ title: "Pilih file PDF terlebih dahulu", variant: "destructive" })
+      toast({ title: "Please select a PDF file first", variant: "destructive" })
       return
     }
     setLoading(true)
@@ -287,9 +287,9 @@ function CompressTab() {
       setResult({ originalSize, compressedSize, engine, dpiUsed })
       const basename = file.name.replace(/\.pdf$/i, "")
       downloadBlob(blob, `${basename}_compressed_${preset}.pdf`)
-      toast({ title: "Berhasil!", description: "File PDF berhasil dikompres dan diunduh." })
+      toast({ title: "Done!", description: "PDF file has been compressed and downloaded." })
     } catch (err: any) {
-      toast({ title: "Gagal Compress", description: err?.message ?? "Terjadi kesalahan.", variant: "destructive" })
+      toast({ title: "Compression Failed", description: err?.message ?? "An error occurred.", variant: "destructive" })
     } finally {
       setLoading(false)
     }
@@ -312,14 +312,14 @@ function CompressTab() {
         </div>
       ) : (
         <DropZone
-          label="Klik atau drag & drop satu file PDF di sini"
+          label="Click or drag & drop a single PDF file here"
           onFiles={([f]) => { setFile(f); resetResult() }}
         />
       )}
 
       {/* Preset selector */}
       <div className="space-y-2">
-        <Label>Tingkat Kompresi</Label>
+        <Label>Compression Level</Label>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-5">
           {PRESETS.map((p) => (
             <button
@@ -355,7 +355,7 @@ function CompressTab() {
         )}>
           <div className="flex items-center justify-between">
             <span className="font-medium">
-              {result.originalSize > result.compressedSize ? "✓ Kompresi berhasil" : "File sudah teroptimasi"}
+              {result.originalSize > result.compressedSize ? "✓ Compression successful" : "File is already optimized"}
             </span>
             <div className="flex items-center gap-1.5">
               <span className={cn(
@@ -373,16 +373,16 @@ function CompressTab() {
           </div>
           <div className="space-y-1">
             <div className="flex justify-between text-muted-foreground">
-              <span>Ukuran awal</span>
+              <span>Original size</span>
               <span>{formatBytes(result.originalSize)}</span>
             </div>
             <div className="flex justify-between text-muted-foreground">
-              <span>Ukuran setelah compress</span>
+              <span>Compressed size</span>
               <span>{formatBytes(result.compressedSize)}</span>
             </div>
             {result.originalSize > result.compressedSize ? (
               <div className="flex justify-between font-medium text-green-700">
-                <span>Penghematan</span>
+                <span>Savings</span>
                 <span>
                   {formatBytes(result.originalSize - result.compressedSize)}
                   {" "}({Math.round(((result.originalSize - result.compressedSize) / result.originalSize) * 100)}%)
@@ -417,7 +417,7 @@ export default function PdfToolsPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">PDF Tools</h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Gabung, pecah, atau kompres file PDF langsung dari browser.
+          Merge, split, or compress PDF files directly from your browser.
         </p>
       </div>
 
@@ -442,7 +442,7 @@ export default function PdfToolsPage() {
             <CardHeader>
               <CardTitle className="text-base">Merge PDF</CardTitle>
               <CardDescription>
-                Gabungkan beberapa file PDF menjadi satu dokumen. Pilih minimal 2 file.
+                Combine multiple PDF files into one document. Select at least 2 files.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -456,7 +456,7 @@ export default function PdfToolsPage() {
             <CardHeader>
               <CardTitle className="text-base">Split PDF</CardTitle>
               <CardDescription>
-                Pecah satu file PDF menjadi beberapa file. Hasilnya akan diunduh sebagai file ZIP.
+                Split a PDF into multiple files. The result will be downloaded as a ZIP archive.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -470,7 +470,7 @@ export default function PdfToolsPage() {
             <CardHeader>
               <CardTitle className="text-base">Compress PDF</CardTitle>
               <CardDescription>
-                Optimalkan ukuran file PDF dengan mengompres struktur dokumen.
+                Reduce the file size of a PDF by compressing its document structure and images.
               </CardDescription>
             </CardHeader>
             <CardContent>

@@ -81,7 +81,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   const [boqItems, setBoqItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [editingBOQ, setEditingBOQ] = useState<any>(null)
-  const [isCreatingAdditional, setIsCreatingAdditional] = useState(false)
+  const [, setIsCreatingAdditional] = useState(false)
   const [activeTab, setActiveTab] = useState("main")
 
   const [creationMode, setCreationMode] = useState<"blank" | "template" | null>(null)
@@ -89,7 +89,7 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   const [templates, setTemplates] = useState<any[]>([])
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null)
   const [showTemplatePreview, setShowTemplatePreview] = useState(false)
-  const [openPopovers, setOpenPopovers] = useState<{ [key: string]: boolean }>({})
+  const [] = useState<{ [key: string]: boolean }>({})
   const [] = useState<{ [key: string]: string }>({})
   const [createProductDialogOpen, setCreateProductDialogOpen] = useState(false)
   const [pendingProductSelection, setPendingProductSelection] = useState<{
@@ -103,10 +103,6 @@ export function ProjectBOQ({ projectId }: ProjectBOQProps) {
   const [furnitureWork, setFurnitureWork] = useState<Category[]>([])
   const [mechanicalElectrical, setMechanicalElectrical] = useState<Category[]>([])
 
-  const preliminaryQtyRefs = useRef<{ [key: number]: HTMLInputElement | null }>({})
-  const fittingOutQtyRefs = useRef<{ [key: string]: HTMLInputElement | null }>({})
-  const furnitureWorkQtyRefs = useRef<{ [key: string]: HTMLInputElement | null }>({})
-  const mechanicalElectricalQtyRefs = useRef<{ [key: string]: HTMLInputElement | null }>({})
 
   const [, setProducts] = useState<any[]>([])
   const [, setLoadingProducts] = useState(false)

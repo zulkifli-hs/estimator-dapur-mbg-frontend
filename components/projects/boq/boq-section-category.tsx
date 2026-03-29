@@ -67,7 +67,24 @@ export function BoqSectionCategory({
   const [activeEditMap, setActiveEditMap] = useState<Record<number, number | null>>({})
   // Per-category name duplicate error: key = categoryIndex
   const [nameErrors, setNameErrors] = useState<Record<number, string>>({})
+  const [pendingNewProductSel, setPendingNewProductSel] = useState<{ categoryIndex: number; productIndex: number } | null>(null)
+  const [injectedProduct, setInjectedProduct] = useState<{ categoryIndex: number; productIndex: number; product: any } | null>(null)
   const { toast } = useToast()
+
+  const handleSetPendingProductSelection = (sel: any) => {
+    if (sel.categoryIndex !== undefined) {
+      setPendingNewProductSel({ categoryIndex: sel.categoryIndex, productIndex: sel.productIndex })
+    }
+    onSetPendingProductSelection(sel)
+  }
+
+  const handleProductCreated = (newProduct: any) => {
+    if (pendingNewProductSel !== null) {
+      setInjectedProduct({ ...pendingNewProductSel, product: newProduct })
+      setPendingNewProductSel(null)
+    }
+    onProductCreated(newProduct)
+  }
 
   const isDuplicateName = (name: string, excludeIndex: number): boolean => {
     const trimmed = name.trim().toLowerCase()
@@ -249,8 +266,13 @@ export function BoqSectionCategory({
                           }
                           onRemoveProduct(activeCategoryIndex, productIndex)
                         }}
+                        externalProduct={
+                          injectedProduct?.categoryIndex === activeCategoryIndex && injectedProduct?.productIndex === productIndex
+                            ? injectedProduct.product
+                            : null
+                        }
                         onSelectProduct={(p) => onSelectProduct(activeCategoryIndex, productIndex, p)}
-                        onSetPendingProductSelection={onSetPendingProductSelection}
+                        onSetPendingProductSelection={handleSetPendingProductSelection}
                         onSetCreateProductDialogOpen={onSetCreateProductDialogOpen}
                         mainBoqItems={mainBoqItems}
                       />
@@ -287,7 +309,7 @@ export function BoqSectionCategory({
         open={createProductDialogOpen}
         onOpenChange={onSetCreateProductDialogOpen}
         uploadPhoto={uploadProductPhoto}
-        onCreated={onProductCreated}
+        onCreated={handleProductCreated}
       />
     </div>
   )

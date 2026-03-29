@@ -475,6 +475,40 @@ export default function ProductsPage() {
     setDetailsDialogOpen(true)
   }
 
+  // Highlight matching text in table cells.
+  // `activeField` limits highlighting to the relevant search field; pass undefined to always highlight.
+  const highlightText = (text: string | undefined | null, activeField?: string): React.ReactNode => {
+    if (!text) return text ?? ""
+    if (!searchQuery) return text
+    if (activeField && searchField !== "all" && searchField !== activeField) return text
+    const escaped = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    const parts = text.split(new RegExp(`(${escaped})`, "gi"))
+    if (parts.length === 1) return text
+    return (
+      <>
+        {parts.map((part, i) =>
+          part.toLowerCase() === searchQuery.toLowerCase() ? (
+            <mark key={i} className="bg-yellow-200 dark:bg-yellow-800 text-yellow-900 dark:text-yellow-100 rounded-sm px-0.5 not-italic">
+              {part}
+            </mark>
+          ) : (
+            part
+          )
+        )}
+      </>
+    )
+  }
+
+  // Returns product details/specs that contain the current search query.
+  const getMatchedSpecs = (product: Product): ProductDetail[] => {
+    if (!searchQuery || !product.details?.length) return []
+    if (searchField !== "details" && searchField !== "all") return []
+    const q = searchQuery.toLowerCase()
+    return product.details.filter(
+      (d) => d.label?.toLowerCase().includes(q) || d.value?.toLowerCase().includes(q)
+    )
+  }
+
   if (checkingAuth) {
     return (
       <div className="flex items-center justify-center min-h-100">
@@ -661,11 +695,44 @@ export default function ProductsPage() {
                             onCheckedChange={() => toggleProductSelection(product._id)}
                           />
                         </TableCell>
-                        <TableCell className="font-mono text-xs">{product.sku}</TableCell>
-                        <TableCell className="font-medium whitespace-normal wrap-break-word">{product.name}</TableCell>
+                        <TableCell className="font-mono text-xs">{highlightText(product.sku, "sku")}</TableCell>
+                        <TableCell className="font-medium whitespace-normal wrap-break-word">
+                          <div>
+                            {highlightText(product.name, "name")}
+                            {(() => {
+                              const matched = getMatchedSpecs(product)
+                              if (matched.length === 0) return null
+                              return (
+                                <div className="mt-1 flex flex-wrap gap-1">
+                                  {matched.slice(0, 2).map((spec, i) => (
+                                    <span
+                                      key={i}
+                                      className="inline-flex items-center gap-1 text-xs bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded px-1.5 py-0.5"
+                                    >
+                                      <span className="font-medium text-amber-800 dark:text-amber-200">
+                                        {highlightText(spec.label, "details")}:
+                                      </span>
+                                      <span className="text-amber-700 dark:text-amber-300">
+                                        {highlightText(spec.value, "details")}
+                                      </span>
+                                    </span>
+                                  ))}
+                                  {matched.length > 2 && (
+                                    <button
+                                      onClick={() => openDetailsDialog(product)}
+                                      className="text-xs text-primary hover:underline"
+                                    >
+                                      +{matched.length - 2} more
+                                    </button>
+                                  )}
+                                </div>
+                              )
+                            })()}
+                          </div>
+                        </TableCell>
                         <TableCell>{product.type}</TableCell>
                         <TableCell>{product.unit}</TableCell>
-                        <TableCell>{product.brand || "-"}</TableCell>
+                        <TableCell>{product.brand ? highlightText(product.brand, "brand") : "-"}</TableCell>
                         <TableCell>
                           {product.tags && product.tags.length > 0 ? (
                             <div className="flex flex-wrap gap-1">
@@ -845,10 +912,10 @@ export default function ProductsPage() {
                     {viewingProduct.details.map((detail, index) => (
                       <div key={detail._id || index} className="p-3 flex justify-between items-center">
                         <div>
-                          <p className="font-medium">{detail.label}</p>
+                          <p className="font-medium">{highlightText(detail.label, "details")}</p>
                           <p className="text-xs text-muted-foreground capitalize">{detail.type}</p>
                         </div>
-                        <p className="text-sm">{detail.value}</p>
+                        <p className="text-sm">{highlightText(detail.value, "details")}</p>
                       </div>
                     ))}
                   </div>

@@ -19,7 +19,8 @@ function ResetPasswordContent() {
   const searchParams = useSearchParams()
 
   const [email, setEmail] = useState(searchParams.get("email") ?? "")
-  const [otp, setOtp] = useState("")
+  const otpFromLink = !!searchParams.get("otp")
+  const [otp, setOtp] = useState(searchParams.get("otp") ?? "")
   const [password, setPassword] = useState("")
   const [rePassword, setRePassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -117,6 +118,8 @@ function ResetPasswordContent() {
                 <CardDescription className="text-base">
                   {success
                     ? "Your password has been reset successfully"
+                    : otpFromLink
+                    ? "Enter your new password below"
                     : "Enter the OTP from your email and your new password"}
                 </CardDescription>
               </div>
@@ -161,22 +164,24 @@ function ResetPasswordContent() {
                     />
                   </div>
 
-                  <div className="space-y-2.5">
-                    <Label htmlFor="otp" className="text-sm font-medium">
-                      OTP Code
-                    </Label>
-                    <Input
-                      id="otp"
-                      type="text"
-                      placeholder="Enter OTP from your email"
-                      value={otp}
-                      onChange={(e) => setOtp(e.target.value)}
-                      required
-                      disabled={loading}
-                      className="h-10"
-                      autoComplete="one-time-code"
-                    />
-                  </div>
+                  {!otpFromLink && (
+                    <div className="space-y-2.5">
+                      <Label htmlFor="otp" className="text-sm font-medium">
+                        OTP Code
+                      </Label>
+                      <Input
+                        id="otp"
+                        type="text"
+                        placeholder="Enter OTP from your email"
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value)}
+                        required
+                        disabled={loading}
+                        className="h-10"
+                        autoComplete="one-time-code"
+                      />
+                    </div>
+                  )}
 
                   <div className="space-y-2.5">
                     <Label htmlFor="password" className="text-sm font-medium">

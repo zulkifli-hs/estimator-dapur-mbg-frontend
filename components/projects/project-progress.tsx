@@ -78,6 +78,10 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
     { value: "bast", label: "BAPP/BAST" },
   ]
 
+  const ganttHasData = !loading && ganttTasks.length > 0
+  const timelineComplete = ganttHasData && ganttTasks.every((t: any) => t.startDate && t.endDate)
+  const timelineIncomplete = ganttHasData && ganttTasks.some((t: any) => !t.startDate || !t.endDate)
+
   useEffect(() => {
     loadBOQData()
     loadAlbums()
@@ -602,7 +606,20 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
             <SelectContent>
               {tabs.map((tab) => (
                 <SelectItem key={tab.value} value={tab.value}>
-                  {tab.label}
+                  <span className="flex items-center gap-2">
+                    {tab.label}
+                    {(tab.value === "gantt" || tab.value === "scurve") && ganttHasData && (
+                      <Badge
+                        className={`text-[10px] px-1.5 py-0 h-4 pointer-events-none ${
+                          timelineComplete
+                            ? "bg-green-500 text-white"
+                            : "bg-yellow-400 text-yellow-900"
+                        }`}
+                      >
+                        {timelineComplete ? "Complete" : "Incomplete"}
+                      </Badge>
+                    )}
+                  </span>
                 </SelectItem>
               ))}
             </SelectContent>
@@ -612,8 +629,19 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
         {/* Desktop: Tabs */}
         <TabsList className="hidden md:grid w-full grid-cols-4">
           {tabs.map((tab) => (
-            <TabsTrigger key={tab.value} value={tab.value}>
+            <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5">
               {tab.label}
+              {(tab.value === "gantt" || tab.value === "scurve") && ganttHasData && (
+                <Badge
+                  className={`text-[10px] px-1.5 py-0 h-4 pointer-events-none ${
+                    timelineComplete
+                      ? "bg-green-500 text-white"
+                      : "bg-yellow-400 text-yellow-900"
+                  }`}
+                >
+                  {timelineComplete ? "Complete" : "Incomplete"}
+                </Badge>
+              )}
             </TabsTrigger>
           ))}
         </TabsList>

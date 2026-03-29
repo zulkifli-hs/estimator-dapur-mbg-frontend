@@ -52,8 +52,9 @@ interface BoqRecapProps {
 function itemKey(item: any): string {
   const productId = (item?.productId ?? "").trim()
   const name = (item?.name ?? "").trim().toLowerCase()
+  const price = item?.price ?? 0
   if (!name) return ""
-  return productId ? `${name}:::${productId}` : name
+  return productId ? `${name}:::${productId}:::${price}` : `${name}:::${price}`
 }
 
 // ─── Merge helpers ────────────────────────────────────────────────────────────
@@ -74,20 +75,26 @@ function mergePreliminary(mainItems: any[], additionalBOQs: any[]): RecapRow[] {
     if (!key) continue
     const qty = item.qty ?? 0
     const price = item.price ?? 0
-    map.set(key, {
-      _rowKey: key,
-      name: item.name ?? "",
-      unit: item.unit ?? "",
-      mainQty: qty,
-      mainPrice: price,
-      mainTotal: qty * price,
-      addQty: 0,
-      addPrice: 0,
-      addTotal: 0,
-      netQty: 0,
-      netPrice: 0,
-      netTotal: 0,
-    })
+    if (map.has(key)) {
+      const r = map.get(key)!
+      r.mainQty += qty
+      r.mainTotal += qty * price
+    } else {
+      map.set(key, {
+        _rowKey: key,
+        name: item.name ?? "",
+        unit: item.unit ?? "",
+        mainQty: qty,
+        mainPrice: price,
+        mainTotal: qty * price,
+        addQty: 0,
+        addPrice: 0,
+        addTotal: 0,
+        netQty: 0,
+        netPrice: 0,
+        netTotal: 0,
+      })
+    }
   }
 
   for (const boq of additionalBOQs) {
@@ -143,20 +150,26 @@ function mergeCategorized(
       if (!key) continue
       const qty = product.qty ?? 0
       const price = product.price ?? 0
-      imap.set(key, {
-        _rowKey: `${catName}:::${key}`,
-        name: product.name ?? "",
-        unit: product.unit ?? "",
-        mainQty: qty,
-        mainPrice: price,
-        mainTotal: qty * price,
-        addQty: 0,
-        addPrice: 0,
-        addTotal: 0,
-        netQty: 0,
-        netPrice: 0,
-        netTotal: 0,
-      })
+      if (imap.has(key)) {
+        const r = imap.get(key)!
+        r.mainQty += qty
+        r.mainTotal += qty * price
+      } else {
+        imap.set(key, {
+          _rowKey: `${catName}:::${key}`,
+          name: product.name ?? "",
+          unit: product.unit ?? "",
+          mainQty: qty,
+          mainPrice: price,
+          mainTotal: qty * price,
+          addQty: 0,
+          addPrice: 0,
+          addTotal: 0,
+          netQty: 0,
+          netPrice: 0,
+          netTotal: 0,
+        })
+      }
     }
   }
 

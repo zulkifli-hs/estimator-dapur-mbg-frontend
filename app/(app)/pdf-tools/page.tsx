@@ -95,7 +95,12 @@ function MergeTab() {
     setLoading(true)
     try {
       const blob = await mergePdf(files)
-      downloadBlob(blob, "merged.pdf")
+      const basenames = files.map((f) => f.name.replace(/\.pdf$/i, ""))
+      const nameStr =
+        basenames.length <= 3
+          ? basenames.join("_")
+          : basenames.slice(0, 3).join("_") + `_and_${basenames.length - 3}_more`
+      downloadBlob(blob, `${nameStr}_merged.pdf`)
       toast({ title: "Berhasil!", description: "File PDF berhasil digabung dan diunduh." })
     } catch (err: any) {
       toast({ title: "Gagal Merge", description: err?.message ?? "Terjadi kesalahan.", variant: "destructive" })
@@ -164,7 +169,12 @@ function SplitTab() {
     setLoading(true)
     try {
       const blob = await splitPdf(file, mode, ranges.trim() || undefined)
-      downloadBlob(blob, "split-pages.zip")
+      const basename = file.name.replace(/\.pdf$/i, "")
+      const rangeSuffix =
+        mode === "range" && ranges.trim()
+          ? "_p" + ranges.trim().replace(/\s/g, "").replace(/,/g, "_p")
+          : ""
+      downloadBlob(blob, `${basename}_splitted${rangeSuffix}.zip`)
       toast({ title: "Berhasil!", description: "Halaman PDF berhasil dipecah dan diunduh sebagai ZIP." })
     } catch (err: any) {
       toast({ title: "Gagal Split", description: err?.message ?? "Terjadi kesalahan.", variant: "destructive" })
@@ -275,7 +285,8 @@ function CompressTab() {
     try {
       const { blob, originalSize, compressedSize, engine, dpiUsed } = await compressPdf(file, preset)
       setResult({ originalSize, compressedSize, engine, dpiUsed })
-      downloadBlob(blob, "compressed.pdf")
+      const basename = file.name.replace(/\.pdf$/i, "")
+      downloadBlob(blob, `${basename}_compressed_${preset}.pdf`)
       toast({ title: "Berhasil!", description: "File PDF berhasil dikompres dan diunduh." })
     } catch (err: any) {
       toast({ title: "Gagal Compress", description: err?.message ?? "Terjadi kesalahan.", variant: "destructive" })

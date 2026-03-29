@@ -95,7 +95,7 @@ export default function AIAssistantPage() {
         </TabsList>
 
         <TabsContent value="chat" className="space-y-4">
-          <Card className="h-[600px] flex flex-col">
+          <Card className="h-150 flex flex-col">
             <CardHeader className="border-b">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -116,7 +116,7 @@ export default function AIAssistantPage() {
                     className={`flex gap-3 ${message.role === "user" ? "justify-end" : "justify-start"}`}
                   >
                     {message.role === "assistant" && (
-                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                         <Bot className="h-5 w-5 text-primary" />
                       </div>
                     )}
@@ -135,7 +135,7 @@ export default function AIAssistantPage() {
                       </p>
                     </div>
                     {message.role === "user" && (
-                      <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                      <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center shrink-0">
                         <User className="h-5 w-5 text-primary-foreground" />
                       </div>
                     )}
@@ -143,7 +143,7 @@ export default function AIAssistantPage() {
                 ))}
                 {loading && (
                   <div className="flex gap-3">
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                       <Bot className="h-5 w-5 text-primary" />
                     </div>
                     <div className="bg-muted rounded-lg p-4 border">

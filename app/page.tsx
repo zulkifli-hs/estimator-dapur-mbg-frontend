@@ -143,7 +143,7 @@ export default function Page() {
           />
         </div>
         {/* Background Pattern */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-primary/10" />
+        <div className="absolute inset-0 bg-linear-to-br from-primary/5 via-background to-primary/10" />
         <div
           className="absolute inset-0 opacity-[0.03]"
           style={{
@@ -202,7 +202,7 @@ export default function Page() {
 
             <div className="relative hidden lg:block">
               <div className="relative aspect-square max-w-lg mx-auto">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5 rounded-3xl" />
+                <div className="absolute inset-0 bg-linear-to-br from-primary/20 to-primary/5 rounded-3xl" />
                 <Image
                   src="/professional-interior-designer-working-on-office-l.jpg"
                   alt="Interior design planning"
@@ -255,7 +255,7 @@ export default function Page() {
               height={600}
               className="w-full object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+            <div className="absolute inset-0 bg-linear-to-t from-background/80 to-transparent" />
             <div className="absolute bottom-6 left-6 right-6">
               <p className="text-lg font-medium">Powerful dashboard to manage all your interior design projects</p>
             </div>
@@ -374,7 +374,7 @@ export default function Page() {
             <div className="relative">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-4">
-                  <div className="relative aspect-[3/4] rounded-2xl overflow-hidden border shadow-lg">
+                  <div className="relative aspect-3/4 rounded-2xl overflow-hidden border shadow-lg">
                     <Image
                       src="/modern-office-interior-with-ergonomic-furniture-an.jpg"
                       alt="Modern office interior"
@@ -400,7 +400,7 @@ export default function Page() {
                       className="object-cover"
                     />
                   </div>
-                  <div className="relative aspect-[3/4] rounded-2xl overflow-hidden border shadow-lg">
+                  <div className="relative aspect-3/4 rounded-2xl overflow-hidden border shadow-lg">
                     <Image
                       src="/open-plan-office-workspace-with-collaborative-area.jpg"
                       alt="Open plan office"
@@ -411,7 +411,7 @@ export default function Page() {
                 </div>
               </div>
               {/* Decorative gradient overlay */}
-              <div className="absolute -inset-4 bg-gradient-to-br from-primary/10 to-transparent rounded-3xl -z-10" />
+              <div className="absolute -inset-4 bg-linear-to-br from-primary/10 to-transparent rounded-3xl -z-10" />
             </div>
           </div>
         </div>

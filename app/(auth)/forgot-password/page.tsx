@@ -87,7 +87,7 @@ export default function ForgotPasswordPage() {
         </div>
 
         <div className="relative z-10">
-          <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} Gema AI. All rights reserved.</p>
+          <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} IDBuild. All rights reserved.</p>
         </div>
       </div>
 

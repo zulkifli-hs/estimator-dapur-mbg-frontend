@@ -107,7 +107,7 @@ export default function LoginPage() {
         </div>
 
         <div className="relative z-10">
-          <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} Gema AI. All rights reserved.</p>
+          <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} IDBuild. All rights reserved.</p>
         </div>
       </div>
 
@@ -201,7 +201,7 @@ export default function LoginPage() {
               <div className="w-full border-t border-muted" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">New to Gema AI?</span>
+              <span className="bg-background px-2 text-muted-foreground">New to IDBuild?</span>
             </div>
           </div>
 

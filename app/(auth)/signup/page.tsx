@@ -94,7 +94,7 @@ export default function SignupPage() {
           <div className="space-y-4">
             <h2 className="text-3xl font-bold">Start managing your interior projects today</h2>
             <p className="text-lg text-muted-foreground">
-              Join thousands of interior designers using Gema AI to streamline their business and deliver better
+              Join thousands of interior designers using IDBuild to streamline their business and deliver better
               results.
             </p>
           </div>
@@ -120,7 +120,7 @@ export default function SignupPage() {
         </div>
 
         <div className="relative z-10">
-          <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} Gema AI. All rights reserved.</p>
+          <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} IDBuild. All rights reserved.</p>
         </div>
       </div>
 
@@ -136,7 +136,7 @@ export default function SignupPage() {
             <CardHeader className="space-y-4 pb-6">
               <div className="space-y-2">
                 <CardTitle className="text-2xl font-bold">Create your account</CardTitle>
-                <CardDescription className="text-base">Get started with Gema AI in just a few steps.</CardDescription>
+                <CardDescription className="text-base">Get started with IDBuild in just a few steps.</CardDescription>
               </div>
             </CardHeader>
             <CardContent>

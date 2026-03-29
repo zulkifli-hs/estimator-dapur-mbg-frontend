@@ -246,11 +246,24 @@ function SplitTab() {
 
 // ─── Compress Tab ─────────────────────────────────────────────────────────────
 
+type CompressPreset = "auto" | "light" | "balanced" | "aggressive" | "maximum"
+
+const PRESETS: { value: CompressPreset; label: string; description: string; dpi?: string }[] = [
+  { value: "auto",       label: "Auto",      description: "Pilih otomatis tingkat terbaik (≥20% lebih kecil)" },
+  { value: "light",      label: "Ringan",    description: "250 dpi — kualitas hampir sama",     dpi: "250 dpi" },
+  { value: "balanced",   label: "Seimbang",  description: "150 dpi — kompresi baik",            dpi: "150 dpi" },
+  { value: "aggressive", label: "Agresif",   description: "96 dpi — ukuran lebih kecil",        dpi: "96 dpi" },
+  { value: "maximum",    label: "Maksimal",  description: "48 dpi — ukuran terkecil",           dpi: "48 dpi" },
+]
+
 function CompressTab() {
   const { toast } = useToast()
   const [file, setFile] = useState<File | null>(null)
+  const [preset, setPreset] = useState<CompressPreset>("auto")
   const [loading, setLoading] = useState(false)
-  const [resultSize, setResultSize] = useState<number | null>(null)
+  const [result, setResult] = useState<{ originalSize: number; compressedSize: number; engine: "ghostscript" | "pdf-lib"; dpiUsed?: number } | null>(null)
+
+  const resetResult = () => setResult(null)
 
   const handleCompress = async () => {
     if (!file) {
@@ -258,10 +271,10 @@ function CompressTab() {
       return
     }
     setLoading(true)
-    setResultSize(null)
+    setResult(null)
     try {
-      const blob = await compressPdf(file)
-      setResultSize(blob.size)
+      const { blob, originalSize, compressedSize, engine, dpiUsed } = await compressPdf(file, preset)
+      setResult({ originalSize, compressedSize, engine, dpiUsed })
       downloadBlob(blob, "compressed.pdf")
       toast({ title: "Berhasil!", description: "File PDF berhasil dikompres dan diunduh." })
     } catch (err: any) {
@@ -270,8 +283,6 @@ function CompressTab() {
       setLoading(false)
     }
   }
-
-  const savings = file && resultSize !== null ? file.size - resultSize : null
 
   return (
     <div className="space-y-4">
@@ -282,7 +293,7 @@ function CompressTab() {
           <span className="text-xs text-muted-foreground">{formatBytes(file.size)}</span>
           <button
             type="button"
-            onClick={() => { setFile(null); setResultSize(null) }}
+            onClick={() => { setFile(null); resetResult() }}
             className="text-muted-foreground hover:text-destructive transition-colors"
           >
             <X className="h-4 w-4" />
@@ -291,29 +302,87 @@ function CompressTab() {
       ) : (
         <DropZone
           label="Klik atau drag & drop satu file PDF di sini"
-          onFiles={([f]) => { setFile(f); setResultSize(null) }}
+          onFiles={([f]) => { setFile(f); resetResult() }}
         />
       )}
 
-      {file && resultSize !== null && (
-        <div className="rounded-lg border bg-muted/30 p-4 space-y-1 text-sm">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Ukuran awal</span>
-            <span>{formatBytes(file.size)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Ukuran setelah compress</span>
-            <span>{formatBytes(resultSize)}</span>
-          </div>
-          {savings !== null && savings > 0 && (
-            <div className="flex justify-between font-medium text-green-600">
-              <span>Penghematan</span>
-              <span>{formatBytes(savings)} ({Math.round((savings / file.size) * 100)}%)</span>
+      {/* Preset selector */}
+      <div className="space-y-2">
+        <Label>Tingkat Kompresi</Label>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-5">
+          {PRESETS.map((p) => (
+            <button
+              key={p.value}
+              type="button"
+              onClick={() => { setPreset(p.value); resetResult() }}
+              className={cn(
+                "flex flex-col items-start gap-0.5 rounded-lg border px-3 py-2.5 text-left transition-colors",
+                preset === p.value
+                  ? "border-primary bg-primary/5 ring-1 ring-primary"
+                  : "border-border hover:border-primary/50 hover:bg-muted/40"
+              )}
+            >
+              <div className="flex items-center justify-between w-full gap-1">
+                <span className="text-sm font-medium">{p.label}</span>
+                {p.dpi && (
+                  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500 tabular-nums">
+                    {p.dpi}
+                  </span>
+                )}
+              </div>
+              <span className="text-[11px] text-muted-foreground leading-snug">{p.description}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Result info */}
+      {result && (
+        <div className={cn(
+          "rounded-lg border p-4 space-y-2 text-sm",
+          result.originalSize > result.compressedSize ? "bg-green-50 border-green-200" : "bg-slate-50 border-slate-200"
+        )}>
+          <div className="flex items-center justify-between">
+            <span className="font-medium">
+              {result.originalSize > result.compressedSize ? "✓ Kompresi berhasil" : "File sudah teroptimasi"}
+            </span>
+            <div className="flex items-center gap-1.5">
+              <span className={cn(
+                "text-xs font-medium px-2 py-0.5 rounded-full",
+                result.engine === "ghostscript" ? "bg-violet-100 text-violet-700" : "bg-slate-100 text-slate-600"
+              )}>
+                {result.engine === "ghostscript" ? "Ghostscript" : "pdf-lib"}
+              </span>
+              {result.dpiUsed !== undefined && (
+                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 tabular-nums">
+                  {result.dpiUsed} dpi
+                </span>
+              )}
             </div>
-          )}
-          {savings !== null && savings <= 0 && (
-            <p className="text-xs text-muted-foreground">File sudah teroptimasi, tidak ada penghematan signifikan.</p>
-          )}
+          </div>
+          <div className="space-y-1">
+            <div className="flex justify-between text-muted-foreground">
+              <span>Ukuran awal</span>
+              <span>{formatBytes(result.originalSize)}</span>
+            </div>
+            <div className="flex justify-between text-muted-foreground">
+              <span>Ukuran setelah compress</span>
+              <span>{formatBytes(result.compressedSize)}</span>
+            </div>
+            {result.originalSize > result.compressedSize ? (
+              <div className="flex justify-between font-medium text-green-700">
+                <span>Penghematan</span>
+                <span>
+                  {formatBytes(result.originalSize - result.compressedSize)}
+                  {" "}({Math.round(((result.originalSize - result.compressedSize) / result.originalSize) * 100)}%)
+                </span>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                File sudah dalam kondisi optimal, tidak ada penghematan lebih lanjut yang bisa dilakukan.
+              </p>
+            )}
+          </div>
         </div>
       )}
 

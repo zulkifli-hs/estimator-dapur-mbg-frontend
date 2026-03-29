@@ -17,6 +17,7 @@ import {
   User,
   FileText,
   PanelLeft,
+  FileStack,
 } from "lucide-react"
 import { getProfile, type UserProfile } from "@/lib/api/auth"
 
@@ -47,6 +48,10 @@ const secondaryNavigation: NavItem[] = [
   { name: "Profile", href: "/profile", icon: User },
   // { name: "Settings", href: "/settings", icon: Settings },
   // { name: "Help & Support", href: "/help", icon: HelpCircle },
+]
+
+const toolsNavigation: NavItem[] = [
+  { name: "PDF Tools", href: "/pdf-tools", icon: FileStack },
 ]
 
 export function AppSidebar({ collapsed = false, onCollapse, className }: AppSidebarProps) {
@@ -127,6 +132,17 @@ export function AppSidebar({ collapsed = false, onCollapse, className }: AppSide
             <p className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Main Menu</p>
           )}
           {filteredMainNavigation.map((item) => (
+            <NavLink key={item.href} item={item} />
+          ))}
+        </div>
+
+        <Separator className="my-4" />
+
+        <div className="space-y-1">
+          {!collapsed && (
+            <p className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Tools</p>
+          )}
+          {toolsNavigation.map((item) => (
             <NavLink key={item.href} item={item} />
           ))}
         </div>

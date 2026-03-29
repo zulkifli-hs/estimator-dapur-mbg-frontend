@@ -70,8 +70,11 @@ export interface UpdateProductInput {
 export const productsApi = {
   getAll: async (
     page = 1,
-    limit = 10,
+    limit = 20,
     search?: string,
+    searchField?: string,
+    filterType?: string,
+    filterTag?: string,
   ): Promise<{ list: Product[]; totalData: number; totalPage: number; page: number }> => {
     const params = new URLSearchParams({
       page: page.toString(),
@@ -80,6 +83,15 @@ export const productsApi = {
 
     if (search) {
       params.append("search", search)
+    }
+    if (searchField) {
+      params.append("searchField", searchField)
+    }
+    if (filterType) {
+      params.append("type", filterType)
+    }
+    if (filterTag) {
+      params.append("tag", filterTag)
     }
 
     const response = await apiRequest<{ list: Product[]; totalData: number; totalPage: number; page: number }>(`/products?${params.toString()}`, {

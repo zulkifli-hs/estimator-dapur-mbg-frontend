@@ -30,7 +30,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Plus, Search, Edit, Trash2, Loader2, Package, Shield, Eye, X, Upload } from "lucide-react"
+import { Plus, Search, Edit, Trash2, Loader2, Package, Shield, Eye, X, Upload, SlidersHorizontal } from "lucide-react"
 import {
   productsApi,
   type Product,
@@ -58,7 +58,11 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true)
   const [checkingAuth, setCheckingAuth] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
+  const [searchField, setSearchField] = useState("all")
+  const [filterType, setFilterType] = useState("")
+  const [filterTag, setFilterTag] = useState("")
   const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(20)
   const [totalPages, setTotalPages] = useState(1)
   const [totalData, setTotalData] = useState(0)
   const [selectedProducts, setSelectedProducts] = useState<string[]>([])
@@ -122,12 +126,19 @@ export default function ProductsPage() {
     if (!checkingAuth) {
       loadProducts()
     }
-  }, [page, searchQuery, checkingAuth])
+  }, [page, limit, searchQuery, searchField, filterType, filterTag, checkingAuth])
 
   const loadProducts = async () => {
     try {
       setLoading(true)
-      const response = await productsApi.getAll(page, 10, searchQuery || undefined)
+      const response = await productsApi.getAll(
+        page,
+        limit,
+        searchQuery || undefined,
+        searchField !== "all" ? searchField : undefined,
+        filterType || undefined,
+        filterTag || undefined,
+      )
       setProducts(response.list)
       setTotalPages(response.totalPage)
       setTotalData(response.totalData)
@@ -146,6 +157,23 @@ export default function ProductsPage() {
     setSearchQuery(value)
     setPage(1)
   }
+
+  const handleFilterChange = (type: "searchField" | "filterType" | "filterTag", value: string) => {
+    if (type === "searchField") setSearchField(value)
+    else if (type === "filterType") setFilterType(value)
+    else if (type === "filterTag") setFilterTag(value)
+    setPage(1)
+  }
+
+  const clearAllFilters = () => {
+    setSearchQuery("")
+    setSearchField("all")
+    setFilterType("")
+    setFilterTag("")
+    setPage(1)
+  }
+
+  const hasActiveFilters = searchQuery || searchField !== "all" || filterType || filterTag
 
   const resetForm = () => {
     setFormData({
@@ -448,6 +476,40 @@ export default function ProductsPage() {
     setDetailsDialogOpen(true)
   }
 
+  // Highlight matching text in table cells.
+  // `activeField` limits highlighting to the relevant search field; pass undefined to always highlight.
+  const highlightText = (text: string | undefined | null, activeField?: string): React.ReactNode => {
+    if (!text) return text ?? ""
+    if (!searchQuery) return text
+    if (activeField && searchField !== "all" && searchField !== activeField) return text
+    const escaped = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    const parts = text.split(new RegExp(`(${escaped})`, "gi"))
+    if (parts.length === 1) return text
+    return (
+      <>
+        {parts.map((part, i) =>
+          part.toLowerCase() === searchQuery.toLowerCase() ? (
+            <mark key={i} className="bg-yellow-200 dark:bg-yellow-800 text-yellow-900 dark:text-yellow-100 rounded-sm px-0.5 not-italic">
+              {part}
+            </mark>
+          ) : (
+            part
+          )
+        )}
+      </>
+    )
+  }
+
+  // Returns product details/specs that contain the current search query.
+  const getMatchedSpecs = (product: Product): ProductDetail[] => {
+    if (!searchQuery || !product.details?.length) return []
+    if (searchField !== "details" && searchField !== "all") return []
+    const q = searchQuery.toLowerCase()
+    return product.details.filter(
+      (d) => d.label?.toLowerCase().includes(q) || d.value?.toLowerCase().includes(q)
+    )
+  }
+
   if (checkingAuth) {
     return (
       <div className="flex items-center justify-center min-h-100">
@@ -477,27 +539,117 @@ export default function ProductsPage() {
 
       <Card>
         <CardHeader>
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            <div>
-              <CardTitle>Products</CardTitle>
-              <CardDescription>Total: {totalData} product(s)</CardDescription>
-            </div>
-            <div className="flex gap-2 w-full sm:w-auto">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+              <div>
+                <CardTitle>Products</CardTitle>
+                <CardDescription>Total: {totalData} product(s)</CardDescription>
+              </div>
               {selectedProducts.length > 0 && (
                 <Button variant="destructive" size="sm" onClick={() => setBulkDeleteConfirmOpen(true)}>
                   <Trash2 className="mr-2 h-4 w-4" />
                   Delete ({selectedProducts.length})
                 </Button>
               )}
-              <div className="relative flex-1 sm:w-64">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search products..."
-                  value={searchQuery}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  className="pl-8"
-                />
+            </div>
+
+            {/* Search & Filter Bar */}
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Select value={searchField} onValueChange={(v) => handleFilterChange("searchField", v)}>
+                  <SelectTrigger className="w-full sm:w-44">
+                    <SelectValue placeholder="Search by..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Fields</SelectItem>
+                    <SelectItem value="name">Name</SelectItem>
+                    <SelectItem value="sku">SKU</SelectItem>
+                    <SelectItem value="brand">Brand</SelectItem>
+                    <SelectItem value="details">Specifications</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="relative flex-1">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder={
+                      searchField === "sku" ? "Search by SKU..." :
+                      searchField === "name" ? "Search by name..." :
+                      searchField === "brand" ? "Search by brand..." :
+                      searchField === "details" ? "Search in specifications..." :
+                      "Search products..."
+                    }
+                    value={searchQuery}
+                    onChange={(e) => handleSearch(e.target.value)}
+                    className="pl-8"
+                  />
+                </div>
               </div>
+
+              <div className="flex flex-wrap gap-2 items-center">
+                <SlidersHorizontal className="h-4 w-4 text-muted-foreground shrink-0" />
+                <Select value={filterType || "all"} onValueChange={(v) => handleFilterChange("filterType", v === "all" ? "" : v)}>
+                  <SelectTrigger className="w-48 h-8 text-sm">
+                    <SelectValue placeholder="Filter by type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="Goods">Goods</SelectItem>
+                    <SelectItem value="Services">Services</SelectItem>
+                    <SelectItem value="Goods and Services">Goods and Services</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={filterTag || "all"} onValueChange={(v) => handleFilterChange("filterTag", v === "all" ? "" : v)}>
+                  <SelectTrigger className="w-40 h-8 text-sm">
+                    <SelectValue placeholder="Filter by tag" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Tags</SelectItem>
+                    <SelectItem value="Vendor">Vendor</SelectItem>
+                    <SelectItem value="MEP">MEP</SelectItem>
+                    <SelectItem value="Workshop">Workshop</SelectItem>
+                    <SelectItem value="internal">Internal</SelectItem>
+                    <SelectItem value="custom">Custom</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {hasActiveFilters && (
+                  <Button variant="ghost" size="sm" className="h-8 px-2 text-muted-foreground" onClick={clearAllFilters}>
+                    <X className="h-3.5 w-3.5 mr-1" />
+                    Clear filters
+                  </Button>
+                )}
+              </div>
+
+              {/* Active filter badges */}
+              {hasActiveFilters && (
+                <div className="flex flex-wrap gap-1.5">
+                  {searchQuery && (
+                    <Badge variant="secondary" className="gap-1">
+                      {searchField !== "all" ? `${searchField}: ` : ""}&ldquo;{searchQuery}&rdquo;
+                      <button onClick={() => { setSearchQuery(""); setPage(1) }} className="ml-0.5 hover:text-foreground">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  )}
+                  {filterType && (
+                    <Badge variant="secondary" className="gap-1">
+                      Type: {filterType}
+                      <button onClick={() => handleFilterChange("filterType", "")} className="ml-0.5 hover:text-foreground">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  )}
+                  {filterTag && (
+                    <Badge variant="secondary" className="gap-1">
+                      Tag: {filterTag}
+                      <button onClick={() => handleFilterChange("filterTag", "")} className="ml-0.5 hover:text-foreground">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </CardHeader>
@@ -544,11 +696,44 @@ export default function ProductsPage() {
                             onCheckedChange={() => toggleProductSelection(product._id)}
                           />
                         </TableCell>
-                        <TableCell className="font-mono text-xs">{product.sku}</TableCell>
-                        <TableCell className="font-medium whitespace-normal wrap-break-word">{product.name}</TableCell>
+                        <TableCell className="font-mono text-xs">{highlightText(product.sku, "sku")}</TableCell>
+                        <TableCell className="font-medium whitespace-normal wrap-break-word">
+                          <div>
+                            {highlightText(product.name, "name")}
+                            {(() => {
+                              const matched = getMatchedSpecs(product)
+                              if (matched.length === 0) return null
+                              return (
+                                <div className="mt-1 flex flex-wrap gap-1">
+                                  {matched.slice(0, 2).map((spec, i) => (
+                                    <span
+                                      key={i}
+                                      className="inline-flex items-center gap-1 text-xs bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded px-1.5 py-0.5"
+                                    >
+                                      <span className="font-medium text-amber-800 dark:text-amber-200">
+                                        {highlightText(spec.label, "details")}:
+                                      </span>
+                                      <span className="text-amber-700 dark:text-amber-300">
+                                        {highlightText(spec.value, "details")}
+                                      </span>
+                                    </span>
+                                  ))}
+                                  {matched.length > 2 && (
+                                    <button
+                                      onClick={() => openDetailsDialog(product)}
+                                      className="text-xs text-primary hover:underline"
+                                    >
+                                      +{matched.length - 2} more
+                                    </button>
+                                  )}
+                                </div>
+                              )
+                            })()}
+                          </div>
+                        </TableCell>
                         <TableCell>{product.type}</TableCell>
                         <TableCell>{product.unit}</TableCell>
-                        <TableCell>{product.brand || "-"}</TableCell>
+                        <TableCell>{product.brand ? highlightText(product.brand, "brand") : "-"}</TableCell>
                         <TableCell>
                           {product.tags && product.tags.length > 0 ? (
                             <div className="flex flex-wrap gap-1">
@@ -596,29 +781,50 @@ export default function ProductsPage() {
                 </Table>
               </div>
 
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page === 1}
+              <div className="flex items-center justify-between mt-4 flex-wrap gap-2">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span>Rows per page:</span>
+                  <Select
+                    value={limit.toString()}
+                    onValueChange={(val) => {
+                      setLimit(Number(val))
+                      setPage(1)
+                    }}
                   >
-                    Previous
-                  </Button>
-                  <span className="text-sm text-muted-foreground">
-                    Page {page} of {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={page === totalPages}
-                  >
-                    Next
-                  </Button>
+                    <SelectTrigger className="h-8 w-17.5">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="20">20</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                      <SelectItem value="100">100</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              )}
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                    >
+                      Previous
+                    </Button>
+                    <span className="text-sm text-muted-foreground">
+                      Page {page} of {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={page === totalPages}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                )}
+              </div>
             </>
           )}
         </CardContent>
@@ -728,10 +934,10 @@ export default function ProductsPage() {
                     {viewingProduct.details.map((detail, index) => (
                       <div key={detail._id || index} className="p-3 flex justify-between items-center">
                         <div>
-                          <p className="font-medium">{detail.label}</p>
+                          <p className="font-medium">{highlightText(detail.label, "details")}</p>
                           <p className="text-xs text-muted-foreground capitalize">{detail.type}</p>
                         </div>
-                        <p className="text-sm">{detail.value}</p>
+                        <p className="text-sm">{highlightText(detail.value, "details")}</p>
                       </div>
                     ))}
                   </div>

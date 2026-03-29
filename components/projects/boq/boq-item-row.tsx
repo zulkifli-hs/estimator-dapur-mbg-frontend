@@ -22,6 +22,7 @@ interface BoqItemRowProps {
   boqType: "main" | "additional"
   formatCurrency: (value: number) => string
   mainBoqItems?: ProductItem[]
+  externalProduct?: any | null
   onEditStart: () => void
   onLiveUpdate: (updated: ProductItem) => void
   onConfirm: (updated: ProductItem) => void
@@ -49,6 +50,7 @@ export function BoqItemRow({
   boqType,
   formatCurrency,
   mainBoqItems,
+  externalProduct,
   onEditStart,
   onLiveUpdate,
   onConfirm,
@@ -71,6 +73,23 @@ export function BoqItemRow({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActiveEdit])
+
+  // Auto-apply externally injected product (e.g. just created via CreateProductDialog)
+  useEffect(() => {
+    if (!externalProduct) return
+    const updated = {
+      ...draft,
+      name: externalProduct.name,
+      unit: externalProduct.unit || draft.unit,
+      price: externalProduct.sellingPrice ?? draft.price,
+      productId: externalProduct._id,
+      brand: externalProduct.brand || draft.brand || "",
+    }
+    setDraft(updated)
+    onLiveUpdate(updated)
+    setTimeout(() => qtyRef.current?.focus(), 100)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [externalProduct])
 
   const updateDraft = (field: keyof ProductItem, value: any) => {
     const updated = { ...draft, [field]: value }

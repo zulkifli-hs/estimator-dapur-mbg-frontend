@@ -41,6 +41,21 @@ export function BoqSectionPreliminary({
   mainBoqItems,
 }: BoqSectionPreliminaryProps) {
   const [activeEditIndex, setActiveEditIndex] = useState<number | null>(null)
+  const [pendingNewProductIndex, setPendingNewProductIndex] = useState<number | null>(null)
+  const [injectedProduct, setInjectedProduct] = useState<{ rowIndex: number; product: any } | null>(null)
+
+  const handleSetPendingProductSelection = (sel: any) => {
+    setPendingNewProductIndex(sel.productIndex ?? null)
+    onSetPendingProductSelection(sel)
+  }
+
+  const handleProductCreated = (newProduct: any) => {
+    if (pendingNewProductIndex !== null) {
+      setInjectedProduct({ rowIndex: pendingNewProductIndex, product: newProduct })
+      setPendingNewProductIndex(null)
+    }
+    onProductCreated(newProduct)
+  }
 
   const handleEditStart = (index: number) => {
     setActiveEditIndex(index)
@@ -92,8 +107,9 @@ export function BoqSectionPreliminary({
                   onLiveUpdate={(updated) => onUpdateItem(index, updated)}
                   onConfirm={(updated) => handleConfirm(index, updated)}
                   onDelete={() => handleDelete(index)}
+                  externalProduct={injectedProduct?.rowIndex === index ? injectedProduct.product : null}
                   onSelectProduct={(product) => onSelectProduct(index, product)}
-                  onSetPendingProductSelection={onSetPendingProductSelection}
+                  onSetPendingProductSelection={handleSetPendingProductSelection}
                   onSetCreateProductDialogOpen={onSetCreateProductDialogOpen}
                   mainBoqItems={mainBoqItems}
                 />
@@ -121,7 +137,7 @@ export function BoqSectionPreliminary({
         open={createProductDialogOpen}
         onOpenChange={onSetCreateProductDialogOpen}
         uploadPhoto={uploadProductPhoto}
-        onCreated={onProductCreated}
+        onCreated={handleProductCreated}
       />
     </div>
   )

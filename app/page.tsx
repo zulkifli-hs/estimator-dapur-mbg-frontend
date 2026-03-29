@@ -242,7 +242,7 @@ export default function Page() {
           <div className="text-center max-w-3xl mx-auto mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Everything You Need to Manage Interior Projects</h2>
             <p className="text-lg text-muted-foreground">
-              From initial estimates to project completion, Gema AI provides all the tools you need to deliver
+              From initial estimates to project completion, IDBuild provides all the tools you need to deliver
               exceptional interior design projects on time and within budget.
             </p>
           </div>
@@ -250,7 +250,7 @@ export default function Page() {
           <div className="mb-16 relative rounded-2xl overflow-hidden border shadow-xl">
             <Image
               src="/images/screenshot-202025-12-19-20at-2022.png"
-              alt="Gema AI Dashboard"
+              alt="IDBuild Dashboard"
               width={1200}
               height={600}
               className="w-full object-cover"
@@ -422,7 +422,7 @@ export default function Page() {
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to Transform Your Interior Design Business?</h2>
           <p className="text-lg opacity-90 max-w-2xl mx-auto mb-8">
-            Join interior designers who are already using Gema AI to deliver projects faster, more accurately, and with
+            Join interior designers who are already using IDBuild to deliver projects faster, more accurately, and with
             better client satisfaction.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -449,7 +449,7 @@ export default function Page() {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <Logo />
-            <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} Gema AI. All rights reserved.</p>
+            <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} IDBuild. All rights reserved.</p>
             <div className="flex items-center gap-6">
               <Link href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Privacy Policy

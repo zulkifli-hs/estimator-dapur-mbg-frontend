@@ -62,6 +62,7 @@ export default function ProductsPage() {
   const [filterType, setFilterType] = useState("")
   const [filterTag, setFilterTag] = useState("")
   const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(20)
   const [totalPages, setTotalPages] = useState(1)
   const [totalData, setTotalData] = useState(0)
   const [selectedProducts, setSelectedProducts] = useState<string[]>([])
@@ -125,14 +126,14 @@ export default function ProductsPage() {
     if (!checkingAuth) {
       loadProducts()
     }
-  }, [page, searchQuery, searchField, filterType, filterTag, checkingAuth])
+  }, [page, limit, searchQuery, searchField, filterType, filterTag, checkingAuth])
 
   const loadProducts = async () => {
     try {
       setLoading(true)
       const response = await productsApi.getAll(
         page,
-        10,
+        limit,
         searchQuery || undefined,
         searchField !== "all" ? searchField : undefined,
         filterType || undefined,
@@ -780,29 +781,50 @@ export default function ProductsPage() {
                 </Table>
               </div>
 
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page === 1}
+              <div className="flex items-center justify-between mt-4 flex-wrap gap-2">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span>Rows per page:</span>
+                  <Select
+                    value={limit.toString()}
+                    onValueChange={(val) => {
+                      setLimit(Number(val))
+                      setPage(1)
+                    }}
                   >
-                    Previous
-                  </Button>
-                  <span className="text-sm text-muted-foreground">
-                    Page {page} of {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={page === totalPages}
-                  >
-                    Next
-                  </Button>
+                    <SelectTrigger className="h-8 w-17.5">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="20">20</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                      <SelectItem value="100">100</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              )}
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                    >
+                      Previous
+                    </Button>
+                    <span className="text-sm text-muted-foreground">
+                      Page {page} of {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={page === totalPages}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                )}
+              </div>
             </>
           )}
         </CardContent>

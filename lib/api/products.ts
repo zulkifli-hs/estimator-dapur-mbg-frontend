@@ -70,7 +70,7 @@ export interface UpdateProductInput {
 export const productsApi = {
   getAll: async (
     page = 1,
-    limit = 10,
+    limit = 20,
     search?: string,
     searchField?: string,
     filterType?: string,

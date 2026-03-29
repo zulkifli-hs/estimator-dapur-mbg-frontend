@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { Suspense, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -14,7 +14,7 @@ import { resetPassword } from "@/lib/api/auth"
 import { GemaLogo } from "@/components/gema-logo"
 import { ArrowLeft, CheckCircle, Eye, EyeOff } from "lucide-react"
 
-export default function ResetPasswordPage() {
+function ResetPasswordContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -249,5 +249,13 @@ export default function ResetPasswordPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense>
+      <ResetPasswordContent />
+    </Suspense>
   )
 }

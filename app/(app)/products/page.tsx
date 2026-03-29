@@ -30,7 +30,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Plus, Search, Edit, Trash2, Loader2, Package, Shield, Eye, X, Upload } from "lucide-react"
+import { Plus, Search, Edit, Trash2, Loader2, Package, Shield, Eye, X, Upload, SlidersHorizontal } from "lucide-react"
 import {
   productsApi,
   type Product,
@@ -58,6 +58,9 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true)
   const [checkingAuth, setCheckingAuth] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
+  const [searchField, setSearchField] = useState("all")
+  const [filterType, setFilterType] = useState("")
+  const [filterTag, setFilterTag] = useState("")
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalData, setTotalData] = useState(0)
@@ -122,12 +125,19 @@ export default function ProductsPage() {
     if (!checkingAuth) {
       loadProducts()
     }
-  }, [page, searchQuery, checkingAuth])
+  }, [page, searchQuery, searchField, filterType, filterTag, checkingAuth])
 
   const loadProducts = async () => {
     try {
       setLoading(true)
-      const response = await productsApi.getAll(page, 10, searchQuery || undefined)
+      const response = await productsApi.getAll(
+        page,
+        10,
+        searchQuery || undefined,
+        searchField !== "all" ? searchField : undefined,
+        filterType || undefined,
+        filterTag || undefined,
+      )
       setProducts(response.list)
       setTotalPages(response.totalPage)
       setTotalData(response.totalData)
@@ -146,6 +156,23 @@ export default function ProductsPage() {
     setSearchQuery(value)
     setPage(1)
   }
+
+  const handleFilterChange = (type: "searchField" | "filterType" | "filterTag", value: string) => {
+    if (type === "searchField") setSearchField(value)
+    else if (type === "filterType") setFilterType(value)
+    else if (type === "filterTag") setFilterTag(value)
+    setPage(1)
+  }
+
+  const clearAllFilters = () => {
+    setSearchQuery("")
+    setSearchField("all")
+    setFilterType("")
+    setFilterTag("")
+    setPage(1)
+  }
+
+  const hasActiveFilters = searchQuery || searchField !== "all" || filterType || filterTag
 
   const resetForm = () => {
     setFormData({
@@ -477,27 +504,117 @@ export default function ProductsPage() {
 
       <Card>
         <CardHeader>
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            <div>
-              <CardTitle>Products</CardTitle>
-              <CardDescription>Total: {totalData} product(s)</CardDescription>
-            </div>
-            <div className="flex gap-2 w-full sm:w-auto">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+              <div>
+                <CardTitle>Products</CardTitle>
+                <CardDescription>Total: {totalData} product(s)</CardDescription>
+              </div>
               {selectedProducts.length > 0 && (
                 <Button variant="destructive" size="sm" onClick={() => setBulkDeleteConfirmOpen(true)}>
                   <Trash2 className="mr-2 h-4 w-4" />
                   Delete ({selectedProducts.length})
                 </Button>
               )}
-              <div className="relative flex-1 sm:w-64">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search products..."
-                  value={searchQuery}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  className="pl-8"
-                />
+            </div>
+
+            {/* Search & Filter Bar */}
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Select value={searchField} onValueChange={(v) => handleFilterChange("searchField", v)}>
+                  <SelectTrigger className="w-full sm:w-44">
+                    <SelectValue placeholder="Search by..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Fields</SelectItem>
+                    <SelectItem value="name">Name</SelectItem>
+                    <SelectItem value="sku">SKU</SelectItem>
+                    <SelectItem value="brand">Brand</SelectItem>
+                    <SelectItem value="details">Specifications</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="relative flex-1">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder={
+                      searchField === "sku" ? "Search by SKU..." :
+                      searchField === "name" ? "Search by name..." :
+                      searchField === "brand" ? "Search by brand..." :
+                      searchField === "details" ? "Search in specifications..." :
+                      "Search products..."
+                    }
+                    value={searchQuery}
+                    onChange={(e) => handleSearch(e.target.value)}
+                    className="pl-8"
+                  />
+                </div>
               </div>
+
+              <div className="flex flex-wrap gap-2 items-center">
+                <SlidersHorizontal className="h-4 w-4 text-muted-foreground shrink-0" />
+                <Select value={filterType || "all"} onValueChange={(v) => handleFilterChange("filterType", v === "all" ? "" : v)}>
+                  <SelectTrigger className="w-48 h-8 text-sm">
+                    <SelectValue placeholder="Filter by type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="Goods">Goods</SelectItem>
+                    <SelectItem value="Services">Services</SelectItem>
+                    <SelectItem value="Goods and Services">Goods and Services</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={filterTag || "all"} onValueChange={(v) => handleFilterChange("filterTag", v === "all" ? "" : v)}>
+                  <SelectTrigger className="w-40 h-8 text-sm">
+                    <SelectValue placeholder="Filter by tag" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Tags</SelectItem>
+                    <SelectItem value="Vendor">Vendor</SelectItem>
+                    <SelectItem value="MEP">MEP</SelectItem>
+                    <SelectItem value="Workshop">Workshop</SelectItem>
+                    <SelectItem value="internal">Internal</SelectItem>
+                    <SelectItem value="custom">Custom</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {hasActiveFilters && (
+                  <Button variant="ghost" size="sm" className="h-8 px-2 text-muted-foreground" onClick={clearAllFilters}>
+                    <X className="h-3.5 w-3.5 mr-1" />
+                    Clear filters
+                  </Button>
+                )}
+              </div>
+
+              {/* Active filter badges */}
+              {hasActiveFilters && (
+                <div className="flex flex-wrap gap-1.5">
+                  {searchQuery && (
+                    <Badge variant="secondary" className="gap-1">
+                      {searchField !== "all" ? `${searchField}: ` : ""}&ldquo;{searchQuery}&rdquo;
+                      <button onClick={() => { setSearchQuery(""); setPage(1) }} className="ml-0.5 hover:text-foreground">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  )}
+                  {filterType && (
+                    <Badge variant="secondary" className="gap-1">
+                      Type: {filterType}
+                      <button onClick={() => handleFilterChange("filterType", "")} className="ml-0.5 hover:text-foreground">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  )}
+                  {filterTag && (
+                    <Badge variant="secondary" className="gap-1">
+                      Tag: {filterTag}
+                      <button onClick={() => handleFilterChange("filterTag", "")} className="ml-0.5 hover:text-foreground">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </CardHeader>

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ImageIcon, TrendingUp, Edit, Plus, X, Download, Eye, MoreVertical, Maximize2, FileDown } from 'lucide-react'
+import { ImageIcon, TrendingUp, Edit, Plus, X, Download, Eye, MoreVertical, Maximize2, FileDown, Upload } from 'lucide-react'
 import { FullscreenBoqDialog } from "@/components/projects/boq/fullscreen-boq-dialog"
 import {
   DropdownMenu,
@@ -78,6 +78,7 @@ export function ProjectProgress({ projectId, project }: ProjectProgressProps) {
   const [bastLoading, setBastLoading] = useState(false)
   const [showBastDialog, setShowBastDialog] = useState(false)
   const [selectedBastTermin, setSelectedBastTermin] = useState<Termin | null>(null)
+  const [bastDocUploading, setBastDocUploading] = useState<Record<string, boolean>>({})
 
   const tabs = [
     { value: "gantt", label: "Gantt Chart" },
@@ -910,10 +911,10 @@ export function ProjectProgress({ projectId, project }: ProjectProgressProps) {
                   </div>
                 </div>
               ) : (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-4">
                   {bastTermins.map((termin) => (
                     <Card key={termin._id} className="hover:shadow-md transition-shadow">
-                      <CardContent className="p-4 space-y-3">
+                      <CardContent className="space-y-3">
                         <div className="flex items-start justify-between gap-2">
                           <h3 className="font-semibold leading-tight">{termin.name}</h3>
                           <Badge
@@ -927,7 +928,7 @@ export function ProjectProgress({ projectId, project }: ProjectProgressProps) {
                             {termin.category}
                           </Badge>
                         </div>
-                        <div className="flex items-center justify-between text-sm text-muted-foreground">
+                        {/* <div className="flex items-center justify-between text-sm text-muted-foreground">
                           <span>
                             {termin.valueType === "%"
                               ? `${termin.value}%`
@@ -951,7 +952,7 @@ export function ProjectProgress({ projectId, project }: ProjectProgressProps) {
                           >
                             {termin.status}
                           </Badge>
-                        </div>
+                        </div> */}
                         <Button
                           size="sm"
                           className="w-full"
@@ -961,8 +962,85 @@ export function ProjectProgress({ projectId, project }: ProjectProgressProps) {
                           }}
                         >
                           <TrendingUp className="h-4 w-4 mr-2" />
-                          Generate Certificate
+                          Generate Certificate of Completion for {termin.category} of {termin.name}
                         </Button>
+
+                        {/* BAST Document upload/download */}
+                        <div className="rounded-md border bg-background p-3 space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-xs font-semibold text-muted-foreground">Completed Doc</p>
+                            <Input
+                              id={`bast-doc-upload-${termin._id}`}
+                              type="file"
+                              accept=".pdf,application/pdf"
+                              className="hidden"
+                              disabled={!!bastDocUploading[termin._id]}
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0]
+                                e.target.value = ""
+                                if (!file) return
+                                if (file.type !== "application/pdf") {
+                                  toast({ title: "Upload Failed", description: "Only PDF files are allowed", variant: "destructive" })
+                                  return
+                                }
+                                setBastDocUploading((prev) => ({ ...prev, [termin._id]: true }))
+                                try {
+                                  await terminApi.uploadBastDocument(projectId, termin._id, file)
+                                  toast({ title: "Success", description: (termin as any).bastDocument?.url ? "BAST document replaced" : "BAST document uploaded" })
+                                  await loadBastTermins()
+                                } catch (err: any) {
+                                  toast({ title: "Upload Failed", description: err.message || "Failed to upload", variant: "destructive" })
+                                } finally {
+                                  setBastDocUploading((prev) => ({ ...prev, [termin._id]: false }))
+                                }
+                              }}
+                            />
+                            <Button
+                              asChild
+                              variant="outline"
+                              size="sm"
+                              disabled={!!bastDocUploading[termin._id]}
+                            >
+                              <label htmlFor={`bast-doc-upload-${termin._id}`} className="cursor-pointer">
+                                <Upload className="h-3.5 w-3.5 mr-1.5" />
+                                {bastDocUploading[termin._id] ? "Uploading..." : (termin as any).bastDocument?.url ? "Replace" : "Upload"}
+                              </label>
+                            </Button>
+                          </div>
+                          {(termin as any).bastDocument?.url ? (
+                            <div className="flex items-center justify-between gap-2 text-xs">
+                              <span className="truncate text-muted-foreground">{(termin as any).bastDocument.name}</span>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => {
+                                    const d = (termin as any).bastDocument
+                                    const base = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.gema-interior.com"
+                                    window.open(`${base}/public/${d.provider}/${d.url}`, "_blank")
+                                  }}
+                                  title={`Preview ${termin.category} document`}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => {
+                                    const d = (termin as any).bastDocument
+                                    const base = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.gema-interior.com"
+                                    window.open(`${base}/public/${d.provider}/${d.url}`, "_blank")
+                                  }}
+                                  title={`Download ${termin.category} document`}
+                                >
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">No document uploaded. The completed {termin.category} document should contain a Certificate of Completion, Progress Photos, Gantt Chart (if any), S Curve (if any), and more. You can use PDF Tools to merge PDF documents.</p>
+                          )}
+                        </div>
                       </CardContent>
                     </Card>
                   ))}
@@ -1105,6 +1183,8 @@ export function ProjectProgress({ projectId, project }: ProjectProgressProps) {
           }}
           termin={selectedBastTermin}
           project={project}
+          projectId={projectId}
+          onSaved={loadBastTermins}
         />
       )}
 

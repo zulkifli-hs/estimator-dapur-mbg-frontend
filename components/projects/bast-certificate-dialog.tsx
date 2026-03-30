@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
-import { Download, Eye, Loader2, Upload, X, ImageIcon } from "lucide-react"
+import { Download, Eye, Loader2, Upload, X, ImageIcon, Save } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { terminApi } from "@/lib/api/termin"
 
 interface BastCertificateData {
   title: string
@@ -30,6 +31,8 @@ interface BastCertificateDialogProps {
   onOpenChange: (open: boolean) => void
   termin: any
   project: any
+  projectId: string
+  onSaved?: () => void
 }
 
 function formatDayDate(date: Date): string {
@@ -57,8 +60,8 @@ function buildInitialData(termin: any, project: any): BastCertificateData {
     termin?.valueType === "%"
       ? `${termin.value}%`
       : new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(
-          termin?.value || 0,
-        )
+        termin?.value || 0,
+      )
   const subtitle = `Progress ${termin?.name || ""} ${valueLabel}`
 
   const bodyText = `We are delighted to inform you that fit out progress for ${clientName} office interior, as part of the project ${projectName}, has been successfully completed as per the contractual agreement between the following parties:`
@@ -132,8 +135,8 @@ async function generateCertificatePdf(data: BastCertificateData, logoDataUrl: st
     const imgType = logoDataUrl.startsWith("data:image/png")
       ? "PNG"
       : logoDataUrl.startsWith("data:image/webp")
-      ? "WEBP"
-      : "JPEG"
+        ? "WEBP"
+        : "JPEG"
     try {
       doc.addImage(logoDataUrl, imgType, logoX, y, logoW, logoH)
     } catch {
@@ -267,12 +270,15 @@ export function BastCertificateDialog({
   onOpenChange,
   termin,
   project,
+  projectId,
+  onSaved,
 }: BastCertificateDialogProps) {
   const [formData, setFormData] = useState<BastCertificateData>(() =>
     buildInitialData(termin, project),
   )
   const [generating, setGenerating] = useState(false)
   const [previewing, setPreviewing] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null)
   const logoInputRef = useRef<HTMLInputElement>(null)
@@ -287,7 +293,9 @@ export function BastCertificateDialog({
   // Reset & init form when dialog opens
   useEffect(() => {
     if (!open) return
-    setFormData(buildInitialData(termin, project))
+    // Pre-fill from saved certificateData if available, otherwise use defaults
+    const saved = termin?.certificateData
+    setFormData(saved && Object.keys(saved).length > 0 ? (saved as BastCertificateData) : buildInitialData(termin, project))
     setPreviewUrl(null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
@@ -343,6 +351,20 @@ export function BastCertificateDialog({
       toast({ title: "Error", description: err.message || "Failed to generate PDF", variant: "destructive" })
     } finally {
       setGenerating(false)
+    }
+  }
+
+  const handleSave = async () => {
+    if (!projectId || !termin?._id) return
+    setSaving(true)
+    try {
+      await terminApi.saveCertificateData(projectId, termin._id, formData as Record<string, any>)
+      toast({ title: "Saved", description: "Certificate data saved successfully" })
+      onSaved?.()
+    } catch (err: any) {
+      toast({ title: "Save Failed", description: err.message || "Failed to save certificate data", variant: "destructive" })
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -548,11 +570,19 @@ export function BastCertificateDialog({
             </div>
 
             <div className="flex gap-2 pt-2">
-              <Button variant="outline" onClick={handlePreview} disabled={previewing || generating} className="flex-1">
+              {/* <Button variant="outline" onClick={handlePreview} disabled={previewing || generating || saving} className="flex-1">
                 {previewing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Eye className="h-4 w-4 mr-2" />}
                 {previewing ? "Generating..." : "Preview PDF"}
+              </Button> */}
+              <Button variant="outline" onClick={handleSave} disabled={saving || generating || previewing} className="flex-1">
+                {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                {saving ? "Saving..." : "Save"}
               </Button>
-              <Button onClick={handleDownload} disabled={generating || previewing} className="flex-1">
+              <Button
+                onClick={() => {
+                  handleSave()
+                  handleDownload()
+                }} disabled={generating || previewing || saving} className="flex-1">
                 {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
                 {generating ? "Generating..." : "Download PDF"}
               </Button>

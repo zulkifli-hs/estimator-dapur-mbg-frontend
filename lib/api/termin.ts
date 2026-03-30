@@ -7,6 +7,11 @@ export interface Termin {
   value: number
   category: "DP" | "BAPP" | "BAST"
   valueType: "%" | "IDR"
+  note?: string
+  invoice?: { url: string; name: string; provider: string; version: number }
+  slip?: { url: string; name: string; provider: string; version: number }
+  bastDocument?: { url: string; name: string; provider: string; version: number }
+  certificateData?: Record<string, any>
   createdBy: {
     _id: string
     email: string
@@ -263,6 +268,38 @@ export const rejectTerminSlip = async (projectId: string, terminId: string, reas
   return response.data
 }
 
+// Save certificate data for BAPP/BAST termin
+export const saveTerminCertificateData = async (
+  projectId: string,
+  terminId: string,
+  certificateData: Record<string, any>,
+): Promise<any> => {
+  const response = await apiRequest<any>(`/projects/${projectId}/termin/${terminId}/certificate-data`, {
+    method: "PATCH",
+    body: JSON.stringify({ certificateData }),
+  })
+  return response.data
+}
+
+// Upload completed BAST/BAPP document
+export const uploadTerminBastDocument = async (projectId: string, terminId: string, file: File): Promise<any> => {
+  const formData = new FormData()
+  formData.append("file", file)
+
+  const token = getAuthToken()
+  const response = await fetch(
+    `${API_BASE_URL}/projects/${projectId}/termin/${terminId}/bast-document`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    },
+  )
+
+  if (!response.ok) throw new Error("Upload BAST document failed")
+  return response.json()
+}
+
 export const terminApi = {
   createTerminFormat,
   updateTerminFormat,
@@ -354,5 +391,13 @@ export const terminApi = {
   rejectSlip: async (projectId: string, terminId: string, reason: string) => {
     const data = await rejectTerminSlip(projectId, terminId, reason)
     return { success: true, data }
+  },
+  saveCertificateData: async (projectId: string, terminId: string, data: Record<string, any>) => {
+    const result = await saveTerminCertificateData(projectId, terminId, data)
+    return { success: true, data: result }
+  },
+  uploadBastDocument: async (projectId: string, terminId: string, file: File) => {
+    const result = await uploadTerminBastDocument(projectId, terminId, file)
+    return { success: true, data: result }
   },
 }

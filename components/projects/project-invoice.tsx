@@ -49,7 +49,7 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
   const [selectedFiles, setSelectedFiles] = useState<number[]>([])
   const [deleting, setDeleting] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<{ indexes: number[] } | null>(null)
-  const [terminUploadLoading, setTerminUploadLoading] = useState<Record<string, { invoice?: boolean; tax?: boolean; slip?: boolean }>>({})
+  const [terminUploadLoading, setTerminUploadLoading] = useState<Record<string, { invoice?: boolean; tax?: boolean; slip?: boolean; bast?: boolean }>>({})
   const [terminTaxDeleting, setTerminTaxDeleting] = useState<Record<string, boolean>>({})
   const [taxDeleteConfirm, setTaxDeleteConfirm] = useState<{ terminId: string; taxIndex: number; taxName: string } | null>(null)
   const [statusConfirm, setStatusConfirm] = useState<{ terminId: string; terminName: string; nextStatus: "Pending" | "Paid" } | null>(null)
@@ -84,12 +84,13 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
     router.replace(queryString ? `${pathname}?${queryString}` : pathname, { scroll: false })
   }
 
-  const handleTerminFileUpload = async (terminId: string, file: File, type: "invoice" | "tax" | "slip") => {
+  const handleTerminFileUpload = async (terminId: string, file: File, type: "invoice" | "tax" | "slip" | "bast") => {
     if (!file) return
 
     const currentTermin = termins.find((item) => item._id === terminId)
     const isInvoiceReplace = type === "invoice" && !!currentTermin?.invoice?.url
     const isSlipReplace = type === "slip" && !!currentTermin?.slip?.url
+    const isBastReplace = type === "bast" && !!(currentTermin as any)?.bastDocument?.url
 
     if (file.type !== "application/pdf") {
       toast({
@@ -113,6 +114,8 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
         await terminApi.uploadInvoicePdf(projectId, terminId, file)
       } else if (type === "slip") {
         await terminApi.uploadSlip(projectId, terminId, file)
+      } else if (type === "bast") {
+        await terminApi.uploadBastDocument(projectId, terminId, file)
       } else {
         await terminApi.uploadTaxPdf(projectId, terminId, file)
       }
@@ -126,9 +129,13 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
               : "Invoice PDF uploaded successfully"
             : type === "tax"
               ? "Tax PDF uploaded successfully"
-              : isSlipReplace
-                ? "Pay slip replaced successfully"
-                : "Pay slip uploaded successfully",
+              : type === "bast"
+                ? isBastReplace
+                  ? "BAST document replaced successfully"
+                  : "BAST document uploaded successfully"
+                : isSlipReplace
+                  ? "Pay slip replaced successfully"
+                  : "Pay slip uploaded successfully",
       })
 
       await loadTermins()
@@ -154,7 +161,7 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
   const handleTerminPdfChange = (
     e: React.ChangeEvent<HTMLInputElement>,
     terminId: string,
-    type: "invoice" | "tax" | "slip",
+    type: "invoice" | "tax" | "slip" | "bast",
   ) => {
     const file = e.target.files?.[0]
     if (file) {
@@ -518,7 +525,7 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div className={`grid grid-cols-1 ${termin.category === "BAPP" || termin.category === "BAST" ? "md:grid-cols-4" : "md:grid-cols-3"} gap-3`}>
                         <div className="rounded-md border bg-background p-3 space-y-2">
                           <div className="flex items-center justify-between gap-2">
                             <p className="text-xs font-semibold text-muted-foreground">Invoice</p>
@@ -721,6 +728,62 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
                             <p className="text-xs text-muted-foreground">No pay slip uploaded</p>
                           )}
                         </div>
+
+                        {(termin.category === "BAPP" || termin.category === "BAST") && (
+                          <div className="rounded-md border bg-background p-3 space-y-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-xs font-semibold text-muted-foreground">BAPP/BAST Doc</p>
+                              <Input
+                                id={`termin-bast-upload-${termin._id}`}
+                                type="file"
+                                accept=".pdf,application/pdf"
+                                className="hidden"
+                                onChange={(e) => handleTerminPdfChange(e, termin._id, "bast")}
+                                disabled={!!terminUploadLoading[termin._id]?.bast}
+                              />
+                              {/* <Button
+                                asChild
+                                variant="outline"
+                                size="sm"
+                                disabled={!!terminUploadLoading[termin._id]?.bast}
+                              >
+                                <label htmlFor={`termin-bast-upload-${termin._id}`} className="cursor-pointer">
+                                  <Upload className="h-4 w-4 mr-2" />
+                                  {terminUploadLoading[termin._id]?.bast
+                                    ? "Uploading..."
+                                    : (termin as any).bastDocument?.url
+                                      ? "Replace"
+                                      : "Upload"}
+                                </label>
+                              </Button> */}
+                            </div>
+                            {(termin as any).bastDocument?.url ? (
+                              <div className="flex items-center justify-between gap-2 text-xs">
+                                <span className="truncate text-muted-foreground">{(termin as any).bastDocument.name}</span>
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleView((termin as any).bastDocument.provider, (termin as any).bastDocument.url, (termin as any).bastDocument.name)}
+                                    title="Preview BAST document"
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDownload((termin as any).bastDocument.provider, (termin as any).bastDocument.url, (termin as any).bastDocument.name)}
+                                    title="Download BAST document"
+                                  >
+                                    <Download className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="text-xs text-muted-foreground">No document uploaded by Project Manager</p>
+                            )}
+                          </div>
+                        )}
                         </div>
                       </div>
                     </div>

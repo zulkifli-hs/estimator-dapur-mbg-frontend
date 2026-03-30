@@ -22,6 +22,8 @@ import { useEffect, useState, useRef } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { boqApi } from "@/lib/api/boq"
 import { albumsApi } from "@/lib/api/albums"
+import { terminApi, type Termin } from "@/lib/api/termin"
+import { BastCertificateDialog } from "./bast-certificate-dialog"
 // import { GanttChartEditor } from "./gantt-chart-editor"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { GanttChartView, GanttChartViewRef } from "./gantt-chart-view"
@@ -43,9 +45,10 @@ import { Loader2 } from 'lucide-react' // Import Loader2
 
 interface ProjectProgressProps {
   projectId: string
+  project?: any
 }
 
-export function ProjectProgress({ projectId }: ProjectProgressProps) {
+export function ProjectProgress({ projectId, project }: ProjectProgressProps) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -71,6 +74,11 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
   const ganttViewRef = useRef<GanttChartViewRef>(null)
   const { toast } = useToast()
 
+  const [bastTermins, setBastTermins] = useState<Termin[]>([])
+  const [bastLoading, setBastLoading] = useState(false)
+  const [showBastDialog, setShowBastDialog] = useState(false)
+  const [selectedBastTermin, setSelectedBastTermin] = useState<Termin | null>(null)
+
   const tabs = [
     { value: "gantt", label: "Gantt Chart" },
     { value: "photos", label: "Project Photos" },
@@ -85,6 +93,7 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
   useEffect(() => {
     loadBOQData()
     loadAlbums()
+    loadBastTermins()
   }, [projectId])
 
   useEffect(() => {
@@ -225,6 +234,27 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
     return diffDays
   }
 
+
+  const loadBastTermins = async () => {
+    setBastLoading(true)
+    try {
+      const response = await terminApi.getByProject(projectId)
+      if (response.success) {
+        const filtered = (response.data as Termin[]).filter(
+          (t) => t.category === "BAPP" || t.category === "BAST",
+        )
+        setBastTermins(filtered)
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to load BAPP/BAST termins",
+        variant: "destructive",
+      })
+    } finally {
+      setBastLoading(false)
+    }
+  }
 
   const loadAlbums = async () => {
     setAlbumsLoading(true)
@@ -865,27 +895,79 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
               <CardDescription>Handover and progress payment documents</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-center h-125 bg-linear-to-br from-primary/5 via-primary/10 to-background rounded-xl border-2 border-dashed border-primary/20">
-                <div className="text-center space-y-8 max-w-sm px-6">
-                  <div className="relative inline-block">
-                    <div className="absolute inset-0 animate-ping">
-                      <TrendingUp className="h-24 w-24 text-primary/30" />
-                    </div>
-                    <TrendingUp className="h-24 w-24 text-primary relative z-10" />
-                  </div>
-                  <div className="space-y-3">
-                    <h3 className="text-3xl font-bold bg-linear-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                      Coming Soon
-                    </h3>
-                    <Badge variant="outline" className="text-sm px-4 py-1 border-primary/40">
-                      Under Construction
-                    </Badge>
-                  </div>
-                  <p className="text-base text-muted-foreground leading-relaxed">
-                    We're building something amazing to track your project progress
-                  </p>
+              {bastLoading ? (
+                <div className="flex items-center justify-center h-48">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                 </div>
-              </div>
+              ) : bastTermins.length === 0 ? (
+                <div className="flex items-center justify-center h-48 border-2 border-dashed rounded-lg">
+                  <div className="text-center space-y-2">
+                    <TrendingUp className="h-12 w-12 mx-auto text-muted-foreground" />
+                    <p className="text-muted-foreground font-medium">No BAPP/BAST termins found</p>
+                    <p className="text-sm text-muted-foreground">
+                      Create BAPP or BAST termins in the Invoice tab first
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {bastTermins.map((termin) => (
+                    <Card key={termin._id} className="hover:shadow-md transition-shadow">
+                      <CardContent className="p-4 space-y-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <h3 className="font-semibold leading-tight">{termin.name}</h3>
+                          <Badge
+                            variant="outline"
+                            className={
+                              termin.category === "BAST"
+                                ? "border-blue-400 text-blue-600"
+                                : "border-green-400 text-green-600"
+                            }
+                          >
+                            {termin.category}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center justify-between text-sm text-muted-foreground">
+                          <span>
+                            {termin.valueType === "%"
+                              ? `${termin.value}%`
+                              : new Intl.NumberFormat("id-ID", {
+                                  style: "currency",
+                                  currency: "IDR",
+                                  maximumFractionDigits: 0,
+                                }).format(termin.value)}
+                          </span>
+                          <Badge
+                            variant="secondary"
+                            className={
+                              termin.status === "Approved"
+                                ? "bg-green-100 text-green-700"
+                                : termin.status === "Rejected"
+                                  ? "bg-red-100 text-red-700"
+                                  : termin.status === "Sent"
+                                    ? "bg-blue-100 text-blue-700"
+                                    : "bg-muted"
+                            }
+                          >
+                            {termin.status}
+                          </Badge>
+                        </div>
+                        <Button
+                          size="sm"
+                          className="w-full"
+                          onClick={() => {
+                            setSelectedBastTermin(termin)
+                            setShowBastDialog(true)
+                          }}
+                        >
+                          <TrendingUp className="h-4 w-4 mr-2" />
+                          Generate Certificate
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -1013,6 +1095,18 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {selectedBastTermin && (
+        <BastCertificateDialog
+          open={showBastDialog}
+          onOpenChange={(open) => {
+            setShowBastDialog(open)
+            if (!open) setSelectedBastTermin(null)
+          }}
+          termin={selectedBastTermin}
+          project={project}
+        />
+      )}
 
       <Dialog open={!!previewPdf} onOpenChange={(open) => {
         if (!open) {

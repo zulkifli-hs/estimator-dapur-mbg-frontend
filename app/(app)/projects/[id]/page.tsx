@@ -157,7 +157,7 @@ export default function ProjectDetailPage() {
         </TabsContent>
 
         <TabsContent value="project">
-          <ProjectProgress projectId={project._id} />
+          <ProjectProgress projectId={project._id} project={project} />
         </TabsContent>
 
         <TabsContent value="procurement">

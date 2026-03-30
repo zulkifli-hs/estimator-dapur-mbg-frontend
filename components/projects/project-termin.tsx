@@ -122,7 +122,7 @@ export function ProjectTermin({ projectId }: ProjectTerminProps) {
                   key={item.id}
                   className="flex items-start gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                 >
-                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-medium flex-shrink-0">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-medium shrink-0">
                     {index + 1}
                   </div>
                   <div className="flex-1">

@@ -517,7 +517,7 @@ export const GanttChartView = forwardRef<GanttChartViewRef, GanttChartViewProps>
                                   }
                                 }}
                               >
-                                <PopoverTrigger asChild>
+                                <PopoverTrigger asChild className={`${task.startDate && task.endDate ? "" : "bg-primary text-white"}`}>
                                   <Button
                                     size="sm"
                                     variant={task.startDate && task.endDate ? "ghost" : "outline"}

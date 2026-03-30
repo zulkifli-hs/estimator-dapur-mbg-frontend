@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ImageIcon, TrendingUp, Edit, Plus, X, Download, Eye, MoreVertical, Maximize2, FileDown } from 'lucide-react'
+import { ImageIcon, TrendingUp, Edit, Plus, X, Download, Eye, MoreVertical, Maximize2, FileDown, Upload } from 'lucide-react'
 import { FullscreenBoqDialog } from "@/components/projects/boq/fullscreen-boq-dialog"
 import {
   DropdownMenu,
@@ -22,6 +22,8 @@ import { useEffect, useState, useRef } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { boqApi } from "@/lib/api/boq"
 import { albumsApi } from "@/lib/api/albums"
+import { terminApi, type Termin } from "@/lib/api/termin"
+import { BastCertificateDialog } from "./bast-certificate-dialog"
 // import { GanttChartEditor } from "./gantt-chart-editor"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { GanttChartView, GanttChartViewRef } from "./gantt-chart-view"
@@ -43,9 +45,10 @@ import { Loader2 } from 'lucide-react' // Import Loader2
 
 interface ProjectProgressProps {
   projectId: string
+  project?: any
 }
 
-export function ProjectProgress({ projectId }: ProjectProgressProps) {
+export function ProjectProgress({ projectId, project }: ProjectProgressProps) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -71,6 +74,12 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
   const ganttViewRef = useRef<GanttChartViewRef>(null)
   const { toast } = useToast()
 
+  const [bastTermins, setBastTermins] = useState<Termin[]>([])
+  const [bastLoading, setBastLoading] = useState(false)
+  const [showBastDialog, setShowBastDialog] = useState(false)
+  const [selectedBastTermin, setSelectedBastTermin] = useState<Termin | null>(null)
+  const [bastDocUploading, setBastDocUploading] = useState<Record<string, boolean>>({})
+
   const tabs = [
     { value: "gantt", label: "Gantt Chart" },
     { value: "photos", label: "Project Photos" },
@@ -78,9 +87,14 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
     { value: "bast", label: "BAPP/BAST" },
   ]
 
+  const ganttHasData = !loading && ganttTasks.length > 0
+  const timelineComplete = ganttHasData && ganttTasks.every((t: any) => t.startDate && t.endDate)
+  const timelineIncomplete = ganttHasData && ganttTasks.some((t: any) => !t.startDate || !t.endDate)
+
   useEffect(() => {
     loadBOQData()
     loadAlbums()
+    loadBastTermins()
   }, [projectId])
 
   useEffect(() => {
@@ -221,6 +235,27 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
     return diffDays
   }
 
+
+  const loadBastTermins = async () => {
+    setBastLoading(true)
+    try {
+      const response = await terminApi.getByProject(projectId)
+      if (response.success) {
+        const filtered = (response.data as Termin[]).filter(
+          (t) => t.category === "BAPP" || t.category === "BAST",
+        )
+        setBastTermins(filtered)
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to load BAPP/BAST termins",
+        variant: "destructive",
+      })
+    } finally {
+      setBastLoading(false)
+    }
+  }
 
   const loadAlbums = async () => {
     setAlbumsLoading(true)
@@ -602,7 +637,20 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
             <SelectContent>
               {tabs.map((tab) => (
                 <SelectItem key={tab.value} value={tab.value}>
-                  {tab.label}
+                  <span className="flex items-center gap-2">
+                    {tab.label}
+                    {(tab.value === "gantt" || tab.value === "scurve") && ganttHasData && (
+                      <Badge
+                        className={`text-[10px] px-1.5 py-0 h-4 pointer-events-none ${
+                          timelineComplete
+                            ? "bg-green-500 text-white"
+                            : "bg-yellow-400 text-yellow-900"
+                        }`}
+                      >
+                        {timelineComplete ? "Complete" : "Incomplete"}
+                      </Badge>
+                    )}
+                  </span>
                 </SelectItem>
               ))}
             </SelectContent>
@@ -612,8 +660,19 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
         {/* Desktop: Tabs */}
         <TabsList className="hidden md:grid w-full grid-cols-4">
           {tabs.map((tab) => (
-            <TabsTrigger key={tab.value} value={tab.value}>
+            <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5">
               {tab.label}
+              {(tab.value === "gantt" || tab.value === "scurve") && ganttHasData && (
+                <Badge
+                  className={`text-[10px] px-1.5 py-0 h-4 pointer-events-none ${
+                    timelineComplete
+                      ? "bg-green-500 text-white"
+                      : "bg-yellow-400 text-yellow-900"
+                  }`}
+                >
+                  {timelineComplete ? "Complete" : "Incomplete"}
+                </Badge>
+              )}
             </TabsTrigger>
           ))}
         </TabsList>
@@ -837,27 +896,156 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
               <CardDescription>Handover and progress payment documents</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-center h-125 bg-linear-to-br from-primary/5 via-primary/10 to-background rounded-xl border-2 border-dashed border-primary/20">
-                <div className="text-center space-y-8 max-w-sm px-6">
-                  <div className="relative inline-block">
-                    <div className="absolute inset-0 animate-ping">
-                      <TrendingUp className="h-24 w-24 text-primary/30" />
-                    </div>
-                    <TrendingUp className="h-24 w-24 text-primary relative z-10" />
-                  </div>
-                  <div className="space-y-3">
-                    <h3 className="text-3xl font-bold bg-linear-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                      Coming Soon
-                    </h3>
-                    <Badge variant="outline" className="text-sm px-4 py-1 border-primary/40">
-                      Under Construction
-                    </Badge>
-                  </div>
-                  <p className="text-base text-muted-foreground leading-relaxed">
-                    We're building something amazing to track your project progress
-                  </p>
+              {bastLoading ? (
+                <div className="flex items-center justify-center h-48">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                 </div>
-              </div>
+              ) : bastTermins.length === 0 ? (
+                <div className="flex items-center justify-center h-48 border-2 border-dashed rounded-lg">
+                  <div className="text-center space-y-2">
+                    <TrendingUp className="h-12 w-12 mx-auto text-muted-foreground" />
+                    <p className="text-muted-foreground font-medium">No BAPP/BAST termins found</p>
+                    <p className="text-sm text-muted-foreground">
+                      Create BAPP or BAST termins in the Invoice tab first
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid gap-4">
+                  {bastTermins.map((termin) => (
+                    <Card key={termin._id} className="hover:shadow-md transition-shadow">
+                      <CardContent className="space-y-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <h3 className="font-semibold leading-tight">{termin.name}</h3>
+                          <Badge
+                            variant="outline"
+                            className={
+                              termin.category === "BAST"
+                                ? "border-blue-400 text-blue-600"
+                                : "border-green-400 text-green-600"
+                            }
+                          >
+                            {termin.category}
+                          </Badge>
+                        </div>
+                        {/* <div className="flex items-center justify-between text-sm text-muted-foreground">
+                          <span>
+                            {termin.valueType === "%"
+                              ? `${termin.value}%`
+                              : new Intl.NumberFormat("id-ID", {
+                                  style: "currency",
+                                  currency: "IDR",
+                                  maximumFractionDigits: 0,
+                                }).format(termin.value)}
+                          </span>
+                          <Badge
+                            variant="secondary"
+                            className={
+                              termin.status === "Approved"
+                                ? "bg-green-100 text-green-700"
+                                : termin.status === "Rejected"
+                                  ? "bg-red-100 text-red-700"
+                                  : termin.status === "Sent"
+                                    ? "bg-blue-100 text-blue-700"
+                                    : "bg-muted"
+                            }
+                          >
+                            {termin.status}
+                          </Badge>
+                        </div> */}
+                        <Button
+                          size="sm"
+                          className="w-full"
+                          onClick={() => {
+                            setSelectedBastTermin(termin)
+                            setShowBastDialog(true)
+                          }}
+                        >
+                          <TrendingUp className="h-4 w-4 mr-2" />
+                          Generate Certificate of Completion for {termin.category} of {termin.name}
+                        </Button>
+
+                        {/* BAST Document upload/download */}
+                        <div className="rounded-md border bg-background p-3 space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-xs font-semibold text-muted-foreground">Completed Doc</p>
+                            <Input
+                              id={`bast-doc-upload-${termin._id}`}
+                              type="file"
+                              accept=".pdf,application/pdf"
+                              className="hidden"
+                              disabled={!!bastDocUploading[termin._id]}
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0]
+                                e.target.value = ""
+                                if (!file) return
+                                if (file.type !== "application/pdf") {
+                                  toast({ title: "Upload Failed", description: "Only PDF files are allowed", variant: "destructive" })
+                                  return
+                                }
+                                setBastDocUploading((prev) => ({ ...prev, [termin._id]: true }))
+                                try {
+                                  await terminApi.uploadBastDocument(projectId, termin._id, file)
+                                  toast({ title: "Success", description: (termin as any).bastDocument?.url ? "BAST document replaced" : "BAST document uploaded" })
+                                  await loadBastTermins()
+                                } catch (err: any) {
+                                  toast({ title: "Upload Failed", description: err.message || "Failed to upload", variant: "destructive" })
+                                } finally {
+                                  setBastDocUploading((prev) => ({ ...prev, [termin._id]: false }))
+                                }
+                              }}
+                            />
+                            <Button
+                              asChild
+                              variant="outline"
+                              size="sm"
+                              disabled={!!bastDocUploading[termin._id]}
+                            >
+                              <label htmlFor={`bast-doc-upload-${termin._id}`} className="cursor-pointer">
+                                <Upload className="h-3.5 w-3.5 mr-1.5" />
+                                {bastDocUploading[termin._id] ? "Uploading..." : (termin as any).bastDocument?.url ? "Replace" : "Upload"}
+                              </label>
+                            </Button>
+                          </div>
+                          {(termin as any).bastDocument?.url ? (
+                            <div className="flex items-center justify-between gap-2 text-xs">
+                              <span className="truncate text-muted-foreground">{(termin as any).bastDocument.name}</span>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => {
+                                    const d = (termin as any).bastDocument
+                                    const base = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.gema-interior.com"
+                                    window.open(`${base}/public/${d.provider}/${d.url}`, "_blank")
+                                  }}
+                                  title={`Preview ${termin.category} document`}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => {
+                                    const d = (termin as any).bastDocument
+                                    const base = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.gema-interior.com"
+                                    window.open(`${base}/public/${d.provider}/${d.url}`, "_blank")
+                                  }}
+                                  title={`Download ${termin.category} document`}
+                                >
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">No document uploaded. The completed {termin.category} document should contain a Certificate of Completion, Progress Photos, Gantt Chart (if any), S Curve (if any), and more. You can use PDF Tools to merge PDF documents.</p>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -985,6 +1173,20 @@ export function ProjectProgress({ projectId }: ProjectProgressProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {selectedBastTermin && (
+        <BastCertificateDialog
+          open={showBastDialog}
+          onOpenChange={(open) => {
+            setShowBastDialog(open)
+            if (!open) setSelectedBastTermin(null)
+          }}
+          termin={selectedBastTermin}
+          project={project}
+          projectId={projectId}
+          onSaved={loadBastTermins}
+        />
+      )}
 
       <Dialog open={!!previewPdf} onOpenChange={(open) => {
         if (!open) {

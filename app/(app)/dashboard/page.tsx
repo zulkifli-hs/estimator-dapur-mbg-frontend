@@ -1,8 +1,8 @@
 "use client"
 
 import type React from "react"
-
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
@@ -10,6 +10,7 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuLabel,
+  DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
@@ -24,17 +25,26 @@ import {
   CreditCard,
   MessageSquare,
   ImageIcon,
-  Calendar,
-  DollarSign,
   CheckCircle2,
   Clock,
   AlertCircle,
+  Package,
+  LayoutTemplate,
+  Cpu,
+  MemoryStick,
+  HardDrive,
+  ArrowUp,
+  ArrowDown,
+  Minus,
+  UserCog,
+  ShieldCheck,
+  ChevronUp,
+  ChevronDown,
+  Check,
 } from "lucide-react"
 import {
   Bar,
   BarChart,
-  Line,
-  LineChart,
   Pie,
   PieChart,
   Cell,
@@ -45,192 +55,238 @@ import {
   Legend,
 } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
-import { projectsApi } from "@/lib/api/projects"
-import { boqApi } from "@/lib/api/boq"
-import { terminApi } from "@/lib/api/termin"
-import { discussionsApi } from "@/lib/api/discussions"
-import { albumsApi } from "@/lib/api/albums"
+import { projectsApi, type Project } from "@/lib/api/projects"
+import { getBOQList } from "@/lib/api/boq"
+import { getTerminList, type Termin } from "@/lib/api/termin"
+import { discussionsApi, type Post } from "@/lib/api/discussions"
+import { dashboardApi, type DashboardData } from "@/lib/api/dashboard"
+import { preferencesApi } from "@/lib/api/users"
 
-// Mock data for charts
-const projectProgressData = [
-  { month: "Jan", completed: 4, ongoing: 8 },
-  { month: "Feb", completed: 6, ongoing: 7 },
-  { month: "Mar", completed: 5, ongoing: 9 },
-  { month: "Apr", completed: 8, ongoing: 6 },
-  { month: "May", completed: 7, ongoing: 8 },
-  { month: "Jun", completed: 9, ongoing: 5 },
-]
+// ── types ────────────────────────────────────────────────────────────────────
 
-const budgetData = [
-  { month: "Jan", budget: 45000, spent: 38000 },
-  { month: "Feb", budget: 52000, spent: 48000 },
-  { month: "Mar", budget: 48000, spent: 42000 },
-  { month: "Apr", budget: 61000, spent: 55000 },
-  { month: "May", budget: 55000, spent: 51000 },
-  { month: "Jun", budget: 67000, spent: 59000 },
-]
+type ProjectWithStatus = Project & { status?: "Propose" | "Active" | "Completed" | "Archive" }
 
-interface DashboardStats {
-  totalProjects: number
-  activeProjects: number
-  completedProjects: number
-  totalClients: number
+interface CurrentUser {
+  _id: string
+  email: string
+  admin?: boolean
+  profile?: { name?: string; photo?: { url: string; provider: string }; phone?: string }
 }
 
-type DashboardCardId =
-  | "stats"
+type AdminCardId =
+  | "adminStats"
+  | "projectStats"
   | "projectProgress"
-  | "budgetOverview"
+  | "teamComposition"
+  | "boqStatus"
+  | "serverStats"
+  | "mediaStorage"
   | "recentProjects"
+
+type UserCardId =
+  | "userStats"
+  | "myProjects"
+  | "myRoles"
   | "boqStatus"
   | "paymentSchedule"
-  | "discussionActivity"
-  | "teamCollaboration"
-  | "documentStats"
-  | "projectTimeline"
+  | "recentDiscussions"
+
+type DashboardCardId = AdminCardId | UserCardId
 
 interface DashboardLayout {
   cardOrder: DashboardCardId[]
   hiddenCards: DashboardCardId[]
 }
 
-const DEFAULT_LAYOUT: DashboardLayout = {
-  cardOrder: [
-    "stats",
-    "projectProgress",
-    "budgetOverview",
-    "boqStatus",
-    "paymentSchedule",
-    "discussionActivity",
-    "teamCollaboration",
-    "documentStats",
-    "projectTimeline",
-    "recentProjects",
-  ],
+const ADMIN_DEFAULT: DashboardLayout = {
+  cardOrder: ["adminStats", "projectStats", "projectProgress", "teamComposition", "boqStatus", "serverStats", "mediaStorage", "recentProjects", "myProjects", "myRoles", "paymentSchedule", "recentDiscussions"],
   hiddenCards: [],
 }
 
-interface EnhancedStats extends DashboardStats {
-  totalBOQs: number
-  totalTermins: number
-  totalDiscussions: number
-  totalAlbums: number
-  teamMembers: number
+const USER_DEFAULT: DashboardLayout = {
+  cardOrder: ["userStats", "myProjects", "myRoles", "boqStatus", "paymentSchedule", "recentDiscussions"],
+  hiddenCards: [],
 }
 
-export default function DashboardPage() {
-  const [stats, setStats] = useState<EnhancedStats>({
-    totalProjects: 0,
-    activeProjects: 0,
-    completedProjects: 0,
-    totalClients: 0,
-    totalBOQs: 0,
-    totalTermins: 0,
-    totalDiscussions: 0,
-    totalAlbums: 0,
-    teamMembers: 0,
-  })
-  const [recentProjects, setRecentProjects] = useState<any[]>([])
-  const [boqData, setBoqData] = useState<any[]>([])
-  const [terminData, setTerminData] = useState<any[]>([])
-  const [discussionData, setDiscussionData] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [layout, setLayout] = useState<DashboardLayout>(() => {
-    if (typeof window === "undefined") return DEFAULT_LAYOUT
+const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
-    const saved = localStorage.getItem("dashboard-layout")
+// ── helpers ───────────────────────────────────────────────────────────────────
+
+function fmt(value: unknown): string {
+  const n = Number(value)
+  if (isNaN(n) || !isFinite(n)) return "0"
+  return String(n)
+}
+
+function relativeTime(dateStr: string): string {
+  const now = Date.now()
+  const diff = now - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60_000)
+  if (mins < 1) return "just now"
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  const days = Math.floor(hrs / 24)
+  if (days < 30) return `${days}d ago`
+  return new Date(dateStr).toLocaleDateString("id-ID", { day: "numeric", month: "short" })
+}
+
+function trendBadge(current: number, previous: number) {
+  if (previous === 0 && current === 0) return null
+  if (previous === 0) return { icon: ArrowUp, label: `+${current} bulan ini`, color: "text-green-600 bg-green-500/10" }
+  const delta = current - previous
+  if (delta > 0) return { icon: ArrowUp, label: `+${delta} dari bulan lalu`, color: "text-green-600 bg-green-500/10" }
+  if (delta < 0) return { icon: ArrowDown, label: `${delta} dari bulan lalu`, color: "text-red-600 bg-red-500/10" }
+  return { icon: Minus, label: "sama dengan bulan lalu", color: "text-muted-foreground bg-muted" }
+}
+
+function getUserRolesInProject(project: ProjectWithStatus, userId: string): string[] {
+  const roles: string[] = []
+  if (project.owner?._id === userId) roles.push("Owner")
+  if (project.admins?.some((m) => m.user?._id === userId)) roles.push("Admin")
+  if (project.projectManagers?.some((m) => m.user?._id === userId)) roles.push("Project Manager")
+  if (project.estimators?.some((m) => m.user?._id === userId)) roles.push("Estimator")
+  if (project.designers?.some((m) => m.user?._id === userId)) roles.push("Designer")
+  if (project.finances?.some((m) => m.user?._id === userId)) roles.push("Finance")
+  if (project.clients?.some((m) => m.user?._id === userId)) roles.push("Client")
+  return roles
+}
+
+function projectStatusStyle(status: string | undefined) {
+  switch (status) {
+    case "Active": return "bg-blue-500/10 text-blue-700"
+    case "Completed": return "bg-green-500/10 text-green-700"
+    case "Archive": return "bg-muted text-muted-foreground"
+    default: return "bg-yellow-500/10 text-yellow-700"
+  }
+}
+
+function boqStatusStyle(status: string) {
+  switch (status) {
+    case "Accepted": return "bg-green-500/10 text-green-700"
+    case "Request": return "bg-yellow-500/10 text-yellow-700"
+    case "Rejected": return "bg-red-500/10 text-red-700"
+    default: return "bg-muted text-muted-foreground"
+  }
+}
+
+function diskUsagePct(used: number, size: number): number {
+  if (!size) return 0
+  return Math.min(100, Math.round((used / size) * 100))
+}
+
+// ── component ─────────────────────────────────────────────────────────────────
+
+export default function DashboardPage() {
+  const router = useRouter()
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
+  const [dashData, setDashData] = useState<DashboardData | null>(null)
+  const [projects, setProjects] = useState<ProjectWithStatus[]>([])
+  const [boqItems, setBoqItems] = useState<any[]>([])
+  const [termins, setTermins] = useState<Termin[]>([])
+  const [recentPosts, setRecentPosts] = useState<(Post & { projectName: string })[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const isAdmin = currentUser?.admin === true
+  const layoutKey = isAdmin ? "dashboard-layout-admin" : "dashboard-layout-user"
+
+  const [layout, setLayout] = useState<DashboardLayout>(() => {
+    if (typeof window === "undefined") return USER_DEFAULT
+    const saved = localStorage.getItem("dashboard-layout-user")
     if (saved) {
-      try {
-        const parsedLayout = JSON.parse(saved) as DashboardLayout
-        // Filter out any invalid card IDs that might exist in saved layout
-        const validCardIds = Object.keys(cardLabels) as DashboardCardId[]
-        return {
-          cardOrder: parsedLayout.cardOrder.filter((id) => validCardIds.includes(id)),
-          hiddenCards: parsedLayout.hiddenCards.filter((id) => validCardIds.includes(id)),
-        }
-      } catch {
-        return DEFAULT_LAYOUT
-      }
+      try { return JSON.parse(saved) as DashboardLayout } catch { /* fallthrough */ }
     }
-    return DEFAULT_LAYOUT
+    return USER_DEFAULT
   })
   const [draggedCard, setDraggedCard] = useState<DashboardCardId | null>(null)
 
+  // Re-initialize layout when user role becomes known
   useEffect(() => {
-    loadDashboardData()
-  }, [])
+    const key = isAdmin ? "dashboard-layout-admin" : "dashboard-layout-user"
+    const saved = localStorage.getItem(key)
+    if (saved) {
+      try { setLayout(JSON.parse(saved)); return } catch { /* fallthrough */ }
+    }
+    setLayout(isAdmin ? ADMIN_DEFAULT : USER_DEFAULT)
+  }, [isAdmin])
 
-  const loadDashboardData = async () => {
+  // Load current user from localStorage (set by app layout)
+  useEffect(() => {
+    const raw = localStorage.getItem("user")
+    if (!raw) { router.push("/login"); return }
+    try { setCurrentUser(JSON.parse(raw) as CurrentUser) }
+    catch { router.push("/login") }
+  }, [router])
+
+  // Load dashboard data once user is known
+  useEffect(() => {
+    if (!currentUser) return
+    loadData(currentUser)
+  }, [currentUser])
+
+  const loadData = async (_currentUser: CurrentUser) => {
     try {
-      const response = await projectsApi.getAll()
-      if (response.success && response.data) {
-        const projects = response.data
+      const [dashResponse, projectsResponse, prefsResponse] = await Promise.allSettled([
+        dashboardApi.getDashboard(),
+        projectsApi.getAll(),
+        preferencesApi.get(),
+      ])
 
-        let totalTeamMembers = 0
-        projects.forEach((p: any) => {
-          totalTeamMembers +=
-            (p.estimators?.length || 0) +
-            (p.projectManagers?.length || 0) +
-            (p.finances?.length || 0) +
-            (p.designers?.length || 0) +
-            (p.admins?.length || 0)
-        })
-
-        let totalBOQs = 0
-        let totalTermins = 0
-        let totalDiscussions = 0
-        let totalAlbums = 0
-        const boqStatusData: any[] = []
-        const terminStatusData: any[] = []
-
-        for (const project of projects.slice(0, 3)) {
-          try {
-            const boqResponse = await boqApi.getByProject(project._id)
-            if (boqResponse.success) {
-              totalBOQs += boqResponse.data.length
-              boqResponse.data.forEach((boq: any) => {
-                boqStatusData.push(boq)
-              })
-            }
-
-            const terminResponse = await terminApi.getByProject(project._id)
-            if (terminResponse.success) {
-              totalTermins += terminResponse.data.length
-              terminStatusData.push(...terminResponse.data)
-            }
-
-            const discussionResponse = await discussionsApi.getPosts(project._id, 10, 1)
-            if (discussionResponse.success) {
-              totalDiscussions += discussionResponse.totalData || 0
-            }
-
-            const albumResponse = await albumsApi.getByProject(project._id)
-            if (albumResponse.success) {
-              totalAlbums += albumResponse.data.length
-            }
-          } catch (error) {
-            console.error(`Error loading data for project ${project._id}:`, error)
-          }
+      // Apply server layout preference (overrides localStorage for cross-device sync)
+      if (prefsResponse.status === "fulfilled" && prefsResponse.value?.dashboardLayout) {
+        const role = _currentUser.admin ? "admin" : "user"
+        const serverLayout = prefsResponse.value.dashboardLayout[role]
+        if (serverLayout) {
+          const key = _currentUser.admin ? "dashboard-layout-admin" : "dashboard-layout-user"
+          localStorage.setItem(key, JSON.stringify(serverLayout))
+          setLayout(serverLayout as DashboardLayout)
         }
-
-        setBoqData(boqStatusData)
-        setTerminData(terminStatusData)
-
-        setStats({
-          totalProjects: projects.length,
-          activeProjects: projects.filter((p: any) => p.status === "active").length,
-          completedProjects: projects.filter((p: any) => p.status === "completed").length,
-          totalClients: new Set(projects.map((p: any) => p.companyClient?.name)).size,
-          totalBOQs,
-          totalTermins,
-          totalDiscussions,
-          totalAlbums,
-          teamMembers: totalTeamMembers,
-        })
-        setRecentProjects(projects.slice(0, 5))
       }
-    } catch (error) {
-      console.error("Failed to load dashboard data:", error)
+
+      const dash = dashResponse.status === "fulfilled" ? dashResponse.value : null
+      const projList: ProjectWithStatus[] =
+        projectsResponse.status === "fulfilled" && projectsResponse.value.success
+          ? (projectsResponse.value.data ?? []) as ProjectWithStatus[]
+          : []
+
+      setDashData(dash)
+      setProjects(projList)
+
+      // Fetch per-project details for top 5 projects
+      const top = projList.slice(0, 5)
+      const [boqResults, terminResults, postResults] = await Promise.all([
+        Promise.allSettled(top.map((p) => getBOQList(p._id))),
+        Promise.allSettled(top.map((p) => getTerminList(p._id))),
+        Promise.allSettled(
+          top.map((p) =>
+            discussionsApi.getPosts(p._id, 3, 1).then((r) =>
+              ((r.data ?? []) as Post[]).map((post) => ({ ...post, projectName: p.name }))
+            )
+          )
+        ),
+      ])
+
+      const allBoqs: any[] = []
+      boqResults.forEach((r) => {
+        if (r.status === "fulfilled") allBoqs.push(...(Array.isArray(r.value) ? r.value : []))
+      })
+
+      const allTermins: Termin[] = []
+      terminResults.forEach((r) => {
+        if (r.status === "fulfilled") allTermins.push(...(Array.isArray(r.value) ? r.value : []))
+      })
+
+      const allPosts: (Post & { projectName: string })[] = []
+      postResults.forEach((r) => {
+        if (r.status === "fulfilled") allPosts.push(...r.value)
+      })
+      allPosts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+
+      setBoqItems(allBoqs)
+      setTermins(allTermins)
+      setRecentPosts(allPosts.slice(0, 8))
+    } catch (err) {
+      console.error("Failed to load dashboard data:", err)
     } finally {
       setLoading(false)
     }
@@ -238,476 +294,427 @@ export default function DashboardPage() {
 
   const updateLayout = (newLayout: DashboardLayout) => {
     setLayout(newLayout)
-    localStorage.setItem("dashboard-layout", JSON.stringify(newLayout))
+    localStorage.setItem(layoutKey, JSON.stringify(newLayout))
+    // Sync to server for cross-device sync (fire-and-forget)
+    const role = isAdmin ? "admin" : "user"
+    preferencesApi.update({ dashboardLayout: { [role]: newLayout } })
   }
 
   const toggleCardVisibility = (cardId: DashboardCardId) => {
-    const newHiddenCards = layout.hiddenCards.includes(cardId)
+    const newHidden = layout.hiddenCards.includes(cardId)
       ? layout.hiddenCards.filter((id) => id !== cardId)
       : [...layout.hiddenCards, cardId]
-    updateLayout({ ...layout, hiddenCards: newHiddenCards })
+    updateLayout({ ...layout, hiddenCards: newHidden })
   }
 
-  const handleDragStart = (cardId: DashboardCardId) => {
-    setDraggedCard(cardId)
-  }
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-  }
-
+  const handleDragStart = (cardId: DashboardCardId) => setDraggedCard(cardId)
+  const handleDragOver = (e: React.DragEvent) => e.preventDefault()
   const handleDrop = (targetCardId: DashboardCardId) => {
     if (!draggedCard || draggedCard === targetCardId) return
-
     const newOrder = [...layout.cardOrder]
-    const draggedIndex = newOrder.indexOf(draggedCard)
-    const targetIndex = newOrder.indexOf(targetCardId)
-
-    newOrder.splice(draggedIndex, 1)
-    newOrder.splice(targetIndex, 0, draggedCard)
-
+    const di = newOrder.indexOf(draggedCard)
+    const ti = newOrder.indexOf(targetCardId)
+    newOrder.splice(di, 1)
+    newOrder.splice(ti, 0, draggedCard)
     updateLayout({ ...layout, cardOrder: newOrder })
     setDraggedCard(null)
   }
+  const handleDragEnd = () => setDraggedCard(null)
+  const resetLayout = () => updateLayout(isAdmin ? ADMIN_DEFAULT : USER_DEFAULT)
 
-  const handleDragEnd = () => {
-    setDraggedCard(null)
+  const moveCard = (cardId: DashboardCardId, direction: "up" | "down") => {
+    const newOrder = [...layout.cardOrder]
+    const idx = newOrder.indexOf(cardId)
+    const swap = direction === "up" ? idx - 1 : idx + 1
+    if (swap < 0 || swap >= newOrder.length) return
+    ;[newOrder[idx], newOrder[swap]] = [newOrder[swap], newOrder[idx]]
+    updateLayout({ ...layout, cardOrder: newOrder })
   }
 
-  const resetLayout = () => {
-    updateLayout(DEFAULT_LAYOUT)
+  // ── derived data ───────────────────────────────────────────────────────────
+
+  const boqStatusCounts = {
+    draft: dashData?.boq?.draft ?? 0,
+    request: dashData?.boq?.request ?? 0,
+    accepted: dashData?.boq?.accepted ?? 0,
+    rejected: dashData?.boq?.rejected ?? 0,
   }
 
-  const safeCalculate = (value: number, fallback = 0): number => {
-    if (typeof value !== "number" || isNaN(value) || !isFinite(value)) {
-      return fallback
+  const terminStatusCounts = {
+    draft: termins.filter((t) => t.status === "Draft").length,
+    pending: termins.filter((t) => t.status === "Pending").length,
+    sent: termins.filter((t) => t.status === "Sent").length,
+    approved: termins.filter((t) => t.status === "Approved").length,
+  }
+
+  const boqChartData = [
+    { name: "Draft",     value: boqStatusCounts.draft,    color: "hsl(215, 16%, 47%)"  },
+    { name: "Requested", value: boqStatusCounts.request,  color: "hsl(38, 92%, 50%)"   },
+    { name: "Accepted",  value: boqStatusCounts.accepted, color: "hsl(142, 71%, 45%)"  },
+    { name: "Rejected",  value: boqStatusCounts.rejected, color: "hsl(0, 72%, 51%)"    },
+  ]
+
+  const terminChartData = [
+    { status: "Draft",    count: terminStatusCounts.draft,    color: "hsl(215, 16%, 47%)" },
+    { status: "Pending",  count: terminStatusCounts.pending,  color: "hsl(38, 92%, 50%)"  },
+    { status: "Sent",     count: terminStatusCounts.sent,     color: "hsl(217, 91%, 60%)" },
+    { status: "Approved", count: terminStatusCounts.approved, color: "hsl(142, 71%, 45%)" },
+  ]
+
+  const projectProgressData = (dashData?.projectProgress ?? []).map((item) => ({
+    month: MONTH_LABELS[(item.month - 1) % 12],
+    completed: item.completed,
+    ongoing: item.ongoing,
+  }))
+
+  const myRolesSummary = (() => {
+    if (!currentUser) return {} as Record<string, number>
+    const counts: Record<string, number> = {}
+    for (const p of projects) {
+      const roles = getUserRolesInProject(p, currentUser._id)
+      for (const r of roles) counts[r] = (counts[r] ?? 0) + 1
     }
-    return value
-  }
+    return counts
+  })()
 
-  const formatNumber = (value: any): string => {
-    const num = Number(value)
-    if (isNaN(num) || !isFinite(num)) {
-      return "0"
-    }
-    return String(num)
-  }
+  const cardLabels: Record<string, string> = isAdmin
+    ? {
+        adminStats: "Overview Statistik",
+        projectStats: "Statistik Project",
+        projectProgress: "Project Progress Chart",
+        teamComposition: "Komposisi Tim",
+        boqStatus: "Status BOQ",
+        serverStats: "Server Stats",
+        mediaStorage: "Media & Storage",
+        recentProjects: "Proyek Terbaru",
+        myProjects: "Proyek Saya (Role Saya)",
+        myRoles: "Role Saya",
+        paymentSchedule: "Jadwal Pembayaran (Role Saya)",
+        recentDiscussions: "Diskusi Terbaru (Role Saya)",
+      }
+    : {
+        userStats: "Overview Statistik",
+        myProjects: "Proyek Saya",
+        myRoles: "Role Saya",
+        boqStatus: "Status BOQ",
+        paymentSchedule: "Jadwal Pembayaran",
+        recentDiscussions: "Diskusi Terbaru",
+      }
 
-  const teamMembersCount = typeof stats.teamMembers === "number" && !isNaN(stats.teamMembers) ? stats.teamMembers : 0
-  const estimatorsCount = Math.floor(teamMembersCount * 0.3)
-  const pmsCount = Math.floor(teamMembersCount * 0.25)
-  const designersCount = Math.floor(teamMembersCount * 0.25)
-  const financeCount = Math.floor(teamMembersCount * 0.2)
+  // ── shared BOQ status card ─────────────────────────────────────────────────
 
-  const statCards = [
-    {
-      title: "Total Projects",
-      value: formatNumber(stats.totalProjects),
-      description: "All time projects",
-      icon: FolderKanban,
-      trend: "+12% from last month",
-    },
-    {
-      title: "Active Projects",
-      value: formatNumber(stats.activeProjects),
-      description: "Currently in progress",
-      icon: Building2,
-      trend: "+3 new this month",
-    },
-    {
-      title: "Completed",
-      value: formatNumber(stats.completedProjects),
-      description: "Successfully finished",
-      icon: TrendingUp,
-      trend: "+8% completion rate",
-    },
-    {
-      title: "Total Clients",
-      value: formatNumber(stats.totalClients),
-      description: "Active clients",
-      icon: Users,
-      trend: "+2 new clients",
-    },
-  ]
+  const boqStatusCard = (
+    <Card>
+      <CardHeader>
+        <CardTitle>Status BOQ</CardTitle>
+        <CardDescription>Distribusi Bill of Quantities berdasarkan status</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          {[
+            { label: "Draft",     count: boqStatusCounts.draft,    icon: FileText,     cls: "bg-muted",         iconCls: "text-muted-foreground" },
+            { label: "Requested", count: boqStatusCounts.request,  icon: Clock,        cls: "bg-yellow-500/10", iconCls: "text-yellow-600"       },
+            { label: "Accepted",  count: boqStatusCounts.accepted, icon: CheckCircle2, cls: "bg-green-500/10",  iconCls: "text-green-600"        },
+            { label: "Rejected",  count: boqStatusCounts.rejected, icon: AlertCircle,  cls: "bg-red-500/10",    iconCls: "text-red-600"          },
+          ].map(({ label, count, icon: Icon, cls, iconCls }) => (
+            <div key={label} className="flex items-center gap-3">
+              <div className={`h-10 w-10 rounded-lg ${cls} flex items-center justify-center`}>
+                <Icon className={`h-5 w-5 ${iconCls}`} />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{loading ? "..." : fmt(count)}</p>
+                <p className="text-xs text-muted-foreground">{label}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        {boqChartData.some((d) => d.value > 0) && (
+          <ChartContainer
+            config={{
+              Draft:     { label: "Draft",     color: "hsl(215, 16%, 47%)"  },
+              Requested: { label: "Requested", color: "hsl(38, 92%, 50%)"   },
+              Accepted:  { label: "Accepted",  color: "hsl(142, 71%, 45%)"  },
+              Rejected:  { label: "Rejected",  color: "hsl(0, 72%, 51%)"    },
+            }}
+            className="h-50 w-full"
+          >
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={boqChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={72}>
+                  {boqChartData.map((entry, i) => (
+                    <Cell key={i} fill={entry.color} />
+                  ))}
+                </Pie>
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Legend wrapperStyle={{ fontSize: "12px" }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </ChartContainer>
+        )}
+        {boqChartData.every((d) => d.value === 0) && !loading && (
+          <p className="text-center text-sm text-muted-foreground py-6">Belum ada data BOQ</p>
+        )}
+      </CardContent>
+    </Card>
+  )
 
-  const boqStatusChartData = [
-    {
-      name: "Draft",
-      value: boqData.filter((b) => b.status === "draft").length,
-      color: "hsl(var(--chart-1))",
-    },
-    {
-      name: "Pending",
-      value: boqData.filter((b) => b.status === "pending").length,
-      color: "hsl(var(--chart-2))",
-    },
-    {
-      name: "Approved",
-      value: boqData.filter((b) => b.status === "approved").length,
-      color: "hsl(var(--chart-3))",
-    },
-    {
-      name: "Rejected",
-      value: boqData.filter((b) => b.status === "rejected").length,
-      color: "hsl(var(--chart-4))",
-    },
-  ]
+  // ── Admin cards ────────────────────────────────────────────────────────────
 
-  const paymentStatusData = [
-    {
-      status: "Draft",
-      count: terminData.filter((t) => t.status === "Draft").length,
-      color: "hsl(var(--chart-1))",
-    },
-    {
-      status: "Pending",
-      count: terminData.filter((t) => t.status === "Pending").length,
-      color: "hsl(var(--chart-2))",
-    },
-    {
-      status: "Sent",
-      count: terminData.filter((t) => t.status === "Sent").length,
-      color: "hsl(var(--chart-3))",
-    },
-    {
-      status: "Approved",
-      count: terminData.filter((t) => t.status === "Approved").length,
-      color: "hsl(var(--chart-4))",
-    },
-  ]
-
-  const cardComponents: Record<DashboardCardId, React.JSX.Element> = {
-    stats: (
+  const adminCards: Record<AdminCardId, React.JSX.Element> = {
+    adminStats: (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {statCards.map((stat) => {
-          const Icon = stat.icon
+        {[
+          { title: "Total Users",     value: fmt(dashData?.totalUsers),        desc: "Pengguna terdaftar",    icon: Users,          stat: null as ReturnType<typeof trendBadge> },
+          { title: "Total Products",  value: fmt(dashData?.totalProducts),  desc: "Produk dalam katalog",  icon: Package,        stat: null as ReturnType<typeof trendBadge> },
+          { title: "Total Templates", value: fmt(dashData?.totalTemplates), desc: "Template BOQ",          icon: LayoutTemplate, stat: null as ReturnType<typeof trendBadge> },
+          {
+            title: "Total Projects",
+            value: fmt(dashData?.totalProject?.total),
+            desc: "Semua proyek",
+            icon: FolderKanban,
+            stat: dashData ? trendBadge(dashData.totalProject.today, dashData.totalProject.before) : null,
+          },
+        ].map(({ title, value, desc, icon: Icon, stat }) => (
+          <Card key={title}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">{title}</CardTitle>
+              <Icon className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{loading ? "..." : value}</div>
+              <p className="text-xs text-muted-foreground">{desc}</p>
+              {stat && (
+                <p className={`text-xs mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded ${stat.color}`}>
+                  <stat.icon className="h-3 w-3" />
+                  {stat.label}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    ),
+
+    projectStats: (
+      <div className="grid gap-4 md:grid-cols-3">
+        {[
+          { title: "Active Projects",    key: "activeProject"    as const, icon: Building2,  color: "text-blue-600 bg-blue-500/10"     },
+          { title: "Completed Projects", key: "completedProject" as const, icon: TrendingUp, color: "text-green-600 bg-green-500/10"   },
+          { title: "Total Clients",      key: "totalClient"      as const, icon: Users,      color: "text-purple-600 bg-purple-500/10" },
+        ].map(({ title, key, icon: Icon, color }) => {
+          const stat = dashData?.[key]
+          const trend = stat ? trendBadge(stat.today, stat.before) : null
           return (
-            <Card key={stat.title}>
+            <Card key={title}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-                <Icon className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">{title}</CardTitle>
+                <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${color}`}>
+                  <Icon className="h-4 w-4" />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{loading ? "..." : stat.value}</div>
-                <p className="text-xs text-muted-foreground">{stat.description}</p>
-                <p className="text-xs text-primary mt-1">{stat.trend}</p>
+                <div className="text-3xl font-bold">{loading ? "..." : fmt(stat?.total)}</div>
+                {trend && (
+                  <p className={`text-xs mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded ${trend.color}`}>
+                    <trend.icon className="h-3 w-3" />
+                    {trend.label}
+                  </p>
+                )}
               </CardContent>
             </Card>
           )
         })}
       </div>
     ),
+
     projectProgress: (
       <Card>
         <CardHeader>
           <CardTitle>Project Progress</CardTitle>
-          <CardDescription>Completed vs Ongoing projects over time</CardDescription>
+          <CardDescription>Completed vs Ongoing — 12 bulan terakhir</CardDescription>
         </CardHeader>
         <CardContent className="p-4 sm:p-6">
-          <ChartContainer
-            config={{
-              completed: {
-                label: "Completed",
-                color: "hsl(142, 76%, 36%)",
-              },
-              ongoing: {
-                label: "Ongoing",
-                color: "hsl(221, 83%, 53%)",
-              },
-            }}
-            className="h-[250px] sm:h-[300px] w-full"
-          >
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={projectProgressData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis dataKey="month" className="text-xs" tick={{ fontSize: 12 }} />
-                <YAxis className="text-xs" tick={{ fontSize: 12 }} />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Legend wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }} iconType="circle" />
-                <Bar dataKey="completed" fill="hsl(142, 76%, 36%)" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="ongoing" fill="hsl(221, 83%, 53%)" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartContainer>
-        </CardContent>
-      </Card>
-    ),
-    budgetOverview: (
-      <Card>
-        <CardHeader>
-          <CardTitle>Budget Overview</CardTitle>
-          <CardDescription>Budget allocation vs actual spending</CardDescription>
-        </CardHeader>
-        <CardContent className="p-4 sm:p-6">
-          <ChartContainer
-            config={{
-              budget: {
-                label: "Budget",
-                color: "hsl(262, 83%, 58%)",
-              },
-              spent: {
-                label: "Spent",
-                color: "hsl(346, 77%, 50%)",
-              },
-            }}
-            className="h-[250px] sm:h-[300px] w-full"
-          >
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={budgetData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis dataKey="month" className="text-xs" tick={{ fontSize: 12 }} />
-                <YAxis className="text-xs" tick={{ fontSize: 12 }} />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Legend wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }} iconType="circle" />
-                <Line
-                  type="monotone"
-                  dataKey="budget"
-                  stroke="hsl(262, 83%, 58%)"
-                  strokeWidth={3}
-                  dot={{ fill: "hsl(262, 83%, 58%)", r: 4 }}
-                  activeDot={{ r: 6 }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="spent"
-                  stroke="hsl(346, 77%, 50%)"
-                  strokeWidth={3}
-                  dot={{ fill: "hsl(346, 77%, 50%)", r: 4 }}
-                  activeDot={{ r: 6 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </ChartContainer>
-        </CardContent>
-      </Card>
-    ),
-    boqStatus: (
-      <Card>
-        <CardHeader>
-          <CardTitle>BOQ Status Overview</CardTitle>
-          <CardDescription>Distribution of Bill of Quantities by status</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                <FileText className="h-5 w-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{formatNumber(stats.totalBOQs)}</p>
-                <p className="text-xs text-muted-foreground">Total BOQs</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-yellow-500/10 flex items-center justify-center">
-                <Clock className="h-5 w-5 text-yellow-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">
-                  {formatNumber(boqData.filter((b) => b.status === "pending").length)}
-                </p>
-                <p className="text-xs text-muted-foreground">Pending</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center">
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">
-                  {formatNumber(boqData.filter((b) => b.status === "approved").length)}
-                </p>
-                <p className="text-xs text-muted-foreground">Approved</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-red-500/10 flex items-center justify-center">
-                <AlertCircle className="h-5 w-5 text-red-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">
-                  {formatNumber(boqData.filter((b) => b.status === "rejected").length)}
-                </p>
-                <p className="text-xs text-muted-foreground">Rejected</p>
-              </div>
-            </div>
-          </div>
-          {boqStatusChartData.some((d) => d.value > 0) && (
+          {projectProgressData.length > 0 ? (
             <ChartContainer
               config={{
-                draft: { label: "Draft", color: "hsl(var(--chart-1))" },
-                pending: { label: "Pending", color: "hsl(var(--chart-2))" },
-                approved: { label: "Approved", color: "hsl(var(--chart-3))" },
-                rejected: { label: "Rejected", color: "hsl(var(--chart-4))" },
+                completed: { label: "Completed", color: "hsl(142, 76%, 36%)" },
+                ongoing:   { label: "Ongoing",   color: "hsl(221, 83%, 53%)" },
               }}
-              className="h-[200px] w-full"
+              className="h-62 sm:h-75 w-full"
             >
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={boqStatusChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80}>
-                    {boqStatusChartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Legend wrapperStyle={{ fontSize: "12px" }} />
-                </PieChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          )}
-        </CardContent>
-      </Card>
-    ),
-    paymentSchedule: (
-      <Card>
-        <CardHeader>
-          <CardTitle>Payment Schedule</CardTitle>
-          <CardDescription>Termin payment status tracking</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <CreditCard className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{formatNumber(stats.totalTermins)}</p>
-                <p className="text-xs text-muted-foreground">Total Terms</p>
-              </div>
-            </div>
-            {paymentStatusData.map((item) => (
-              <div key={item.status} className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg" style={{ backgroundColor: `${item.color}20` }}>
-                  <div className="h-full w-full flex items-center justify-center">
-                    <DollarSign className="h-5 w-5" style={{ color: item.color }} />
-                  </div>
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{formatNumber(item.count)}</p>
-                  <p className="text-xs text-muted-foreground">{item.status}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          {paymentStatusData.some((d) => d.count > 0) && (
-            <ChartContainer
-              config={{
-                count: { label: "Count", color: "hsl(var(--chart-1))" },
-              }}
-              className="h-[200px] w-full"
-            >
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={paymentStatusData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <BarChart data={projectProgressData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="status" className="text-xs" tick={{ fontSize: 12 }} />
+                  <XAxis dataKey="month" className="text-xs" tick={{ fontSize: 12 }} />
                   <YAxis className="text-xs" tick={{ fontSize: 12 }} />
                   <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                    {paymentStatusData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Bar>
+                  <Legend wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }} iconType="circle" />
+                  <Bar dataKey="completed" fill="hsl(142, 76%, 36%)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="ongoing" fill="hsl(221, 83%, 53%)" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </ChartContainer>
+          ) : (
+            <p className="text-center text-sm text-muted-foreground py-12">
+              {loading ? "Memuat data..." : "Belum ada data proyek"}
+            </p>
           )}
         </CardContent>
       </Card>
     ),
-    discussionActivity: (
+
+    teamComposition: (
       <Card>
         <CardHeader>
-          <CardTitle>Discussion Activity</CardTitle>
-          <CardDescription>Team communication and engagement</CardDescription>
+          <CardTitle>Komposisi Tim</CardTitle>
+          <CardDescription>Unique member count per role lintas semua proyek</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                <MessageSquare className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <p className="text-3xl font-bold">{formatNumber(stats.totalDiscussions)}</p>
-                <p className="text-sm text-muted-foreground">Total Posts</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                <Users className="h-6 w-6 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-3xl font-bold">{formatNumber(teamMembersCount)}</p>
-                <p className="text-sm text-muted-foreground">Active Members</p>
-              </div>
-            </div>
-          </div>
-          <div className="mt-6 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm">Engagement Rate</span>
-              <span className="text-sm font-medium">78%</span>
-            </div>
-            <div className="h-2 bg-muted rounded-full overflow-hidden">
-              <div className="h-full bg-primary rounded-full" style={{ width: "78%" }} />
-            </div>
-            <p className="text-xs text-muted-foreground">+12% from last month</p>
-          </div>
-        </CardContent>
-      </Card>
-    ),
-    teamCollaboration: (
-      <Card>
-        <CardHeader>
-          <CardTitle>Team Collaboration</CardTitle>
-          <CardDescription>Member distribution and roles</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 gap-3">
-            <div className="flex items-center justify-between p-3 border rounded-lg">
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded bg-blue-500/10 flex items-center justify-center">
-                  <Users className="h-4 w-4 text-blue-600" />
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { label: "Estimators",       value: dashData?.team?.estimators,      color: "bg-blue-500/10 text-blue-700"     },
+              { label: "Project Managers", value: dashData?.team?.projectManagers,  color: "bg-purple-500/10 text-purple-700" },
+              { label: "Designers",        value: dashData?.team?.designers,        color: "bg-pink-500/10 text-pink-700"     },
+              { label: "Finance",          value: dashData?.team?.finances,         color: "bg-green-500/10 text-green-700"   },
+            ].map(({ label, value, color }) => (
+              <div key={label} className="p-3 border rounded-lg flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground">{label}</p>
+                  <p className="text-2xl font-bold mt-0.5">{loading ? "..." : fmt(value)}</p>
                 </div>
-                <span className="text-sm font-medium">Total Team Members</span>
+                <span className={`text-xs font-medium px-2 py-1 rounded ${color}`}>
+                  {label.split(" ")[0]}
+                </span>
               </div>
-              <span className="text-lg font-bold">{formatNumber(teamMembersCount)}</span>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="p-3 border rounded-lg">
-                <p className="text-xs text-muted-foreground mb-1">Estimators</p>
-                <p className="text-2xl font-bold">{formatNumber(estimatorsCount)}</p>
-              </div>
-              <div className="p-3 border rounded-lg">
-                <p className="text-xs text-muted-foreground mb-1">Project Managers</p>
-                <p className="text-2xl font-bold">{formatNumber(pmsCount)}</p>
-              </div>
-              <div className="p-3 border rounded-lg">
-                <p className="text-xs text-muted-foreground mb-1">Designers</p>
-                <p className="text-2xl font-bold">{formatNumber(designersCount)}</p>
-              </div>
-              <div className="p-3 border rounded-lg">
-                <p className="text-xs text-muted-foreground mb-1">Finance</p>
-                <p className="text-2xl font-bold">{formatNumber(financeCount)}</p>
-              </div>
-            </div>
+            ))}
           </div>
         </CardContent>
       </Card>
     ),
-    documentStats: (
+
+    boqStatus: boqStatusCard,
+
+    serverStats: (
       <Card>
         <CardHeader>
-          <CardTitle>Media & Documents</CardTitle>
-          <CardDescription>File organization overview</CardDescription>
+          <CardTitle>Server Stats</CardTitle>
+          <CardDescription>CPU, Memory, dan Disk usage server</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {loading || !dashData?.serverStats ? (
+            <p className="text-sm text-muted-foreground text-center py-6">
+              {loading ? "Memuat data server..." : "Data server tidak tersedia"}
+            </p>
+          ) : (
+            <>
+              {/* CPU */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Cpu className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">CPU</span>
+                  </div>
+                  <span className="text-sm text-muted-foreground">
+                    {dashData.serverStats.cpu.model} · {dashData.serverStats.cpu.cores} cores
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${
+                        dashData.serverStats.cpu.usage > 80 ? "bg-red-500"
+                          : dashData.serverStats.cpu.usage > 50 ? "bg-yellow-500"
+                          : "bg-green-500"
+                      }`}
+                      style={{ width: `${dashData.serverStats.cpu.usage}%` }}
+                    />
+                  </div>
+                  <span className="text-sm font-bold w-12 text-right">{dashData.serverStats.cpu.usage}%</span>
+                </div>
+              </div>
+
+              {/* Memory */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <MemoryStick className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Memory (RAM)</span>
+                  </div>
+                  <span className="text-sm text-muted-foreground">
+                    {dashData.serverStats.memory.used.toFixed(1)} / {dashData.serverStats.memory.total.toFixed(1)} GB
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                    {(() => {
+                      const pct = dashData.serverStats.memory.total > 0
+                        ? Math.round((dashData.serverStats.memory.used / dashData.serverStats.memory.total) * 100)
+                        : 0
+                      return (
+                        <div
+                          className={`h-full rounded-full ${pct > 80 ? "bg-red-500" : pct > 60 ? "bg-yellow-500" : "bg-blue-500"}`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      )
+                    })()}
+                  </div>
+                  <span className="text-sm font-bold w-12 text-right">
+                    {dashData.serverStats.memory.total > 0
+                      ? `${Math.round((dashData.serverStats.memory.used / dashData.serverStats.memory.total) * 100)}%`
+                      : "–"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Disk */}
+              {dashData.serverStats.disk.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <HardDrive className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Disk</span>
+                  </div>
+                  <div className="space-y-2">
+                    {dashData.serverStats.disk.slice(0, 3).map((d) => {
+                      const pct = diskUsagePct(d.used, d.size)
+                      return (
+                        <div key={d.mount}>
+                          <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                            <span className="font-mono">{d.mount}</span>
+                            <span>{d.used.toFixed(1)} / {d.size.toFixed(1)} GB ({pct}%)</span>
+                          </div>
+                          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full ${pct > 85 ? "bg-red-500" : pct > 65 ? "bg-yellow-500" : "bg-primary"}`}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+    ),
+
+    mediaStorage: (
+      <Card>
+        <CardHeader>
+          <CardTitle>Media & Storage</CardTitle>
+          <CardDescription>Foto, file, dan penggunaan storage</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4 mb-4">
             <div className="flex items-center gap-3">
               <div className="h-12 w-12 rounded-lg bg-purple-500/10 flex items-center justify-center">
                 <ImageIcon className="h-6 w-6 text-purple-600" />
               </div>
               <div>
-                <p className="text-3xl font-bold">{formatNumber(stats.totalAlbums)}</p>
-                <p className="text-sm text-muted-foreground">Photo Albums</p>
+                <p className="text-3xl font-bold">{loading ? "..." : fmt(dashData?.media?.photos)}</p>
+                <p className="text-sm text-muted-foreground">Foto</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -715,105 +722,297 @@ export default function DashboardPage() {
                 <FileText className="h-6 w-6 text-green-600" />
               </div>
               <div>
-                <p className="text-3xl font-bold">{formatNumber(stats.totalBOQs)}</p>
-                <p className="text-sm text-muted-foreground">BOQ Documents</p>
+                <p className="text-3xl font-bold">{loading ? "..." : fmt(dashData?.media?.files)}</p>
+                <p className="text-sm text-muted-foreground">File</p>
               </div>
             </div>
           </div>
-          <div className="mt-6 p-4 bg-muted rounded-lg">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm">Storage Usage</span>
-              <span className="text-sm bg-yellow-500/10 text-yellow-700 px-2 py-1 rounded">67%</span>
+          {dashData?.media?.storage && dashData.media.storage.total > 0 && (
+            <div className="p-4 bg-muted rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">Storage Usage</span>
+                <span className="text-sm font-bold">
+                  {Math.round((dashData.media.storage.usage / dashData.media.storage.total) * 100)}%
+                </span>
+              </div>
+              <div className="h-2 bg-background rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-linear-to-r from-green-500 to-yellow-500 rounded-full"
+                  style={{
+                    width: `${Math.min(100, Math.round((dashData.media.storage.usage / dashData.media.storage.total) * 100))}%`,
+                  }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                {dashData.media.storage.usage.toFixed(1)} GB dari {dashData.media.storage.total.toFixed(1)} GB
+              </p>
             </div>
-            <div className="h-2 bg-background rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-green-500 to-yellow-500 rounded-full"
-                style={{ width: "67%" }}
-              />
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">2.3GB of 5GB used</p>
-          </div>
+          )}
         </CardContent>
       </Card>
     ),
-    projectTimeline: (
-      <Card>
-        <CardHeader>
-          <CardTitle>Project Timeline</CardTitle>
-          <CardDescription>Upcoming milestones and deadlines</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-start gap-3">
-              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <Calendar className="h-4 w-4 text-primary" />
-              </div>
-              <div className="flex-1">
-                <p className="font-medium text-sm">BOQ Review Meeting</p>
-                <p className="text-xs text-muted-foreground">Tomorrow, 10:00 AM</p>
-              </div>
-              <span className="text-xs bg-yellow-500/10 text-yellow-700 px-2 py-1 rounded">Upcoming</span>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="h-8 w-8 rounded-full bg-green-500/10 flex items-center justify-center flex-shrink-0">
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
-              </div>
-              <div className="flex-1">
-                <p className="font-medium text-sm">Project Alpha Delivery</p>
-                <p className="text-xs text-muted-foreground">Completed 2 days ago</p>
-              </div>
-              <span className="text-xs bg-green-500/10 text-green-700 px-2 py-1 rounded">Done</span>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="h-8 w-8 rounded-full bg-blue-500/10 flex items-center justify-center flex-shrink-0">
-                <Clock className="h-4 w-4 text-blue-600" />
-              </div>
-              <div className="flex-1">
-                <p className="font-medium text-sm">Client Presentation</p>
-                <p className="text-xs text-muted-foreground">Next week, Friday</p>
-              </div>
-              <span className="text-xs bg-blue-500/10 text-blue-700 px-2 py-1 rounded">Scheduled</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    ),
+
     recentProjects: (
       <Card>
         <CardHeader>
-          <CardTitle>Recent Projects</CardTitle>
-          <CardDescription>Your most recently updated projects</CardDescription>
+          <CardTitle>Proyek Terbaru</CardTitle>
+          <CardDescription>Proyek yang baru diperbarui</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-muted-foreground text-center py-8">Loading projects...</p>
-          ) : recentProjects.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">No projects yet. Create your first project!</p>
+            <p className="text-muted-foreground text-center py-8">Memuat proyek...</p>
+          ) : projects.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">Belum ada proyek.</p>
           ) : (
-            <div className="space-y-4">
-              {recentProjects.map((project) => (
+            <div className="space-y-3">
+              {projects.slice(0, 6).map((project) => (
                 <div
                   key={project._id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
                   onClick={() => (window.location.href = `/projects/${project._id}`)}
                 >
-                  <div className="space-y-1">
-                    <p className="font-medium">{project.name}</p>
-                    <p className="text-sm text-muted-foreground">{project.companyClient?.name}</p>
+                  <div className="space-y-0.5 min-w-0 flex-1 pr-3">
+                    <p className="font-medium text-sm truncate">{project.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{project.companyClient?.name}</p>
                   </div>
-                  <div className="text-right space-y-1">
-                    <div
-                      className={`text-sm font-medium px-2 py-1 rounded ${
-                        project.status === "completed"
-                          ? "bg-green-500/10 text-green-700"
-                          : project.status === "active"
-                            ? "bg-blue-500/10 text-blue-700"
-                            : "bg-yellow-500/10 text-yellow-700"
-                      }`}
-                    >
-                      {project.status || "draft"}
+                  <span className={`text-xs font-medium px-2 py-1 rounded shrink-0 ${projectStatusStyle(project.status)}`}>
+                    {project.status ?? "Propose"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    ),
+  }
+
+  // ── User cards ─────────────────────────────────────────────────────────────
+
+  const userCards: Record<UserCardId, React.JSX.Element> = {
+    userStats: (
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {[
+          { title: "Total Proyek",  key: "totalProject"     as const, desc: "Semua proyek saya",     icon: FolderKanban },
+          { title: "Proyek Aktif",  key: "activeProject"    as const, desc: "Sedang berjalan",       icon: Building2    },
+          { title: "Completed",     key: "completedProject" as const, desc: "Berhasil diselesaikan", icon: TrendingUp   },
+          { title: "Total Klien",   key: "totalClient"      as const, desc: "Klien unik",            icon: Users        },
+        ].map(({ title, key, desc, icon: Icon }) => {
+          const stat = dashData?.[key]
+          const trend = stat ? trendBadge(stat.today, stat.before) : null
+          return (
+            <Card key={title}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{title}</CardTitle>
+                <Icon className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{loading ? "..." : fmt(stat?.total)}</div>
+                <p className="text-xs text-muted-foreground">{desc}</p>
+                {trend && (
+                  <p className={`text-xs mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded ${trend.color}`}>
+                    <trend.icon className="h-3 w-3" />
+                    {trend.label}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )
+        })}
+      </div>
+    ),
+
+    myProjects: (
+      <Card>
+        <CardHeader>
+          <CardTitle>Proyek Saya</CardTitle>
+          <CardDescription>Semua proyek yang Anda terlibat beserta role dan status</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <p className="text-muted-foreground text-center py-8">Memuat proyek...</p>
+          ) : projects.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">Belum terlibat dalam proyek apapun.</p>
+          ) : (
+            <div className="space-y-2">
+              {projects.map((project) => {
+                const roles = currentUser ? getUserRolesInProject(project, currentUser._id) : []
+                const projectBoqs = boqItems.filter(
+                  (b) => b.project === project._id || b.project?._id === project._id
+                )
+                const latestBoq = projectBoqs[projectBoqs.length - 1]
+                return (
+                  <div
+                    key={project._id}
+                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer gap-3"
+                    onClick={() => (window.location.href = `/projects/${project._id}`)}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-sm truncate">{project.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{project.companyClient?.name}</p>
                     </div>
-                    <p className="text-xs text-muted-foreground">{project.type}</p>
+                    <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                      {roles.map((r) => (
+                        <span key={r} className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded font-medium">
+                          {r}
+                        </span>
+                      ))}
+                      <span className={`text-xs font-medium px-2 py-1 rounded ${projectStatusStyle(project.status)}`}>
+                        {project.status ?? "Propose"}
+                      </span>
+                      {latestBoq && (
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded ${boqStatusStyle(latestBoq.status)}`}>
+                          BOQ: {latestBoq.status}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    ),
+
+    myRoles: (
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Role Saya</CardTitle>
+            <CardDescription>Ringkasan peran lintas semua proyek</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <p className="text-sm text-muted-foreground">Memuat...</p>
+            ) : Object.keys(myRolesSummary).length === 0 ? (
+              <p className="text-sm text-muted-foreground">Tidak terlibat sebagai role apapun.</p>
+            ) : (
+              <div className="space-y-2">
+                {Object.entries(myRolesSummary).map(([role, count]) => (
+                  <div key={role} className="flex items-center justify-between p-2.5 border rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <UserCog className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">{role}</span>
+                    </div>
+                    <span className="text-sm font-bold text-primary">{count} proyek</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Komposisi Tim</CardTitle>
+            <CardDescription>Unique members per role lintas proyek Anda</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {[
+                { label: "Estimators",       value: dashData?.team?.estimators      },
+                { label: "Project Managers", value: dashData?.team?.projectManagers  },
+                { label: "Designers",        value: dashData?.team?.designers        },
+                { label: "Finance",          value: dashData?.team?.finances         },
+              ].map(({ label, value }) => (
+                <div key={label} className="flex items-center justify-between p-2.5 border rounded-lg">
+                  <span className="text-sm">{label}</span>
+                  <span className="text-sm font-bold">{loading ? "..." : fmt(value)}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    ),
+
+    boqStatus: boqStatusCard,
+
+    paymentSchedule: (
+      <Card>
+        <CardHeader>
+          <CardTitle>Jadwal Pembayaran</CardTitle>
+          <CardDescription>Status termin pembayaran proyek</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            {[
+              { label: "Draft",    count: terminStatusCounts.draft,    icon: FileText,     cls: "bg-muted",         iconCls: "text-muted-foreground" },
+              { label: "Pending",  count: terminStatusCounts.pending,  icon: Clock,        cls: "bg-yellow-500/10", iconCls: "text-yellow-600"       },
+              { label: "Sent",     count: terminStatusCounts.sent,     icon: CreditCard,   cls: "bg-blue-500/10",   iconCls: "text-blue-600"         },
+              { label: "Approved", count: terminStatusCounts.approved, icon: CheckCircle2, cls: "bg-green-500/10",  iconCls: "text-green-600"        },
+            ].map(({ label, count, icon: Icon, cls, iconCls }) => (
+              <div key={label} className="flex items-center gap-3">
+                <div className={`h-10 w-10 rounded-lg ${cls} flex items-center justify-center`}>
+                  <Icon className={`h-5 w-5 ${iconCls}`} />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{loading ? "..." : fmt(count)}</p>
+                  <p className="text-xs text-muted-foreground">{label}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          {terminChartData.some((d) => d.count > 0) && (
+            <ChartContainer
+              config={{ count: { label: "Count", color: "hsl(var(--chart-1))" } }}
+              className="h-45 w-full"
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={terminChartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis dataKey="status" className="text-xs" tick={{ fontSize: 11 }} />
+                  <YAxis className="text-xs" tick={{ fontSize: 11 }} />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                    {terminChartData.map((entry, i) => (
+                      <Cell key={i} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          )}
+          {terminChartData.every((d) => d.count === 0) && !loading && (
+            <p className="text-center text-sm text-muted-foreground py-4">Belum ada data pembayaran</p>
+          )}
+        </CardContent>
+      </Card>
+    ),
+
+    recentDiscussions: (
+      <Card>
+        <CardHeader>
+          <CardTitle>Diskusi Terbaru</CardTitle>
+          <CardDescription>Post terkini dari semua proyek Anda</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <p className="text-muted-foreground text-center py-8">Memuat diskusi...</p>
+          ) : recentPosts.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">Belum ada diskusi.</p>
+          ) : (
+            <div className="space-y-3">
+              {recentPosts.map((post) => (
+                <div key={post._id} className="flex items-start gap-3 p-3 border rounded-lg">
+                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <MessageSquare className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-medium text-primary truncate">{post.projectName}</span>
+                      <span className="text-xs text-muted-foreground shrink-0">{relativeTime(post.createdAt)}</span>
+                    </div>
+                    <p className="text-sm mt-0.5 text-muted-foreground truncate">
+                      <span className="font-medium text-foreground">
+                        {post.createdBy?.profile?.name ?? post.createdBy?.email ?? "Unknown"}:
+                      </span>{" "}
+                      {post.content ?? "(lampiran)"}
+                    </p>
+                    {post.comments?.length > 0 && (
+                      <p className="text-xs text-muted-foreground mt-0.5">{post.comments.length} komentar</p>
+                    )}
                   </div>
                 </div>
               ))}
@@ -824,54 +1023,93 @@ export default function DashboardPage() {
     ),
   }
 
-  const cardLabels: Record<DashboardCardId, string> = {
-    stats: "Statistics Cards",
-    projectProgress: "Project Progress Chart",
-    budgetOverview: "Budget Overview Chart",
-    recentProjects: "Recent Projects List",
-    boqStatus: "BOQ Status Overview",
-    paymentSchedule: "Payment Schedule",
-    discussionActivity: "Discussion Activity",
-    teamCollaboration: "Team Collaboration",
-    documentStats: "Media & Documents",
-    projectTimeline: "Project Timeline",
-  }
+  // ── render ─────────────────────────────────────────────────────────────────
+
+  const visibleCardIds = layout.cardOrder.filter((id) => {
+    if (layout.hiddenCards.includes(id)) return false
+    if (isAdmin) return id in adminCards || id in userCards
+    return id in userCards
+  })
 
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">Welcome back! Here's an overview of your projects.</p>
+          <div className="flex items-center gap-2">
+            <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+            {isAdmin && (
+              <span className="inline-flex items-center gap-1 text-xs font-medium bg-primary/10 text-primary px-2 py-1 rounded">
+                <ShieldCheck className="h-3 w-3" />
+                Admin
+              </span>
+            )}
+          </div>
+          <p className="text-muted-foreground">
+            Selamat datang, {currentUser?.profile?.name ?? currentUser?.email ?? ""}!
+          </p>
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm">
               <Settings2 className="h-4 w-4 mr-2" />
-              Customize
+              Kustomisasi
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>Dashboard Layout</DropdownMenuLabel>
+          <DropdownMenuContent align="end" className="w-64">
+            <DropdownMenuLabel>Layout Dashboard</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            {layout.cardOrder.map((cardId) => {
-              // Skip rendering if the card ID doesn't have a label
-              if (!cardLabels[cardId]) return null
-
-              return (
-                <DropdownMenuCheckboxItem
+            {(() => {
+              const displayIds = layout.cardOrder.filter((id) => cardLabels[id])
+              return displayIds.map((cardId, idx) => (
+                <DropdownMenuItem
                   key={cardId}
-                  checked={!layout.hiddenCards.includes(cardId)}
-                  onCheckedChange={() => toggleCardVisibility(cardId)}
+                  onSelect={(e: Event) => e.preventDefault()}
+                  className="flex items-center gap-1.5 px-2 py-1 cursor-default focus:bg-primary/50"
                 >
-                  {cardLabels[cardId]}
-                </DropdownMenuCheckboxItem>
-              )
-            })}
+                  <button
+                    className="flex items-center gap-2 flex-1 min-w-0 text-left"
+                    onClick={() => toggleCardVisibility(cardId)}
+                  >
+                    <span
+                      className={`h-4 w-4 rounded border shrink-0 flex items-center justify-center ${
+                        !layout.hiddenCards.includes(cardId)
+                          ? "bg-primary border-primary"
+                          : "border-input"
+                      }`}
+                    >
+                      {!layout.hiddenCards.includes(cardId) && (
+                        <Check className="h-3 w-3 text-primary-foreground" />
+                      )}
+                    </span>
+                    <span className="text-sm truncate">{cardLabels[cardId]}</span>
+                  </button>
+                  <div className="flex gap-0.5 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      disabled={idx === 0}
+                      onClick={() => moveCard(cardId, "up")}
+                    >
+                      <ChevronUp className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      disabled={idx === displayIds.length - 1}
+                      onClick={() => moveCard(cardId, "down")}
+                    >
+                      <ChevronDown className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </DropdownMenuItem>
+              ))
+            })()}
             <DropdownMenuSeparator />
             <div className="px-2 py-1.5">
               <Button variant="ghost" size="sm" onClick={resetLayout} className="w-full justify-start">
-                Reset to Default
+                Reset ke Default
               </Button>
             </div>
           </DropdownMenuContent>
@@ -879,55 +1117,28 @@ export default function DashboardPage() {
       </div>
 
       <div className="space-y-4">
-        {layout.cardOrder
-          .filter((cardId) => !layout.hiddenCards.includes(cardId) && cardComponents[cardId])
-          .map((cardId, index) => {
-            const isChartsRow =
-              (cardId === "projectProgress" || cardId === "budgetOverview") &&
-              !layout.hiddenCards.includes("projectProgress") &&
-              !layout.hiddenCards.includes("budgetOverview")
-
-            if (cardId === "projectProgress" && isChartsRow) {
-              return (
-                <div
-                  key="charts-row"
-                  className="grid gap-4 grid-cols-1 lg:grid-cols-2 relative group"
-                  draggable
-                  onDragStart={() => handleDragStart("projectProgress")}
-                  onDragOver={handleDragOver}
-                  onDrop={() => handleDrop("projectProgress")}
-                  onDragEnd={handleDragEnd}
-                >
-                  <div className="absolute -left-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing">
-                    <GripVertical className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                  {cardComponents.projectProgress}
-                  {cardComponents.budgetOverview}
-                </div>
-              )
-            }
-
-            if (cardId === "budgetOverview" && isChartsRow) {
-              return null
-            }
-
-            return (
-              <div
-                key={cardId}
-                className="relative group"
-                draggable
-                onDragStart={() => handleDragStart(cardId)}
-                onDragOver={handleDragOver}
-                onDrop={() => handleDrop(cardId)}
-                onDragEnd={handleDragEnd}
-              >
-                <div className="absolute -left-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing z-10">
-                  <GripVertical className="h-5 w-5 text-muted-foreground" />
-                </div>
-                {cardComponents[cardId]}
+        {visibleCardIds.map((cardId) => {
+          const allCards: Record<string, React.JSX.Element> = { ...userCards, ...adminCards }
+          const component = isAdmin
+            ? allCards[cardId]
+            : userCards[cardId as UserCardId]
+          return (
+            <div
+              key={cardId}
+              className="relative group"
+              draggable
+              onDragStart={() => handleDragStart(cardId)}
+              onDragOver={handleDragOver}
+              onDrop={() => handleDrop(cardId)}
+              onDragEnd={handleDragEnd}
+            >
+              <div className="absolute -left-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing z-10">
+                <GripVertical className="h-5 w-5 text-muted-foreground" />
               </div>
-            )
-          })}
+              {component}
+            </div>
+          )
+        })}
       </div>
     </div>
   )

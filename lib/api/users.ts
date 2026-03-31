@@ -173,3 +173,37 @@ export const usersApi = {
     })
   },
 }
+
+// ── User Preferences (theme + dashboard layout, synced to server) ─────────────
+
+export interface UserPreferences {
+  theme?: "light" | "dark" | "system"
+  dashboardLayout?: {
+    admin?: { cardOrder: string[]; hiddenCards: string[] }
+    user?: { cardOrder: string[]; hiddenCards: string[] }
+  }
+}
+
+export const preferencesApi = {
+  /** Fetch the current user's preferences from the server. Returns null if unauthenticated or on error. */
+  get: async (): Promise<UserPreferences | null> => {
+    try {
+      const response = await apiRequest<{ preferences?: UserPreferences }>("/auths/profiles", { method: "GET" })
+      return response.data?.preferences ?? null
+    } catch {
+      return null
+    }
+  },
+
+  /** Partially update preferences on the server (fire-and-forget safe). */
+  update: async (prefs: Partial<UserPreferences>): Promise<void> => {
+    try {
+      await apiRequest("/auths/profiles/preferences", {
+        method: "PATCH",
+        body: JSON.stringify(prefs),
+      })
+    } catch {
+      // Fail silently — localStorage is always the fast fallback
+    }
+  },
+}

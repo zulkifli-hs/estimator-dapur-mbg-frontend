@@ -128,16 +128,16 @@ function relativeTime(dateStr: string): string {
   if (hrs < 24) return `${hrs}h ago`
   const days = Math.floor(hrs / 24)
   if (days < 30) return `${days}d ago`
-  return new Date(dateStr).toLocaleDateString("id-ID", { day: "numeric", month: "short" })
+  return new Date(dateStr).toLocaleDateString("en-US", { day: "numeric", month: "short" })
 }
 
 function trendBadge(current: number, previous: number) {
   if (previous === 0 && current === 0) return null
-  if (previous === 0) return { icon: ArrowUp, label: `+${current} bulan ini`, color: "text-green-600 bg-green-500/10" }
+  if (previous === 0) return { icon: ArrowUp, label: `+${current} this month`, color: "text-green-600 bg-green-500/10" }
   const delta = current - previous
-  if (delta > 0) return { icon: ArrowUp, label: `+${delta} dari bulan lalu`, color: "text-green-600 bg-green-500/10" }
-  if (delta < 0) return { icon: ArrowDown, label: `${delta} dari bulan lalu`, color: "text-red-600 bg-red-500/10" }
-  return { icon: Minus, label: "sama dengan bulan lalu", color: "text-muted-foreground bg-muted" }
+  if (delta > 0) return { icon: ArrowUp, label: `+${delta} from last month`, color: "text-green-600 bg-green-500/10" }
+  if (delta < 0) return { icon: ArrowDown, label: `${delta} from last month`, color: "text-red-600 bg-red-500/10" }
+  return { icon: Minus, label: "same as last month", color: "text-muted-foreground bg-muted" }
 }
 
 function getUserRolesInProject(project: ProjectWithStatus, userId: string): string[] {
@@ -379,26 +379,26 @@ export default function DashboardPage() {
 
   const cardLabels: Record<string, string> = isAdmin
     ? {
-        adminStats: "Overview Statistik",
-        projectStats: "Statistik Project",
+        adminStats: "Statistics Overview",
+        projectStats: "Project Statistics",
         projectProgress: "Project Progress Chart",
-        teamComposition: "Komposisi Tim",
-        boqStatus: "Status BOQ",
+        teamComposition: "Team Composition",
+        boqStatus: "BOQ Status",
         serverStats: "Server Stats",
         mediaStorage: "Media & Storage",
-        recentProjects: "Proyek Terbaru",
-        myProjects: "Proyek Saya (Role Saya)",
-        myRoles: "Role Saya",
-        paymentSchedule: "Jadwal Pembayaran (Role Saya)",
-        recentDiscussions: "Diskusi Terbaru (Role Saya)",
+        recentProjects: "Recent Projects",
+        myProjects: "My Projects (My Roles)",
+        myRoles: "My Roles",
+        paymentSchedule: "Payment Schedule (My Roles)",
+        recentDiscussions: "Recent Discussions (My Roles)",
       }
     : {
-        userStats: "Overview Statistik",
-        myProjects: "Proyek Saya",
-        myRoles: "Role Saya",
-        boqStatus: "Status BOQ",
-        paymentSchedule: "Jadwal Pembayaran",
-        recentDiscussions: "Diskusi Terbaru",
+        userStats: "Statistics Overview",
+        myProjects: "My Projects",
+        myRoles: "My Roles",
+        boqStatus: "BOQ Status",
+        paymentSchedule: "Payment Schedule",
+        recentDiscussions: "Recent Discussions",
       }
 
   // ── shared BOQ status card ─────────────────────────────────────────────────
@@ -406,8 +406,8 @@ export default function DashboardPage() {
   const boqStatusCard = (
     <Card>
       <CardHeader>
-        <CardTitle>Status BOQ</CardTitle>
-        <CardDescription>Distribusi Bill of Quantities berdasarkan status</CardDescription>
+        <CardTitle>BOQ Status</CardTitle>
+        <CardDescription>Distribution of Bill of Quantities by status</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
@@ -452,7 +452,7 @@ export default function DashboardPage() {
           </ChartContainer>
         )}
         {boqChartData.every((d) => d.value === 0) && !loading && (
-          <p className="text-center text-sm text-muted-foreground py-6">Belum ada data BOQ</p>
+          <p className="text-center text-sm text-muted-foreground py-6">No BOQ data yet</p>
         )}
       </CardContent>
     </Card>
@@ -464,13 +464,13 @@ export default function DashboardPage() {
     adminStats: (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {[
-          { title: "Total Users",     value: fmt(dashData?.totalUsers),        desc: "Pengguna terdaftar",    icon: Users,          stat: null as ReturnType<typeof trendBadge> },
-          { title: "Total Products",  value: fmt(dashData?.totalProducts),  desc: "Produk dalam katalog",  icon: Package,        stat: null as ReturnType<typeof trendBadge> },
-          { title: "Total Templates", value: fmt(dashData?.totalTemplates), desc: "Template BOQ",          icon: LayoutTemplate, stat: null as ReturnType<typeof trendBadge> },
+          { title: "Total Users",     value: fmt(dashData?.totalUsers),        desc: "Registered users",       icon: Users,          stat: null as ReturnType<typeof trendBadge> },
+          { title: "Total Products",  value: fmt(dashData?.totalProducts),  desc: "Products in catalog",   icon: Package,        stat: null as ReturnType<typeof trendBadge> },
+          { title: "Total Templates", value: fmt(dashData?.totalTemplates), desc: "BOQ templates",          icon: LayoutTemplate, stat: null as ReturnType<typeof trendBadge> },
           {
             title: "Total Projects",
             value: fmt(dashData?.totalProject?.total),
-            desc: "Semua proyek",
+            desc: "All projects",
             icon: FolderKanban,
             stat: dashData ? trendBadge(dashData.totalProject.today, dashData.totalProject.before) : null,
           },
@@ -531,7 +531,7 @@ export default function DashboardPage() {
       <Card>
         <CardHeader>
           <CardTitle>Project Progress</CardTitle>
-          <CardDescription>Completed vs Ongoing — 12 bulan terakhir</CardDescription>
+          <CardDescription>Completed vs Ongoing — last 12 months</CardDescription>
         </CardHeader>
         <CardContent className="p-4 sm:p-6">
           {projectProgressData.length > 0 ? (
@@ -556,7 +556,7 @@ export default function DashboardPage() {
             </ChartContainer>
           ) : (
             <p className="text-center text-sm text-muted-foreground py-12">
-              {loading ? "Memuat data..." : "Belum ada data proyek"}
+              {loading ? "Loading data..." : "No project data yet"}
             </p>
           )}
         </CardContent>
@@ -566,8 +566,8 @@ export default function DashboardPage() {
     teamComposition: (
       <Card>
         <CardHeader>
-          <CardTitle>Komposisi Tim</CardTitle>
-          <CardDescription>Unique member count per role lintas semua proyek</CardDescription>
+          <CardTitle>Team Composition</CardTitle>
+          <CardDescription>Unique member count per role across all projects</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-3">
@@ -598,12 +598,12 @@ export default function DashboardPage() {
       <Card>
         <CardHeader>
           <CardTitle>Server Stats</CardTitle>
-          <CardDescription>CPU, Memory, dan Disk usage server</CardDescription>
+          <CardDescription>CPU, Memory, and Disk usage</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
           {loading || !dashData?.serverStats ? (
             <p className="text-sm text-muted-foreground text-center py-6">
-              {loading ? "Memuat data server..." : "Data server tidak tersedia"}
+              {loading ? "Loading server data..." : "Server data unavailable"}
             </p>
           ) : (
             <>
@@ -704,7 +704,7 @@ export default function DashboardPage() {
       <Card>
         <CardHeader>
           <CardTitle>Media & Storage</CardTitle>
-          <CardDescription>Foto, file, dan penggunaan storage</CardDescription>
+          <CardDescription>Photos, files, and storage usage</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4 mb-4">
@@ -714,7 +714,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <p className="text-3xl font-bold">{loading ? "..." : fmt(dashData?.media?.photos)}</p>
-                <p className="text-sm text-muted-foreground">Foto</p>
+                <p className="text-sm text-muted-foreground">Photos</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -723,7 +723,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <p className="text-3xl font-bold">{loading ? "..." : fmt(dashData?.media?.files)}</p>
-                <p className="text-sm text-muted-foreground">File</p>
+                <p className="text-sm text-muted-foreground">Files</p>
               </div>
             </div>
           </div>
@@ -744,7 +744,7 @@ export default function DashboardPage() {
                 />
               </div>
               <p className="text-xs text-muted-foreground mt-2">
-                {dashData.media.storage.usage.toFixed(1)} GB dari {dashData.media.storage.total.toFixed(1)} GB
+                {dashData.media.storage.usage.toFixed(1)} GB of {dashData.media.storage.total.toFixed(1)} GB
               </p>
             </div>
           )}
@@ -755,14 +755,14 @@ export default function DashboardPage() {
     recentProjects: (
       <Card>
         <CardHeader>
-          <CardTitle>Proyek Terbaru</CardTitle>
-          <CardDescription>Proyek yang baru diperbarui</CardDescription>
+          <CardTitle>Recent Projects</CardTitle>
+          <CardDescription>Recently updated projects</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-muted-foreground text-center py-8">Memuat proyek...</p>
+            <p className="text-muted-foreground text-center py-8">Loading projects...</p>
           ) : projects.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">Belum ada proyek.</p>
+            <p className="text-muted-foreground text-center py-8">No projects yet.</p>
           ) : (
             <div className="space-y-3">
               {projects.slice(0, 6).map((project) => (
@@ -793,10 +793,10 @@ export default function DashboardPage() {
     userStats: (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {[
-          { title: "Total Proyek",  key: "totalProject"     as const, desc: "Semua proyek saya",     icon: FolderKanban },
-          { title: "Proyek Aktif",  key: "activeProject"    as const, desc: "Sedang berjalan",       icon: Building2    },
-          { title: "Completed",     key: "completedProject" as const, desc: "Berhasil diselesaikan", icon: TrendingUp   },
-          { title: "Total Klien",   key: "totalClient"      as const, desc: "Klien unik",            icon: Users        },
+          { title: "Total Projects",  key: "totalProject"     as const, desc: "All my projects",          icon: FolderKanban },
+          { title: "Active Projects",  key: "activeProject"    as const, desc: "Currently in progress",    icon: Building2    },
+          { title: "Completed",        key: "completedProject" as const, desc: "Successfully completed",   icon: TrendingUp   },
+          { title: "Total Clients",    key: "totalClient"      as const, desc: "Unique clients",           icon: Users        },
         ].map(({ title, key, desc, icon: Icon }) => {
           const stat = dashData?.[key]
           const trend = stat ? trendBadge(stat.today, stat.before) : null
@@ -825,14 +825,14 @@ export default function DashboardPage() {
     myProjects: (
       <Card>
         <CardHeader>
-          <CardTitle>Proyek Saya</CardTitle>
-          <CardDescription>Semua proyek yang Anda terlibat beserta role dan status</CardDescription>
+          <CardTitle>My Projects</CardTitle>
+          <CardDescription>All projects you are involved in, with your roles and status</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-muted-foreground text-center py-8">Memuat proyek...</p>
+            <p className="text-muted-foreground text-center py-8">Loading projects...</p>
           ) : projects.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">Belum terlibat dalam proyek apapun.</p>
+            <p className="text-muted-foreground text-center py-8">Not involved in any projects yet.</p>
           ) : (
             <div className="space-y-2">
               {projects.map((project) => {
@@ -879,14 +879,14 @@ export default function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Role Saya</CardTitle>
-            <CardDescription>Ringkasan peran lintas semua proyek</CardDescription>
+            <CardTitle>My Roles</CardTitle>
+            <CardDescription>Summary of your roles across all projects</CardDescription>
           </CardHeader>
           <CardContent>
             {loading ? (
-              <p className="text-sm text-muted-foreground">Memuat...</p>
+              <p className="text-sm text-muted-foreground">Loading...</p>
             ) : Object.keys(myRolesSummary).length === 0 ? (
-              <p className="text-sm text-muted-foreground">Tidak terlibat sebagai role apapun.</p>
+              <p className="text-sm text-muted-foreground">Not assigned to any role yet.</p>
             ) : (
               <div className="space-y-2">
                 {Object.entries(myRolesSummary).map(([role, count]) => (
@@ -895,7 +895,7 @@ export default function DashboardPage() {
                       <UserCog className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm font-medium">{role}</span>
                     </div>
-                    <span className="text-sm font-bold text-primary">{count} proyek</span>
+                    <span className="text-sm font-bold text-primary">{count} project{count !== 1 ? "s" : ""}</span>
                   </div>
                 ))}
               </div>
@@ -906,7 +906,7 @@ export default function DashboardPage() {
         <Card>
           <CardHeader>
             <CardTitle>Komposisi Tim</CardTitle>
-            <CardDescription>Unique members per role lintas proyek Anda</CardDescription>
+            <CardDescription>Unique members per role across your projects</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -932,8 +932,8 @@ export default function DashboardPage() {
     paymentSchedule: (
       <Card>
         <CardHeader>
-          <CardTitle>Jadwal Pembayaran</CardTitle>
-          <CardDescription>Status termin pembayaran proyek</CardDescription>
+          <CardTitle>Payment Schedule</CardTitle>
+          <CardDescription>Project payment term status</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
@@ -975,7 +975,7 @@ export default function DashboardPage() {
             </ChartContainer>
           )}
           {terminChartData.every((d) => d.count === 0) && !loading && (
-            <p className="text-center text-sm text-muted-foreground py-4">Belum ada data pembayaran</p>
+            <p className="text-center text-sm text-muted-foreground py-4">No payment data yet</p>
           )}
         </CardContent>
       </Card>
@@ -984,14 +984,14 @@ export default function DashboardPage() {
     recentDiscussions: (
       <Card>
         <CardHeader>
-          <CardTitle>Diskusi Terbaru</CardTitle>
-          <CardDescription>Post terkini dari semua proyek Anda</CardDescription>
+          <CardTitle>Recent Discussions</CardTitle>
+          <CardDescription>Latest posts from all your projects</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-muted-foreground text-center py-8">Memuat diskusi...</p>
+            <p className="text-muted-foreground text-center py-8">Loading discussions...</p>
           ) : recentPosts.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">Belum ada diskusi.</p>
+            <p className="text-muted-foreground text-center py-8">No discussions yet.</p>
           ) : (
             <div className="space-y-3">
               {recentPosts.map((post) => (
@@ -1008,10 +1008,10 @@ export default function DashboardPage() {
                       <span className="font-medium text-foreground">
                         {post.createdBy?.profile?.name ?? post.createdBy?.email ?? "Unknown"}:
                       </span>{" "}
-                      {post.content ?? "(lampiran)"}
+                      {post.content ?? "(attachment)"}
                     </p>
                     {post.comments?.length > 0 && (
-                      <p className="text-xs text-muted-foreground mt-0.5">{post.comments.length} komentar</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{post.comments.length} comment{post.comments.length !== 1 ? "s" : ""}</p>
                     )}
                   </div>
                 </div>
@@ -1033,7 +1033,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between sticky -top-6 z-10 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 -mx-3 px-3 sm:-mx-4 sm:px-4 md:-mx-6 md:px-6 py-3 border-b">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
@@ -1045,18 +1045,18 @@ export default function DashboardPage() {
             )}
           </div>
           <p className="text-muted-foreground">
-            Selamat datang, {currentUser?.profile?.name ?? currentUser?.email ?? ""}!
+            Welcome, {currentUser?.profile?.name ?? currentUser?.email ?? ""}!
           </p>
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm">
               <Settings2 className="h-4 w-4 mr-2" />
-              Kustomisasi
+              Customize
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-64">
-            <DropdownMenuLabel>Layout Dashboard</DropdownMenuLabel>
+            <DropdownMenuLabel>Dashboard Layout</DropdownMenuLabel>
             <DropdownMenuSeparator />
             {(() => {
               const displayIds = layout.cardOrder.filter((id) => cardLabels[id])
@@ -1109,7 +1109,7 @@ export default function DashboardPage() {
             <DropdownMenuSeparator />
             <div className="px-2 py-1.5">
               <Button variant="ghost" size="sm" onClick={resetLayout} className="w-full justify-start">
-                Reset ke Default
+                Reset to Default
               </Button>
             </div>
           </DropdownMenuContent>

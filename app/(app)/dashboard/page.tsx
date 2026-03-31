@@ -56,6 +56,7 @@ import { getBOQList } from "@/lib/api/boq"
 import { getTerminList, type Termin } from "@/lib/api/termin"
 import { discussionsApi, type Post } from "@/lib/api/discussions"
 import { dashboardApi, type DashboardData } from "@/lib/api/dashboard"
+import { preferencesApi } from "@/lib/api/users"
 
 // ── types ────────────────────────────────────────────────────────────────────
 
@@ -221,10 +222,22 @@ export default function DashboardPage() {
 
   const loadData = async (_currentUser: CurrentUser) => {
     try {
-      const [dashResponse, projectsResponse] = await Promise.allSettled([
+      const [dashResponse, projectsResponse, prefsResponse] = await Promise.allSettled([
         dashboardApi.getDashboard(),
         projectsApi.getAll(),
+        preferencesApi.get(),
       ])
+
+      // Apply server layout preference (overrides localStorage for cross-device sync)
+      if (prefsResponse.status === "fulfilled" && prefsResponse.value?.dashboardLayout) {
+        const role = _currentUser.admin ? "admin" : "user"
+        const serverLayout = prefsResponse.value.dashboardLayout[role]
+        if (serverLayout) {
+          const key = _currentUser.admin ? "dashboard-layout-admin" : "dashboard-layout-user"
+          localStorage.setItem(key, JSON.stringify(serverLayout))
+          setLayout(serverLayout as DashboardLayout)
+        }
+      }
 
       const dash = dashResponse.status === "fulfilled" ? dashResponse.value : null
       const projList: ProjectWithStatus[] =
@@ -278,6 +291,9 @@ export default function DashboardPage() {
   const updateLayout = (newLayout: DashboardLayout) => {
     setLayout(newLayout)
     localStorage.setItem(layoutKey, JSON.stringify(newLayout))
+    // Sync to server for cross-device sync (fire-and-forget)
+    const role = isAdmin ? "admin" : "user"
+    preferencesApi.update({ dashboardLayout: { [role]: newLayout } })
   }
 
   const toggleCardVisibility = (cardId: DashboardCardId) => {

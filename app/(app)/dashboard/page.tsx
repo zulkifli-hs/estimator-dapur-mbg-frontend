@@ -10,6 +10,7 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuLabel,
+  DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
@@ -37,6 +38,9 @@ import {
   Minus,
   UserCog,
   ShieldCheck,
+  ChevronUp,
+  ChevronDown,
+  Check,
 } from "lucide-react"
 import {
   Bar,
@@ -317,6 +321,15 @@ export default function DashboardPage() {
   }
   const handleDragEnd = () => setDraggedCard(null)
   const resetLayout = () => updateLayout(isAdmin ? ADMIN_DEFAULT : USER_DEFAULT)
+
+  const moveCard = (cardId: DashboardCardId, direction: "up" | "down") => {
+    const newOrder = [...layout.cardOrder]
+    const idx = newOrder.indexOf(cardId)
+    const swap = direction === "up" ? idx - 1 : idx + 1
+    if (swap < 0 || swap >= newOrder.length) return
+    ;[newOrder[idx], newOrder[swap]] = [newOrder[swap], newOrder[idx]]
+    updateLayout({ ...layout, cardOrder: newOrder })
+  }
 
   // ── derived data ───────────────────────────────────────────────────────────
 
@@ -1042,20 +1055,57 @@ export default function DashboardPage() {
               Kustomisasi
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuContent align="end" className="w-64">
             <DropdownMenuLabel>Layout Dashboard</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            {layout.cardOrder
-              .filter((id) => cardLabels[id])
-              .map((cardId) => (
-                <DropdownMenuCheckboxItem
+            {(() => {
+              const displayIds = layout.cardOrder.filter((id) => cardLabels[id])
+              return displayIds.map((cardId, idx) => (
+                <DropdownMenuItem
                   key={cardId}
-                  checked={!layout.hiddenCards.includes(cardId)}
-                  onCheckedChange={() => toggleCardVisibility(cardId)}
+                  onSelect={(e: Event) => e.preventDefault()}
+                  className="flex items-center gap-1.5 px-2 py-1 cursor-default focus:bg-primary/50"
                 >
-                  {cardLabels[cardId]}
-                </DropdownMenuCheckboxItem>
-              ))}
+                  <button
+                    className="flex items-center gap-2 flex-1 min-w-0 text-left"
+                    onClick={() => toggleCardVisibility(cardId)}
+                  >
+                    <span
+                      className={`h-4 w-4 rounded border shrink-0 flex items-center justify-center ${
+                        !layout.hiddenCards.includes(cardId)
+                          ? "bg-primary border-primary"
+                          : "border-input"
+                      }`}
+                    >
+                      {!layout.hiddenCards.includes(cardId) && (
+                        <Check className="h-3 w-3 text-primary-foreground" />
+                      )}
+                    </span>
+                    <span className="text-sm truncate">{cardLabels[cardId]}</span>
+                  </button>
+                  <div className="flex gap-0.5 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      disabled={idx === 0}
+                      onClick={() => moveCard(cardId, "up")}
+                    >
+                      <ChevronUp className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      disabled={idx === displayIds.length - 1}
+                      onClick={() => moveCard(cardId, "down")}
+                    >
+                      <ChevronDown className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </DropdownMenuItem>
+              ))
+            })()}
             <DropdownMenuSeparator />
             <div className="px-2 py-1.5">
               <Button variant="ghost" size="sm" onClick={resetLayout} className="w-full justify-start">

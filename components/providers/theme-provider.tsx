@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { preferencesApi } from "@/lib/api/users"
 
 type Theme = "dark" | "light" | "system"
 
@@ -28,9 +29,21 @@ export function ThemeProvider({
   storageKey = "gema-ui-theme",
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = React.useState<Theme>(
+  const [theme, setThemeState] = React.useState<Theme>(
     () => (typeof window !== "undefined" && (localStorage.getItem(storageKey) as Theme)) || defaultTheme,
   )
+
+  // On mount (if logged in): pull theme from server and apply if different from localStorage
+  React.useEffect(() => {
+    preferencesApi.get().then((prefs) => {
+      if (prefs?.theme) {
+        const serverTheme = prefs.theme as Theme
+        localStorage.setItem(storageKey, serverTheme)
+        setThemeState(serverTheme)
+      }
+    }).catch(() => {})
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   React.useEffect(() => {
     const root = window.document.documentElement
@@ -48,9 +61,11 @@ export function ThemeProvider({
 
   const value = {
     theme,
-    setTheme: (theme: Theme) => {
-      localStorage.setItem(storageKey, theme)
-      setTheme(theme)
+    setTheme: (newTheme: Theme) => {
+      localStorage.setItem(storageKey, newTheme)
+      setThemeState(newTheme)
+      // Sync to server (fire-and-forget)
+      preferencesApi.update({ theme: newTheme })
     },
   }
 

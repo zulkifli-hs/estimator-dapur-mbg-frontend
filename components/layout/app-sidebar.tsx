@@ -4,7 +4,7 @@ import type React from "react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { useEffect, useState } from "react"
-import { GemaLogo } from "@/components/gema-logo"
+import { DapurCekLogo } from "@/components/dapurcek-logo"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -112,7 +112,7 @@ export function AppSidebar({ collapsed = false, onCollapse, className }: AppSide
     >
       {/* Logo Header */}
       <div className="flex h-14 sm:h-16 items-center justify-between border-b px-4">
-        {!collapsed && <GemaLogo className="h-6 sm:h-8" />}
+        {!collapsed && <DapurCekLogo className="h-6 sm:h-8" />}
         <Button
           type="button"
           variant="ghost"

@@ -271,7 +271,7 @@ export function ProjectInvoice({ projectId, project, onUpdate }: ProjectInvoiceP
   }
 
   const getFileUrl = (provider: string, url: string) => {
-    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.gema-interior.com"
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.dapurcek.id"
     return `${baseUrl}/public/${provider}/${url}`
   }
 

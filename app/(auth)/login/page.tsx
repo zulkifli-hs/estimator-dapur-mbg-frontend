@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { login } from "@/lib/api/auth"
 import { setAuthToken } from "@/lib/api/config"
-import { GemaLogo } from "@/components/gema-logo"
+import { DapurCekLogo } from "@/components/dapurcek-logo"
 import { ArrowRight, Eye, EyeOff } from "lucide-react"
 
 export default function LoginPage() {
@@ -72,14 +72,14 @@ export default function LoginPage() {
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
 
         <div className="relative z-10">
-          <GemaLogo className="h-8" />
+          <DapurCekLogo className="h-8" />
         </div>
 
         <div className="relative z-10 space-y-6 max-w-lg">
           <div className="space-y-4">
-            <h2 className="text-3xl font-bold">Welcome back to ID Build</h2>
+            <h2 className="text-3xl font-bold">Welcome back to DapurCek</h2>
             <p className="text-lg text-muted-foreground">
-              Manage your interior design projects with precision. Access your dashboard to streamline estimates, track
+              Monitor your MBG kitchen construction projects with precision. Access your dashboard to streamline estimates, track
               progress, and collaborate with your team.
             </p>
           </div>
@@ -107,7 +107,7 @@ export default function LoginPage() {
         </div>
 
         <div className="relative z-10">
-          <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} IDBuild. All rights reserved.</p>
+          <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} DapurCek. All rights reserved.</p>
         </div>
       </div>
 
@@ -116,7 +116,7 @@ export default function LoginPage() {
         <div className="w-full max-w-md space-y-6">
           {/* Mobile Logo */}
           <div className="lg:hidden flex justify-center mb-6">
-            <GemaLogo className="h-10" />
+            <DapurCekLogo className="h-10" />
           </div>
 
           <Card className="border-0 shadow-lg">
@@ -201,7 +201,7 @@ export default function LoginPage() {
               <div className="w-full border-t border-muted" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">New to IDBuild?</span>
+              <span className="bg-background px-2 text-muted-foreground">New to DapurCek?</span>
             </div>
           </div>
 

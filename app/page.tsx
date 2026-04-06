@@ -29,37 +29,37 @@ export default function Page() {
       icon: LayoutDashboard,
       title: "Smart Dashboard",
       description:
-        "Get a comprehensive overview of all your projects, recent activities, and key metrics at a glance. Monitor project health, track deadlines, and stay informed with real-time updates.",
+        "Get a comprehensive overview of all your MBG kitchen construction projects, recent activities, and key metrics at a glance. Monitor progress, track deadlines, and stay informed with real-time updates.",
     },
     {
       icon: FolderKanban,
       title: "Project Management",
       description:
-        "Manage multiple interior design projects efficiently. Track progress from concept to completion with detailed project timelines, milestones, and team assignments.",
+        "Manage multiple Dapur MBG construction projects efficiently. Track progress from planning to completion with detailed project timelines, milestones, and team assignments.",
     },
     {
       icon: MessageSquare,
       title: "AI Assistant",
       description:
-        "Leverage AI-powered insights for cost estimation, material recommendations, and project optimization. Get intelligent suggestions based on your project requirements.",
+        "Leverage AI-powered insights for cost estimation, material recommendations, and project optimization. Get intelligent suggestions based on your construction requirements.",
     },
     {
       icon: Users,
       title: "User Management",
       description:
-        "Control team access and permissions. Assign roles to team members and manage client access to ensure secure collaboration on every project.",
+        "Control team access and permissions. Assign roles to team members and manage stakeholder access to ensure secure collaboration on every project.",
     },
     {
       icon: Package,
       title: "Product Catalog",
       description:
-        "Maintain a comprehensive database of materials, furniture, and finishes. Track prices, manage suppliers, and quickly add items to your BOQ.",
+        "Maintain a comprehensive database of construction materials and equipment. Track prices, manage suppliers, and quickly add items to your BOQ.",
     },
     {
       icon: FileText,
       title: "BOQ Templates",
       description:
-        "Create and reuse Bill of Quantities templates for faster project setup. Standardize your estimates and maintain consistency across all projects.",
+        "Create and reuse Bill of Quantities templates for faster project setup. Standardize your estimates and maintain consistency across all kitchen construction projects.",
     },
   ]
 
@@ -68,19 +68,19 @@ export default function Page() {
       icon: Layers,
       title: "Layout Management",
       description:
-        "Upload and manage CAD files, 3D renders, and project photos. Keep all visual assets organized and accessible.",
+        "Upload and manage blueprints, construction photos, and project documentation. Keep all visual assets organized and accessible.",
     },
     {
       icon: Calculator,
       title: "BOQ Builder",
       description:
-        "Create detailed Bills of Quantities with preliminary works, fitting out, and furniture items. Auto-calculate totals and manage pricing.",
+        "Create detailed Bills of Quantities with preliminary works, structural works, and kitchen equipment items. Auto-calculate totals and manage pricing.",
     },
     {
       icon: TrendingUp,
       title: "Gantt Chart",
       description:
-        "Visualize project timelines with interactive Gantt charts. Set start and end dates for each task and track progress in real-time.",
+        "Visualize construction timelines with interactive Gantt charts. Set start and end dates for each phase and track progress in real-time.",
     },
     {
       icon: Receipt,
@@ -92,13 +92,13 @@ export default function Page() {
       icon: FolderOpen,
       title: "Document Storage",
       description:
-        "Centralize all project documents including contracts, specifications, and correspondence in one secure location.",
+        "Centralize all project documents including contracts, specifications, and permits in one secure location.",
     },
     {
       icon: UserPlus,
       title: "Team Collaboration",
       description:
-        "Add team members and clients to projects. Assign roles and control access levels for seamless collaboration.",
+        "Add team members and stakeholders to projects. Assign roles and control access levels for seamless collaboration.",
     },
   ]
 
@@ -113,13 +113,13 @@ export default function Page() {
       icon: DollarSign,
       title: "Cost Accuracy",
       stat: "95%",
-      description: "Achieve precise cost estimates with real-time product pricing",
+      description: "Achieve precise cost estimates with real-time material pricing",
     },
     {
       icon: CheckCircle,
       title: "Project Success",
       stat: "100%",
-      description: "Complete projects on time with comprehensive tracking tools",
+      description: "Complete construction projects on time with comprehensive tracking tools",
     },
     {
       icon: BarChart3,
@@ -131,12 +131,12 @@ export default function Page() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Hero Section with Interior Design Background */}
+      {/* Hero Section */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0">
           <Image
             src="/modern-office-interior-design-workspace-with-clean.jpg"
-            alt="Modern office interior"
+            alt="MBG Kitchen Construction"
             fill
             className="object-cover opacity-10"
             priority
@@ -174,17 +174,17 @@ export default function Page() {
             <div className="space-y-8 text-center lg:text-left">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium">
                 <Star className="w-4 h-4" />
-                Interior Design Project Management Platform
+                MBG Kitchen Construction Monitoring Platform
               </div>
 
               <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-balance">
-                Streamline Your
-                <span className="block text-primary mt-2">Office Interior Projects</span>
+                Monitor Your
+                <span className="block text-primary mt-2">Dapur MBG Construction</span>
               </h1>
 
               <p className="text-lg md:text-xl text-muted-foreground text-balance max-w-3xl mx-auto lg:mx-0 leading-relaxed">
-                The complete platform for interior designers to manage projects, create accurate cost estimates, track
-                progress with Gantt charts, and collaborate seamlessly with clients and teams.
+                The complete platform for monitoring Makan Bergizi Gratis kitchen construction projects, creating accurate cost estimates, tracking
+                progress with Gantt charts, and collaborating seamlessly with teams.
               </p>
 
               <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-4">
@@ -205,7 +205,7 @@ export default function Page() {
                 <div className="absolute inset-0 bg-linear-to-br from-primary/20 to-primary/5 rounded-3xl" />
                 <Image
                   src="/professional-interior-designer-working-on-office-l.jpg"
-                  alt="Interior design planning"
+                  alt="MBG Kitchen Construction"
                   fill
                   className="object-cover p-8 rounded-3xl"
                 />
@@ -240,24 +240,24 @@ export default function Page() {
       <section className="py-20 md:py-32">
         <div className="container mx-auto px-4">
           <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Everything You Need to Manage Interior Projects</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Everything You Need to Monitor MBG Kitchen Construction</h2>
             <p className="text-lg text-muted-foreground">
-              From initial estimates to project completion, IDBuild provides all the tools you need to deliver
-              exceptional interior design projects on time and within budget.
+              From initial estimates to project completion, DapurCek provides all the tools you need to deliver
+              MBG kitchen construction projects on time and within budget.
             </p>
           </div>
 
           <div className="mb-16 relative rounded-2xl overflow-hidden border shadow-xl">
             <Image
               src="/images/screenshot-202025-12-19-20at-2022.png"
-              alt="IDBuild Dashboard"
+              alt="DapurCek Dashboard"
               width={1200}
               height={600}
               className="w-full object-cover"
             />
             <div className="absolute inset-0 bg-linear-to-t from-background/80 to-transparent" />
             <div className="absolute bottom-6 left-6 right-6">
-              <p className="text-lg font-medium">Powerful dashboard to manage all your interior design projects</p>
+              <p className="text-lg font-medium">Powerful dashboard to monitor all your MBG kitchen construction projects</p>
             </div>
           </div>
 
@@ -285,9 +285,9 @@ export default function Page() {
       <section className="py-20 md:py-32 bg-muted/30">
         <div className="container mx-auto px-4">
           <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Comprehensive Project Management</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Comprehensive Construction Management</h2>
             <p className="text-lg text-muted-foreground">
-              Each project comes with powerful tools to manage every aspect of your interior design work, from layouts
+              Each project comes with powerful tools to manage every aspect of your MBG kitchen construction, from blueprints
               and materials to invoicing and team collaboration.
             </p>
           </div>
@@ -319,7 +319,7 @@ export default function Page() {
         <div className="container mx-auto px-4">
           <div className="grid lg:grid-cols-2 gap-12 md:gap-16 items-center">
             <div className="space-y-8">
-              <h2 className="text-3xl md:text-4xl font-bold">Solving Real Challenges for Interior Designers</h2>
+              <h2 className="text-3xl md:text-4xl font-bold">Solving Real Challenges for Construction Teams</h2>
               <div className="space-y-6">
                 <div className="flex gap-4">
                   <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-1">
@@ -328,7 +328,7 @@ export default function Page() {
                   <div>
                     <h3 className="font-semibold mb-1">Accurate Cost Estimation</h3>
                     <p className="text-muted-foreground">
-                      No more spreadsheet errors. Create detailed BOQs with automatic calculations and real-time product
+                      No more spreadsheet errors. Create detailed BOQs with automatic calculations and real-time material
                       pricing from your catalog.
                     </p>
                   </div>
@@ -338,9 +338,9 @@ export default function Page() {
                     <CheckCircle className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-semibold mb-1">Streamlined Client Approval</h3>
+                    <h3 className="font-semibold mb-1">Streamlined Approval Process</h3>
                     <p className="text-muted-foreground">
-                      Share BOQs with clients and get approvals directly in the platform. Track revisions and maintain
+                      Share BOQs with stakeholders and get approvals directly in the platform. Track revisions and maintain
                       clear communication throughout.
                     </p>
                   </div>
@@ -352,8 +352,8 @@ export default function Page() {
                   <div>
                     <h3 className="font-semibold mb-1">Visual Progress Tracking</h3>
                     <p className="text-muted-foreground">
-                      Keep everyone informed with photo albums organized by project phases. Document before, during, and
-                      after transformations.
+                      Keep everyone informed with photo albums organized by construction phases. Document before, during, and
+                      after progress.
                     </p>
                   </div>
                 </div>
@@ -377,7 +377,7 @@ export default function Page() {
                   <div className="relative aspect-3/4 rounded-2xl overflow-hidden border shadow-lg">
                     <Image
                       src="/modern-office-interior-with-ergonomic-furniture-an.jpg"
-                      alt="Modern office interior"
+                      alt="Kitchen construction"
                       fill
                       className="object-cover"
                     />
@@ -385,7 +385,7 @@ export default function Page() {
                   <div className="relative aspect-square rounded-2xl overflow-hidden border shadow-lg">
                     <Image
                       src="/office-meeting-room-interior-design-with-glass-wal.jpg"
-                      alt="Meeting room design"
+                      alt="Kitchen layout"
                       fill
                       className="object-cover"
                     />
@@ -395,7 +395,7 @@ export default function Page() {
                   <div className="relative aspect-square rounded-2xl overflow-hidden border shadow-lg">
                     <Image
                       src="/executive-office-interior-with-wooden-desk-and-lea.jpg"
-                      alt="Executive office"
+                      alt="Kitchen equipment"
                       fill
                       className="object-cover"
                     />
@@ -403,7 +403,7 @@ export default function Page() {
                   <div className="relative aspect-3/4 rounded-2xl overflow-hidden border shadow-lg">
                     <Image
                       src="/open-plan-office-workspace-with-collaborative-area.jpg"
-                      alt="Open plan office"
+                      alt="Construction workspace"
                       fill
                       className="object-cover"
                     />
@@ -420,10 +420,10 @@ export default function Page() {
       {/* CTA Section */}
       <section className="py-20 md:py-32 bg-primary text-primary-foreground">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to Transform Your Interior Design Business?</h2>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to Streamline Your MBG Kitchen Construction?</h2>
           <p className="text-lg opacity-90 max-w-2xl mx-auto mb-8">
-            Join interior designers who are already using IDBuild to deliver projects faster, more accurately, and with
-            better client satisfaction.
+            Join construction teams already using DapurCek to deliver kitchen projects faster, more accurately, and with
+            better coordination.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button size="lg" variant="secondary" className="w-full sm:w-auto gap-2" asChild>
@@ -449,7 +449,7 @@ export default function Page() {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <Logo />
-            <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} IDBuild. All rights reserved.</p>
+            <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} DapurCek. All rights reserved.</p>
             <div className="flex items-center gap-6">
               <Link href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Privacy Policy

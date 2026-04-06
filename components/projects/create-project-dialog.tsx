@@ -500,7 +500,7 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess, editProject
         <DialogHeader>
           <DialogTitle className="text-2xl">{editProject ? "Edit Project" : "Create New Project"}</DialogTitle>
           <DialogDescription>
-            {editProject ? "Update the project details" : "Add a new interior design project with complete details"}
+            {editProject ? "Update the project details" : "Add a new construction project with complete details"}
           </DialogDescription>
         </DialogHeader>
 

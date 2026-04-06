@@ -4,110 +4,110 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Updated to exact D+b Brand Colors from logo */
-  /* Primary: #008d52, Secondary: #f51126, Black: #0e1420 */
+  /* DapurCek Brand Colors — BGN Palette */
+  /* Primary: #071E49 (Dark Blue), Secondary: #92D05D (Green), Accent: #D1B06C (Gold), Light: #B5E0EA (Pastel Blue) */
   --background: oklch(0.99 0.005 120); /* #f9fafb */
-  --foreground: oklch(0.13 0.01 240); /* #0e1420 - Brand Black */
+  --foreground: oklch(0.16 0.03 250); /* #071E49 - Brand Dark Blue */
   --card: oklch(1 0 0); /* #ffffff */
-  --card-foreground: oklch(0.13 0.01 240);
+  --card-foreground: oklch(0.16 0.03 250);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.13 0.01 240);
+  --popover-foreground: oklch(0.16 0.03 250);
 
-  /* Primary: D+b Green #008d52 */
-  --primary: oklch(0.55 0.18 155);
+  /* Primary: BGN Dark Blue #071E49 */
+  --primary: oklch(0.25 0.06 250);
   --primary-foreground: oklch(1 0 0);
-  --primary-dark: oklch(0.48 0.18 155); /* Darker green */
-  --primary-light: oklch(0.63 0.15 155); /* Lighter green */
+  --primary-dark: oklch(0.2 0.06 250); /* Darker blue */
+  --primary-light: oklch(0.35 0.06 250); /* Lighter blue */
 
-  /* Secondary: D+b Red #f51126 */
-  --secondary: oklch(0.58 0.25 25);
-  --secondary-foreground: oklch(1 0 0);
+  /* Secondary: BGN Green #92D05D */
+  --secondary: oklch(0.78 0.17 130);
+  --secondary-foreground: oklch(0.16 0.03 250);
 
-  /* Accent: Brand Black #0e1420 */
-  --accent: oklch(0.15 0.01 240);
-  --accent-foreground: oklch(0.98 0.005 120);
+  /* Accent: BGN Gold #D1B06C */
+  --accent: oklch(0.76 0.1 80);
+  --accent-foreground: oklch(0.16 0.03 250);
 
   --muted: oklch(0.96 0.005 120);
   --muted-foreground: oklch(0.5 0.01 200);
 
-  --destructive: oklch(0.58 0.25 25); /* Using red */
+  --destructive: oklch(0.58 0.25 25); /* Red for errors */
   --destructive-foreground: oklch(1 0 0);
 
-  --success: oklch(0.55 0.18 155); /* Using green */
-  --warning: oklch(0.78 0.15 70);
+  --success: oklch(0.78 0.17 130); /* BGN Green */
+  --warning: oklch(0.76 0.1 80); /* BGN Gold */
 
   --border: oklch(0.92 0.005 240);
   --input: oklch(0.92 0.005 240);
-  --ring: oklch(0.55 0.18 155); /* Green focus ring */
+  --ring: oklch(0.25 0.06 250); /* Dark Blue focus ring */
 
-  --chart-1: oklch(0.55 0.18 155); /* Green */
-  --chart-2: oklch(0.58 0.25 25); /* Red */
-  --chart-3: oklch(0.15 0.01 240); /* Brand Black */
-  --chart-4: oklch(0.63 0.15 155); /* Light Green */
-  --chart-5: oklch(0.68 0.2 25); /* Light Red */
+  --chart-1: oklch(0.25 0.06 250); /* Dark Blue */
+  --chart-2: oklch(0.78 0.17 130); /* Green */
+  --chart-3: oklch(0.76 0.1 80); /* Gold */
+  --chart-4: oklch(0.82 0.08 200); /* Pastel Blue */
+  --chart-5: oklch(0.58 0.25 25); /* Red */
 
   --radius: 0.75rem;
 
   --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.13 0.01 240);
-  --sidebar-primary: oklch(0.55 0.18 155); /* Green */
+  --sidebar-foreground: oklch(0.16 0.03 250);
+  --sidebar-primary: oklch(0.25 0.06 250); /* Dark Blue */
   --sidebar-primary-foreground: oklch(1 0 0);
   --sidebar-accent: oklch(0.96 0.005 120);
-  --sidebar-accent-foreground: oklch(0.13 0.01 240);
+  --sidebar-accent-foreground: oklch(0.16 0.03 250);
   --sidebar-border: oklch(0.92 0.005 240);
-  --sidebar-ring: oklch(0.55 0.18 155); /* Green */
+  --sidebar-ring: oklch(0.25 0.06 250); /* Dark Blue */
 }
 
 .dark {
-  /* Updated dark mode colors to match brand */
-  --background: oklch(0.13 0.005 240); /* Brand Black base */
+  /* DapurCek Dark Mode — BGN Palette */
+  --background: oklch(0.16 0.01 250); /* Dark Blue base */
   --foreground: oklch(0.96 0.005 120);
-  --card: oklch(0.18 0.005 240);
+  --card: oklch(0.2 0.01 250);
   --card-foreground: oklch(0.96 0.005 120);
-  --popover: oklch(0.18 0.005 240);
+  --popover: oklch(0.2 0.01 250);
   --popover-foreground: oklch(0.96 0.005 120);
 
-  /* Primary: Brighter green for dark mode */
-  --primary: oklch(0.63 0.18 155);
-  --primary-foreground: oklch(0.13 0.005 240);
-  --primary-dark: oklch(0.55 0.18 155);
-  --primary-light: oklch(0.7 0.15 155);
+  /* Primary: Brighter blue for dark mode */
+  --primary: oklch(0.55 0.12 250);
+  --primary-foreground: oklch(0.98 0.005 120);
+  --primary-dark: oklch(0.45 0.1 250);
+  --primary-light: oklch(0.65 0.1 250);
 
-  /* Secondary: Brighter red for dark mode */
-  --secondary: oklch(0.68 0.25 25);
-  --secondary-foreground: oklch(0.13 0.005 240);
+  /* Secondary: Brighter green for dark mode */
+  --secondary: oklch(0.82 0.17 130);
+  --secondary-foreground: oklch(0.16 0.01 250);
 
-  /* Accent: Lighter for dark mode */
-  --accent: oklch(0.25 0.01 240);
-  --accent-foreground: oklch(0.96 0.005 120);
+  /* Accent: Brighter gold for dark mode */
+  --accent: oklch(0.8 0.1 80);
+  --accent-foreground: oklch(0.16 0.01 250);
 
-  --muted: oklch(0.25 0.01 240);
+  --muted: oklch(0.25 0.01 250);
   --muted-foreground: oklch(0.7 0.01 200);
 
   --destructive: oklch(0.68 0.25 25);
   --destructive-foreground: oklch(0.96 0.005 120);
 
-  --success: oklch(0.63 0.18 155);
-  --warning: oklch(0.78 0.15 70);
+  --success: oklch(0.82 0.17 130);
+  --warning: oklch(0.8 0.1 80);
 
-  --border: oklch(0.25 0.005 240);
-  --input: oklch(0.25 0.005 240);
-  --ring: oklch(0.63 0.18 155); /* Green */
+  --border: oklch(0.28 0.005 250);
+  --input: oklch(0.28 0.005 250);
+  --ring: oklch(0.55 0.12 250); /* Blue */
 
-  --chart-1: oklch(0.63 0.18 155); /* Green */
-  --chart-2: oklch(0.68 0.25 25); /* Red */
-  --chart-3: oklch(0.35 0.01 240);
-  --chart-4: oklch(0.7 0.15 155); /* Light Green */
-  --chart-5: oklch(0.75 0.2 25); /* Light Red */
+  --chart-1: oklch(0.55 0.12 250); /* Blue */
+  --chart-2: oklch(0.82 0.17 130); /* Green */
+  --chart-3: oklch(0.8 0.1 80); /* Gold */
+  --chart-4: oklch(0.82 0.08 200); /* Pastel Blue */
+  --chart-5: oklch(0.68 0.25 25); /* Red */
 
-  --sidebar: oklch(0.13 0.005 240);
+  --sidebar: oklch(0.16 0.01 250);
   --sidebar-foreground: oklch(0.96 0.005 120);
-  --sidebar-primary: oklch(0.63 0.18 155); /* Green */
-  --sidebar-primary-foreground: oklch(0.13 0.005 240);
-  --sidebar-accent: oklch(0.25 0.01 240);
+  --sidebar-primary: oklch(0.55 0.12 250); /* Blue */
+  --sidebar-primary-foreground: oklch(0.98 0.005 120);
+  --sidebar-accent: oklch(0.25 0.01 250);
   --sidebar-accent-foreground: oklch(0.96 0.005 120);
-  --sidebar-border: oklch(0.25 0.005 240);
-  --sidebar-ring: oklch(0.63 0.18 155); /* Green */
+  --sidebar-border: oklch(0.28 0.005 250);
+  --sidebar-ring: oklch(0.55 0.12 250); /* Blue */
 }
 
 @theme inline {

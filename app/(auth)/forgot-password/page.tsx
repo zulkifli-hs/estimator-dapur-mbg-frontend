@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { forgotPassword } from "@/lib/api/auth"
-import { GemaLogo } from "@/components/gema-logo"
+import { DapurCekLogo } from "@/components/dapurcek-logo"
 import { ArrowLeft, CheckCircle } from "lucide-react"
 
 export default function ForgotPasswordPage() {
@@ -53,15 +53,15 @@ export default function ForgotPasswordPage() {
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
 
         <div className="relative z-10">
-          <GemaLogo className="h-8" />
+          <DapurCekLogo className="h-8" />
         </div>
 
         <div className="relative z-10 space-y-6 max-w-lg">
           <div className="space-y-4">
             <h2 className="text-3xl font-bold">Reset your password</h2>
             <p className="text-lg text-muted-foreground">
-              Forgot your password? Don't worry. We'll help you reset it and get back to managing your interior design
-              projects.
+              Forgot your password? Don't worry. We'll help you reset it and get back to monitoring your MBG kitchen
+              construction projects.
             </p>
           </div>
 
@@ -88,7 +88,7 @@ export default function ForgotPasswordPage() {
         </div>
 
         <div className="relative z-10">
-          <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} IDBuild. All rights reserved.</p>
+          <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} DapurCek. All rights reserved.</p>
         </div>
       </div>
 
@@ -97,7 +97,7 @@ export default function ForgotPasswordPage() {
         <div className="w-full max-w-md space-y-6">
           {/* Mobile Logo */}
           <div className="lg:hidden flex justify-center mb-6">
-            <GemaLogo className="h-10" />
+            <DapurCekLogo className="h-10" />
           </div>
 
           <Card className="border-0 shadow-lg">

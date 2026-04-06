@@ -1,6 +1,6 @@
-# D+b Interior Design — Frontend
+# DapurCek — Frontend
 
-Web application frontend for the **D+b Interior Design** project management platform, built with Next.js 16 and React 19.
+Web application frontend for the **DapurCek** MBG kitchen construction monitoring platform, built with Next.js 16 and React 19.
 
 ---
 
@@ -64,7 +64,7 @@ BASIC_AUTH_PASSWORD=your_password
 
 | Variable | Scope | Description | Default |
 |---|---|---|---|
-| `NEXT_PUBLIC_API_BASE_URL` | Client + Server | Backend API base URL | `https://api.gema-interior.com` |
+| `NEXT_PUBLIC_API_BASE_URL` | Client + Server | Backend API base URL | `https://api.dapurcek.id` |
 | `NEXT_PUBLIC_BASIC_AUTH_USERNAME` | Client | Username for basic auth on client-side API requests | — |
 | `NEXT_PUBLIC_BASIC_AUTH_PASSWORD` | Client | Password for basic auth on client-side API requests | — |
 | `BASIC_AUTH_USERNAME` | Server only | Username for basic auth used by the upload proxy API route | — |

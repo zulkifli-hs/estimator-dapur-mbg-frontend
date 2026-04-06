@@ -313,7 +313,7 @@ export default function ProjectsPage() {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Projects</h1>
-          <p className="text-muted-foreground">Manage and track all your interior design projects</p>
+          <p className="text-muted-foreground">Manage and track all your MBG kitchen construction projects</p>
         </div>
         <Button onClick={() => setCreateDialogOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />

@@ -1016,7 +1016,7 @@ export function ProjectProgress({ projectId, project }: ProjectProgressProps) {
                                   size="icon"
                                   onClick={() => {
                                     const d = (termin as any).bastDocument
-                                    const base = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.gema-interior.com"
+                                    const base = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.dapurcek.id"
                                     window.open(`${base}/public/${d.provider}/${d.url}`, "_blank")
                                   }}
                                   title={`Preview ${termin.category} document`}
@@ -1028,7 +1028,7 @@ export function ProjectProgress({ projectId, project }: ProjectProgressProps) {
                                   size="icon"
                                   onClick={() => {
                                     const d = (termin as any).bastDocument
-                                    const base = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.gema-interior.com"
+                                    const base = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.dapurcek.id"
                                     window.open(`${base}/public/${d.provider}/${d.url}`, "_blank")
                                   }}
                                   title={`Download ${termin.category} document`}

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.gema-interior.com"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.dapurcek.id"
 const BASIC_AUTH_USERNAME = process.env.BASIC_AUTH_USERNAME || ""
 const BASIC_AUTH_PASSWORD = process.env.BASIC_AUTH_PASSWORD || ""
 

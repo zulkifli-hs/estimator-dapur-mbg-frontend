@@ -50,7 +50,7 @@ function formatDayDate(date: Date): string {
 }
 
 function buildInitialData(termin: any, project: any): BastCertificateData {
-  const contractorName = project?.companyOwner?.name || "PT. Gema Intermulia Sejahtera"
+  const contractorName = project?.companyOwner?.name || "DapurCek"
   const clientName = project?.companyClient?.name || ""
   const projectName = project?.name || ""
   const building = project?.building || ""
@@ -83,12 +83,9 @@ function buildInitialData(termin: any, project: any): BastCertificateData {
     acceptanceByName: "",
     acceptanceByRole: "",
     headerLines: [
-      "PT GEMA INTERMULIA SEJAHTERA",
-      "Jl. Bendungan Hilir Raya No. 76",
-      "Jakarta, Indonesia. 10220",
-      "P: (021) 5737270, 5737201",
-      "E: gis@gemaintermulia.co.id",
-      "www.gemaintermulia.co.id",
+      "DapurCek — dapurcek.id",
+      "MBG Kitchen Construction Monitoring",
+      "Platform",
     ],
   }
 }

@@ -24,7 +24,7 @@ export default function AIAssistantPage() {
       id: "1",
       role: "assistant",
       content:
-        "Hello! I'm your AI assistant for IDBuild Interior Design. I can help you with project summaries, document analysis, and answer questions about your projects. How can I assist you today?",
+        "Hello! I'm your AI assistant for DapurCek MBG Kitchen Construction. I can help you with project summaries, document analysis, and answer questions about your projects. How can I assist you today?",
       timestamp: new Date(),
     },
   ])
@@ -102,7 +102,7 @@ export default function AIAssistantPage() {
                   <Bot className="h-6 w-6 text-primary" />
                 </div>
                 <div>
-                  <CardTitle>IDBuild Assistant</CardTitle>
+                  <CardTitle>DapurCek Assistant</CardTitle>
                   <CardDescription>Powered by advanced AI technology</CardDescription>
                 </div>
               </div>

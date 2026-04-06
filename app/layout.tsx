@@ -9,8 +9,8 @@ const inter = Inter({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "D+b Interior Design",
-  description: "Professional Interior Design & Build Project Management Platform",
+  title: "DapurCek",
+  description: "MBG Kitchen Construction Monitoring Platform — dapurcek.id",
   generator: "v0.app",
   icons: {
     icon: [
@@ -29,7 +29,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} font-sans antialiased`}>
-        <ThemeProvider defaultTheme="light" storageKey="db-ui-theme">
+        <ThemeProvider defaultTheme="light" storageKey="dapurcek-ui-theme">
           {children}
           <Toaster />
         </ThemeProvider>

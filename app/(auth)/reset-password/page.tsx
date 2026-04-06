@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { resetPassword } from "@/lib/api/auth"
-import { GemaLogo } from "@/components/gema-logo"
+import { DapurCekLogo } from "@/components/dapurcek-logo"
 import { ArrowLeft, CheckCircle, Eye, EyeOff } from "lucide-react"
 
 function ResetPasswordContent() {
@@ -65,7 +65,7 @@ function ResetPasswordContent() {
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
 
         <div className="relative z-10">
-          <GemaLogo className="h-8" />
+          <DapurCekLogo className="h-8" />
         </div>
 
         <div className="relative z-10 space-y-6 max-w-lg">
@@ -99,7 +99,7 @@ function ResetPasswordContent() {
         </div>
 
         <div className="relative z-10">
-          <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} IDBuild. All rights reserved.</p>
+          <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} DapurCek. All rights reserved.</p>
         </div>
       </div>
 
@@ -108,7 +108,7 @@ function ResetPasswordContent() {
         <div className="w-full max-w-md space-y-6">
           {/* Mobile Logo */}
           <div className="lg:hidden flex justify-center mb-6">
-            <GemaLogo className="h-10" />
+            <DapurCekLogo className="h-10" />
           </div>
 
           <Card className="border-0 shadow-lg">

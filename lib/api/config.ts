@@ -1,5 +1,5 @@
 // API Configuration
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.gema-interior.com"
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.dapurcek.id"
 
 // Get auth token from localStorage (client-side only)
 export const getAuthToken = (): string | null => {

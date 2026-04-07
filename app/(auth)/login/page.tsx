@@ -72,7 +72,9 @@ export default function LoginPage() {
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
 
         <div className="relative z-10">
-          <DapurCekLogo className="h-8" />
+          <Link href="/">
+            <DapurCekLogo className="h-8" />
+          </Link>
         </div>
 
         <div className="relative z-10 space-y-6 max-w-lg">

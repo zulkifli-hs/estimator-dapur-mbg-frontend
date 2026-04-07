@@ -135,8 +135,8 @@ export default function Page() {
       <div className="relative overflow-hidden">
         <div className="absolute inset-0">
           <Image
-            src="/modern-office-interior-design-workspace-with-clean.jpg"
-            alt="MBG Kitchen Construction"
+            src="/dapur-pabrik-hero.jpg"
+            alt="Dapur pabrik bersih untuk program Makan Bergizi Gratis"
             fill
             className="object-cover opacity-10"
             priority
@@ -204,8 +204,8 @@ export default function Page() {
               <div className="relative aspect-square max-w-lg mx-auto">
                 <div className="absolute inset-0 bg-linear-to-br from-primary/20 to-primary/5 rounded-3xl" />
                 <Image
-                  src="/professional-interior-designer-working-on-office-l.jpg"
-                  alt="MBG Kitchen Construction"
+                  src="/dapur-pabrik-b.jpg"
+                  alt="Karyawan bekerja di dapur pabrik makanan yang bersih dan higienis"
                   fill
                   className="object-cover p-8 rounded-3xl"
                 />
@@ -249,7 +249,7 @@ export default function Page() {
 
           <div className="mb-16 relative rounded-2xl overflow-hidden border shadow-xl">
             <Image
-              src="/images/screenshot-202025-12-19-20at-2022.png"
+              src="/images/ss-project.png"
               alt="DapurCek Dashboard"
               width={1200}
               height={600}
@@ -376,16 +376,16 @@ export default function Page() {
                 <div className="space-y-4">
                   <div className="relative aspect-3/4 rounded-2xl overflow-hidden border shadow-lg">
                     <Image
-                      src="/modern-office-interior-with-ergonomic-furniture-an.jpg"
-                      alt="Kitchen construction"
+                    src="/dapur-pabrik-sidebar.jpg"
+                    alt="Pekerja pabrik makanan dengan peralatan higienis"
                       fill
                       className="object-cover"
                     />
                   </div>
                   <div className="relative aspect-square rounded-2xl overflow-hidden border shadow-lg">
                     <Image
-                      src="/office-meeting-room-interior-design-with-glass-wal.jpg"
-                      alt="Kitchen layout"
+                    src="/siswa-makan-kantin.jpg"
+                    alt="Siswa sekolah makan siang bersama di kantin"
                       fill
                       className="object-cover"
                     />
@@ -394,16 +394,16 @@ export default function Page() {
                 <div className="space-y-4 pt-8">
                   <div className="relative aspect-square rounded-2xl overflow-hidden border shadow-lg">
                     <Image
-                      src="/executive-office-interior-with-wooden-desk-and-lea.jpg"
-                      alt="Kitchen equipment"
+                    src="/dapur-pabrik-a.jpg"
+                    alt="Tim produksi makanan di dapur pabrik yang steril"
                       fill
                       className="object-cover"
                     />
                   </div>
                   <div className="relative aspect-3/4 rounded-2xl overflow-hidden border shadow-lg">
                     <Image
-                      src="/open-plan-office-workspace-with-collaborative-area.jpg"
-                      alt="Construction workspace"
+                    src="/siswa-makan-lunch.jpg"
+                    alt="Anak-anak menikmati makan bergizi di sekolah"
                       fill
                       className="object-cover"
                     />
